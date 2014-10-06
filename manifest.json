@@ -1,0 +1,30 @@
+{
+    "manifest_version": 2,
+    "name": "BioMio",
+    "description": "This extension will allow you to encrypt/decrypt your emails",
+    "version": "1.0",
+
+
+    "background": {
+        "persistent": true,
+        "scripts": ["jquery-1.11.1.min.js", "background.js", "gmail.js"]
+    },
+
+    "content_scripts": [
+        {
+            "matches": ["<all_urls>"],
+            "js": ["contentscript.js", "jquery-1.11.1.min.js", "background.js", "gmail.js"]
+        }
+    ],
+
+    "permissions": [
+        "webRequest",
+        "tabs",
+        "storage",
+        "unlimitedStorage",
+        "http://*/*",
+        "https://*/*",
+        "contextMenus",
+        "cookies"
+    ]
+}
