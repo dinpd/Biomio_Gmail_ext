@@ -16,11 +16,27 @@ window.onload = function () {
         if (event.data.type && (event.data.type == "show_email_address")) {
             port.postMessage({ type: "show_email_address_background", data: event.data.data});
         }
-        else if(event.data.type && (event.data.type == "show_email_details")){
+        else if (event.data.type && (event.data.type == "show_email_details")) {
             port.postMessage({ type: "show_email_details_background", data: event.data.data});
+        } else if (event.data.type && (event.data.type == "test_encrypt_sign")) {
+            console.log(event.data.data);
+            port.postMessage(event.data.data);
+        } else if (event.data.type && (event.data.type == "encrypted_body")) {
+            console.log('contentscript - encrypted_body');
+        } else if (event.data.type && (event.data.type == "decrypt_message")) {
+            console.log(event.data.data);
+            port.postMessage(event.data.data);
         }
     }, false);
-
+    port.onMessage.addListener(function (message) {
+        console.log(message);
+        window.postMessage(message, '*');
+    });
+//    chrome.runtime.onMessage.addListener(function(request, sender){
+//        if(request.command == 'encrypted_body'){
+//            window.postMessage({"type": "encrypted_body", "data": "encrypted_body"}, '*');
+//        }
+//    });
     //var button = '<input type="checkbox" selected="selected" value="EXAMPLE!" class="aaA aWZ">';
 //    $('.T-I.J-J5-Ji.T-I-KE.L3').on('click', function(){
 //        console.log('ccc');
