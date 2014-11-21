@@ -171,11 +171,30 @@ function decryptMessage(event) {
     var emailBody = $('.' + currentTarget.attr('data-biomio-bodyattr').split('_').join('.'));
     var viewEntireEmailLink = emailBody.find('a[href*="?ui"]');
     if(viewEntireEmailLink.length){
-        $.get(viewEntireEmailLink.attr('href'), function(data){
-            var emailBodyHtml = $(data).find('div[dir="ltr"]').html().replace(/BioMio v1.0<br>/g, 'BioMio v1.0').split('BioMio v1.0').join('BioMio v1.0<br>');
-            emailBody.html(emailBodyHtml);
-            sendDecryptMessage(currentTarget, emailBody);
-        });
+        $('#show_loading').show();
+        $('#show_popup').show();
+        $('#progressbar').progressbar({value: 0});
+        $.ajax(
+            {
+                type: 'GET',
+                url: viewEntireEmailLink.attr('href'),
+                xhr: function(){
+                    var xhr = new window.XMLHttpRequest();
+                    xhr.addEventListener("progress", function(evt){
+                        var total_value = xhr.getResponseHeader('content-length') * 1.5;
+                        $('#progressbar').progressbar("value", (evt.loaded / total_value) * 100);
+                    }, false);
+                    return xhr;
+                },
+                success: function(data){
+                    var emailBodyHtml = $(data).find('div[dir="ltr"]').html().replace(/BioMio v1.0<br>/g, 'BioMio v1.0').split('BioMio v1.0').join('BioMio v1.0<br>');
+                    emailBody.html(emailBodyHtml);
+                    $('#show_loading').hide();
+                    $('#show_popup').hide();
+                    sendDecryptMessage(currentTarget, emailBody);
+                }
+            }
+        );
     }else{
         sendDecryptMessage(currentTarget, emailBody);
     }

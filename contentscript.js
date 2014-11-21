@@ -1,8 +1,33 @@
 window.onload = function () {
 
+    var overlay_element = document.createElement('div');
+    overlay_element.className  = "black_overlay";
+    overlay_element.id = "show_loading";
+    var popup_element = document.createElement('div');
+    popup_element.className  = "white_content";
+    popup_element.id = 'show_popup';
+    var progressbar_el = document.createElement('div');
+    progressbar_el.id = "progressbar";
+    popup_element.appendChild(progressbar_el);
+    var wait_message = document.createElement('p');
+    wait_message.className  = "wait_message";
+    wait_message.innerHTML  = "Please wait, we are getting the content of your email to decrypt it....";
+    popup_element.appendChild(wait_message);
+    document.getElementsByTagName('body')[0].appendChild(overlay_element);
+    document.getElementsByTagName('body')[0].appendChild(popup_element);
+
     var jq = document.createElement('script');
     jq.src = chrome.extension.getURL("jquery-1.11.1.js");
-    document.getElementsByTagName('body')[0].appendChild(jq)
+    document.getElementsByTagName('body')[0].appendChild(jq);
+
+    var jq_ui = document.createElement('script');
+    jq_ui.src = '//code.jquery.com/ui/1.11.2/jquery-ui.js';
+    document.getElementsByTagName('body')[0].appendChild(jq_ui);
+
+    var jq_ui_css = document.createElement('link');
+    jq_ui_css.setAttribute('rel', 'stylesheet');
+    jq_ui_css.setAttribute('href', '//code.jquery.com/ui/1.11.2/themes/smoothness/jquery-ui.css');
+    document.getElementsByTagName('body')[0].appendChild(jq_ui_css);
 
     var sm = document.createElement('script');
     sm.src = chrome.extension.getURL("gmail.js");
@@ -32,19 +57,4 @@ window.onload = function () {
         console.log(message);
         window.postMessage(message, '*');
     });
-//    chrome.runtime.onMessage.addListener(function(request, sender){
-//        if(request.command == 'encrypted_body'){
-//            window.postMessage({"type": "encrypted_body", "data": "encrypted_body"}, '*');
-//        }
-//    });
-    //var button = '<input type="checkbox" selected="selected" value="EXAMPLE!" class="aaA aWZ">';
-//    $('.T-I.J-J5-Ji.T-I-KE.L3').on('click', function(){
-//        console.log('ccc');
-//        var tool_bar = $('.aWQ:not([data-biomio])');
-//        setTimeout(function(){
-//            tool_bar.prepend(button);
-//            tool_bar.attr('data-biomio', 'true');
-//        }, 1000);
-//    });
-//    $('.aWQ').elem.prepend(button);
-}
+};
