@@ -11,7 +11,6 @@ window.onload = function () {
     popup_element.appendChild(progressbar_el);
     var wait_message = document.createElement('p');
     wait_message.className  = "wait_message";
-    wait_message.innerHTML  = "Please wait, we are getting the content of your email to decrypt it....";
     popup_element.appendChild(wait_message);
     document.getElementsByTagName('body')[0].appendChild(overlay_element);
     document.getElementsByTagName('body')[0].appendChild(popup_element);
