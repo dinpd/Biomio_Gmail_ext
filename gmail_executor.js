@@ -99,14 +99,18 @@ var initializeGmailJS = function () {
         }
     });
 
-    gmail.observe.on("discard_draft", function(id, url, body, xhr) {
-        console.log(encryptedFiles);
-        console.log("id:", id, "url:", url, 'body', body, 'xhr', xhr);
-        console.log(encryptedFiles);
-        if(id in encryptedFiles){
-            delete encryptedFiles[id];
+    gmail.observe.after("discard_draft", function() {
+        var encryptedFilesKeys = Object.keys(encryptedFiles);
+        var compose_ids = [];
+        var composes = gmail.dom.composes();
+        for(var i = 0; i < composes.length; i++){
+            compose_ids.push(composes[i].id());
         }
-        console.log(encryptedFiles);
+        for(var j = 0; j < encryptedFilesKeys.length; j++){
+            if($.inArray(encryptedFilesKeys[j], compose_ids) == -1){
+                delete encryptedFiles[encryptedFilesKeys[j]];
+            }
+        }
     });
 
     gmail.observe.on('view_thread', function (match) {
