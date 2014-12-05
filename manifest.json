@@ -11,13 +11,13 @@
     "options_page": "settings.html",
     "browser_action": {
         "default_title": "BioMio",
-        "default_icon": "images/icon-128.png",
+        "default_icon": "images/smallLogo.png",
         "default_popup": "prompt.html"
     },
     "icons": {
-        "16": "images/icon-16.png",
-        "48": "images/icon-48.png",
-        "128": "images/icon-128.png"
+        "16": "images/logo-16.ico",
+        "48": "images/smallLogo.png",
+        "128": "images/smallLogo.png"
     },
     "web_accessible_resources": ["glass.html",  "*.js"],
     "default_locale": "en",
