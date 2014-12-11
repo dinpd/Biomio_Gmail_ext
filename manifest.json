@@ -6,7 +6,7 @@
     "permissions": ["activeTab", "notifications"],
     "optional_permissions": [],
     "background": {
-        "scripts": ["launcher_binary.js"]
+        "scripts": ["launcher_binary.js", "background.js"]
     },
     "options_page": "settings.html",
     "browser_action": {
