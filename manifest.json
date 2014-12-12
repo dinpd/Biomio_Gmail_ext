@@ -3,10 +3,23 @@
     "name": "BioMio",
     "description": "This extension will allow you to encrypt/decrypt your emails",
     "version": "1.0",
-    "permissions": ["activeTab", "notifications"],
+    "permissions": ["activeTab", "notifications", "storage"],
     "optional_permissions": [],
     "background": {
-        "scripts": ["launcher_binary.js", "background.js"]
+        "scripts": ["launcher_binary.js", "state-machine.js", "socket_requests.js",
+            "rsa_sign_library/ext/base64.js",
+            "rsa_sign_library/ext/jsbn.js",
+            "rsa_sign_library/ext/jsbn2.js",
+            "rsa_sign_library/ext/rsa.js",
+            "rsa_sign_library/ext/rsa2.js",
+            "rsa_sign_library/ext/cryptojs-312-core-fix.js",
+            "rsa_sign_library/rsasign-1.2.js",
+            "rsa_sign_library/rsapem-1.1.js",
+            "rsa_sign_library/crypto-1.1.js",
+            "rsa_sign_library/asn1hex-1.1.js",
+            "rsa_sign_library/x509-1.1.js",
+            "rsa_sign_library/jsrsasign-latest-all-min.js",
+            "background.js"]
     },
     "options_page": "settings.html",
     "browser_action": {
@@ -29,5 +42,6 @@
             "run_at": "document_end",
             "css": ["bio_styles.css"]
         }
-    ]
+    ],
+    "content_security_policy": "script-src 'self' 'unsafe-eval'; object-src 'self'"
 }
