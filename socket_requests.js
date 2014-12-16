@@ -54,33 +54,38 @@ var REGULAR_DIGEST_REQUEST = {
     header: REQUEST_HEADER
 };
 
-function getHandshakeRequest(secret){
+function getHandshakeRequest(secret) {
     var request = REGULAR_REQUEST;
-    if(typeof secret !== 'undefined'){
+    if (typeof secret !== 'undefined') {
         request = REGISTRATION_REQUEST;
         request.msg.secret = secret;
     }
     return JSON.stringify(request);
 }
 
-function getDigestRequest(key, token){
+function getDigestRequest(key, token) {
     var request = REGULAR_DIGEST_REQUEST;
     request.msg.key = key;
     request.header.token = token;
-    return JSON.stringify(request);
+    request = JSON.stringify(request.msg);
+    request = '{"msg":' + request + ',"header":' + getHeaderString(token) + '}';
+    return request;
 }
 
-function getReadyRequest(request, token){
+function getReadyRequest(request, token) {
     request.header.token = token;
     return JSON.stringify(request);
 }
 
-function increaseRequestCounter(){
+function increaseRequestCounter() {
     REQUEST_HEADER.seq += 2;
 }
 
-function getHeaderString(token){
+function getHeaderString(token) {
     var header = REQUEST_HEADER;
     header.token = token;
-    return JSON.stringify(header);
+    header = '{"oid":"' + header.oid + '","seq":' + header.seq + ',"protoVer":"'
+    + header.protoVer + '","id":"' + header.id + '","appId":"' + header.appId
+    + '","osId":"' + header.osId + '","devId":"' + header.devId + '","token":"' + header.token + '"}';
+    return header;
 }

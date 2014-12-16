@@ -134,7 +134,7 @@ var onReady = function (event, from, to, msg) {
         var rsa = new RSAKey();
         rsa.readPrivateKeyFromPEMString(user_info.rsa_private_key);
         console.log(getHeaderString(user_info.token));
-        var hSig = rsa.signString(/*getHeaderString(user_info.token)*/"Neque porro quisquam est qui dolorem ipsum quia dolor sit amet, consectetur, adipisci velit...", 'sha1');
+        var hSig = rsa.signString(getHeaderString(user_info.token), 'sha1');
         console.log(hSig);
         socket_connection.send(getDigestRequest(hSig, user_info.token));
     }
