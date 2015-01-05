@@ -14,7 +14,8 @@ var STATE_REGULAR_HANDSHAKE = 'regular_handshake';
 var STATE_READY = 'connection_ready';
 var STATE_DISCONNECTED = 'disconnected';
 var socket_connection;
-var SERVER_URL = "wss://gb.vakoms.com:8080/websocket";
+//var SERVER_URL = "wss://gb.vakoms.com:8080/websocket";
+var SERVER_URL = "wss://localhost:8080/websocket";
 var STORAGE_RSA_KEY = 'biomio_private_key';
 var user_info = {};
 
@@ -23,6 +24,9 @@ var session_alive_interval;
 var refresh_token_interval;
 
 var iterations = 0;
+
+var CURRENT_EMAIL_TEST = 'andriy.lobashchuk@vakoms.com';
+var RECIPIENT_EMAIL_TEST = 'orrionandi@gmail.com';
 
 var keepAlive = function () {
     session_alive_interval = setInterval(function () {
@@ -33,11 +37,25 @@ var keepAlive = function () {
         } else {
             clearInterval(session_alive_interval);
         }
-        if (iterations > 3) {
+        if (iterations == 2) {
+            sendRpcRequest(RPC_GET_PASS_PHRASE_METHOD, {'email': CURRENT_EMAIL_TEST});
+        }
+        if(iterations == 4){
+            sendRpcRequest(RPC_GET_PUBLIC_KEY_METHOD, {'email': RECIPIENT_EMAIL_TEST});
+        }
+        if (iterations > 6){
             socket_connection.close();
         }
     }, (SOCKET_CONNECTION_TIMEOUT - 2000));
 };
+
+function sendRpcRequest(method, keyValueDict){
+    if(state_machine.is(STATE_READY)){
+        socket_connection.send(getRpcRequest(user_info.token, method, keyValueDict));
+    }else{
+        console.log("Message cannot be sent, because state machine is currently in state: ", state_machine.current);
+    }
+}
 
 var refresh_token = function () {
     refresh_token_interval = setInterval(function () {
@@ -97,6 +115,27 @@ var socketOnMessage = function (event) {
             user_info.token = data.header.token;
             clearInterval(refresh_token_interval);
             refresh_token();
+        }else if(data.msg.oid == 'rpcResp'){
+            var dataResp = data.msg.data;
+            if(dataResp.keys.indexOf('error') > -1){
+                console.log('Error received from rpc method: ', dataResp.values[0]);
+            }else{
+                if(data.msg.call == RPC_GET_PASS_PHRASE_METHOD){
+                    console.log('=======================================');
+                    console.log('Received data from ' + RPC_GET_PASS_PHRASE_METHOD + ' method: ');
+                    for(var i = 0; i < dataResp.keys.length; i++){
+                        console.log(dataResp.keys[i], dataResp.values[i]);
+                    }
+                    console.log('=======================================');
+                }else if(data.msg.call == RPC_GET_PUBLIC_KEY_METHOD){
+                    console.log('=======================================');
+                    console.log('Received data from ' + RPC_GET_PUBLIC_KEY_METHOD + ' method: ');
+                    for(var i = 0; i < dataResp.keys.length; i++){
+                        console.log(dataResp.keys[i], dataResp.values[i]);
+                    }
+                    console.log('=======================================');
+                }
+            }
         }
     }
 };

@@ -1,10 +1,14 @@
 var PROTO_VERSION = "1.0";
-var APP_ID = 'app id';
+var APP_ID = 'abcsd';
 var OS_ID = 'os id';
 var ID = 'id';
 var HEADER_OID = 'clientHeader';
 var DEV_ID = 'extension';
 var SOCKET_CONNECTION_TIMEOUT = 10000;
+var RPC_NAMESPACE = 'extension_test_plugin';
+
+var RPC_GET_PASS_PHRASE_METHOD = 'get_pass_phrase';
+var RPC_GET_PUBLIC_KEY_METHOD = 'get_user_public_pgp_key';
 
 var REQUEST_HEADER = {
     protoVer: PROTO_VERSION,
@@ -14,6 +18,19 @@ var REQUEST_HEADER = {
     osId: OS_ID,
     id: ID,
     devId: DEV_ID
+};
+
+var RPC_REQUEST = {
+    msg: {
+        oid: 'rpcReq',
+        namespace: RPC_NAMESPACE,
+        call: 'STRING_METHOD_NAME',
+        data: {
+            keys: [],
+            values: []
+        }
+    },
+    header: REQUEST_HEADER
 };
 
 var REGISTRATION_REQUEST = {
@@ -88,4 +105,17 @@ function getHeaderString(token) {
     + header.protoVer + '","id":"' + header.id + '","appId":"' + header.appId
     + '","osId":"' + header.osId + '","devId":"' + header.devId + '","token":"' + header.token + '"}';
     return header;
+}
+
+function getRpcRequest(token, method, keyValueDict){
+    var request = RPC_REQUEST;
+    request.header.token = token;
+    request.msg.call = method;
+    for(var key in keyValueDict){
+        if(keyValueDict.hasOwnProperty(key)){
+            request.msg.data.keys.push(key);
+            request.msg.data.values.push(keyValueDict[key]);
+        }
+    }
+    return JSON.stringify(request);
 }
