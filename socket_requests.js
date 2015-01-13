@@ -71,6 +71,13 @@ var REGULAR_DIGEST_REQUEST = {
     header: REQUEST_HEADER
 };
 
+var BYE_REQUEST = {
+    msg: {
+        oid: "bye"
+    },
+    header: REQUEST_HEADER
+};
+
 function getHandshakeRequest(secret) {
     var request = REGULAR_REQUEST;
     if (typeof secret !== 'undefined') {
@@ -89,7 +96,7 @@ function getDigestRequest(key, token) {
     return request;
 }
 
-function getReadyRequest(request, token) {
+function getCustomRequest(request, token) {
     request.header.token = token;
     return JSON.stringify(request);
 }

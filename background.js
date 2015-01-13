@@ -32,7 +32,7 @@ var keepAlive = function () {
     session_alive_interval = setInterval(function () {
         console.log('keepAlive');
         if (state_machine.is(STATE_READY)) {
-            socket_connection.send(getReadyRequest(NOP_REQUEST, user_info.token));
+            socket_connection.send(getCustomRequest(NOP_REQUEST, user_info.token));
             iterations++;
         } else {
             clearInterval(session_alive_interval);
@@ -44,7 +44,7 @@ var keepAlive = function () {
             sendRpcRequest(RPC_GET_PUBLIC_KEY_METHOD, {'email': RECIPIENT_EMAIL_TEST});
         }
         if (iterations > 6){
-            socket_connection.close();
+            socket_connection.disconnect('WebSocket connection closed: Url - ' + socket_connection.url);
         }
     }, (SOCKET_CONNECTION_TIMEOUT - 2000));
 };
@@ -61,7 +61,7 @@ var refresh_token = function () {
     refresh_token_interval = setInterval(function () {
         console.log('refresh TOKEN');
         if (state_machine.is(STATE_READY)) {
-            socket_connection.send(getReadyRequest(NOP_REQUEST, user_info.refresh_token));
+            socket_connection.send(getCustomRequest(NOP_REQUEST, user_info.refresh_token));
         } else {
             clearInterval(refresh_token_interval);
         }
@@ -85,7 +85,9 @@ var socketOnOpen = function () {
 };
 
 var socketOnClose = function () {
-    state_machine.disconnect('WebSocket connection closed: Url - ' + socket_connection.url);
+    if(!state_machine.is(STATE_DISCONNECTED)){
+        state_machine.disconnect('WebSocket connection closed: Url - ' + socket_connection.url);
+    }
 };
 
 var socketOnSend = function (request) {
@@ -99,6 +101,7 @@ var socketOnSend = function (request) {
 var socketOnMessage = function (event) {
     var data = JSON.parse(event.data);
     console.log(data);
+    if(data.msg.oid == 'bye') return;
     if (state_machine.is(STATE_REGISTRATION_HANDSHAKE) || state_machine.is(STATE_REGULAR_HANDSHAKE)) {
         user_info.token = data.header.token;
         user_info.refresh_token = data.msg.refreshToken;
@@ -167,7 +170,7 @@ var onReady = function (event, from, to, msg) {
     console.log(msg);
     if (from == STATE_REGISTRATION_HANDSHAKE) {
         console.log('Sending ACK');
-        socket_connection.send(getReadyRequest(ACK_REQUEST, user_info.token));
+        socket_connection.send(getCustomRequest(ACK_REQUEST, user_info.token));
     }else if(from == STATE_REGULAR_HANDSHAKE){
         console.log('Sending DIGEST');
         var rsa = new RSAKey();
@@ -185,6 +188,9 @@ var onReady = function (event, from, to, msg) {
 
 var onDisconnect = function (event, from, to, msg) {
     console.log(msg);
+    if(socket_connection.readyState != 3){
+        socket_connection.send(getCustomRequest(BYE_REQUEST, user_info.token));
+    }
 };
 
 state_machine = StateMachine.create({
