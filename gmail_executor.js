@@ -7,68 +7,13 @@ var confirmOff = function(){
         return true;
     }
 };
-var show_loading;
-var show_popup;
+var show_loading = $('#show_loading');
+var show_popup = $('#show_popup');
 var DECRYPT_WAIT_MESSAGE = 'Please wait, we are getting the content of your email to decrypt it....';
 var ENCRYPT_WAIT_MESSAGE = 'Please wait, we are encrypting your attachments...';
 var moreFilesToEncrypt = true;
-
-
-
-//var ws = null;
-//var ws_information = {seq: 0};
-//var user_information = {};
-//var onMessage = function(event){
-//    console.log(event);
-//    var messageData = $.parseJSON(event.data);
-//    if(messageData.msg.oid == 'serverHello'){
-//        user_information.token = messageData.header.token;
-//        user_information.refreshToken = messageData.msg.refreshToken;
-//        ws_information.ttl = messageData.msg.ttl;
-//        var ack_req = '{"msg": {"oid": "ack"}, "header": {"token":"' + user_information.token + '", "devId":"dev Id", "protoVer": "1.0", "seq":' + ws_information.seq + ', "oid": "clientHeader", "appId": "app Id", "osId": "os id", "id": "id"}}';
-//        ws.send(ack_req);
-//        setTimeout(refresh_tokens, 3000);
-//    }
-//};
-//
-//var onClose = function(){
-//    console.log('Connection closed, url: ' + ws.url);
-//};
-//
-//var ws_send = function(message){
-//    console.log(message);
-//    ws._send(message);
-//    ws_information.seq += 2;
-//};
-//
-//
-//var refresh_tokens = function(){
-//    var refresh_keys = setInterval(function () {
-//        if (ws.readyState == 1) {
-//            var refresh_msg = '{"msg": {"oid": "nop"}, "header": {"token":"' + user_information.token + '", "devId":"dev Id", "protoVer": "1.0", "seq":' + ws_information.seq + ', "oid": "clientHeader", "appId": "app Id", "osId": "os id", "id": "id"}}';
-//            ws.send(refresh_msg);
-//        } else {
-//            clearInterval(refresh_keys);
-//        }
-//    }, (ws_information.ttl - 10) * 1000);
-//};
-//
-//var onOpen = function(){
-//    console.log('Connection opened, url: ' + ws.url);
-//    ws.send('{"msg": {"secret": "secret", "oid": "clientHello"}, "header": {"protoVer": "1.0", "seq": 0, "oid": "clientHeader", "appId": "app Id", "osId": "os id", "id": "id"}}');
-//};
-
 var initializeGmailJS = function () {
     gmail = Gmail($);
-    //user_information.email = gmail.get.user_email();
-    //ws = new WebSocket("wss://gb.vakoms.com:8080/websocket");
-    //ws.onopen = onOpen;
-    //ws.onmessage = onMessage;
-    //ws.onclose = onClose;
-    //ws._send = ws.send;
-    //ws.send = ws_send;
-    show_loading = $('#show_loading');
-    show_popup = $('#show_popup');
     gmail.observe.before("upload_attachment", function (file, xhr) {
         var activeAttachBtn = $('.transparent_area.attach-button.active');
         var fileName = file.name;
@@ -149,20 +94,6 @@ var initializeGmailJS = function () {
             biomioDecryptButton.remove();
             biomioDecryptButtonCopy.show();
 
-        }
-    });
-
-    gmail.observe.after("discard_draft", function() {
-        var encryptedFilesKeys = Object.keys(encryptedFiles);
-        var compose_ids = [];
-        var composes = gmail.dom.composes();
-        for(var i = 0; i < composes.length; i++){
-            compose_ids.push(composes[i].id());
-        }
-        for(var j = 0; j < encryptedFilesKeys.length; j++){
-            if($.inArray(encryptedFilesKeys[j], compose_ids) == -1){
-                delete encryptedFiles[encryptedFilesKeys[j]];
-            }
         }
     });
 

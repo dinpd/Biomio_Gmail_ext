@@ -19,10 +19,6 @@ window.onload = function () {
     jq.src = chrome.extension.getURL("jquery-1.11.1.js");
     document.getElementsByTagName('body')[0].appendChild(jq);
 
-    var sm = document.createElement('script');
-    sm.src = chrome.extension.getURL("gmail.js");
-    document.getElementsByTagName('body')[0].appendChild(sm);
-
     var jq_ui = document.createElement('script');
     jq_ui.src = '//code.jquery.com/ui/1.11.2/jquery-ui.js';
     document.getElementsByTagName('body')[0].appendChild(jq_ui);
@@ -32,9 +28,9 @@ window.onload = function () {
     jq_ui_css.setAttribute('href', '//code.jquery.com/ui/1.11.2/themes/smoothness/jquery-ui.css');
     document.getElementsByTagName('body')[0].appendChild(jq_ui_css);
 
-    var st_mch = document.createElement('script');
-    st_mch.src = chrome.extension.getURL("state-machine.js");
-    document.getElementsByTagName('body')[0].appendChild(st_mch);
+    var sm = document.createElement('script');
+    sm.src = chrome.extension.getURL("gmail.js");
+    document.getElementsByTagName('body')[0].appendChild(sm);
 
     var gex = document.createElement('script');
     gex.src = chrome.extension.getURL("gmail_executor.js");

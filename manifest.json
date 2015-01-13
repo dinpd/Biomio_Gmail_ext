@@ -6,7 +6,7 @@
     "permissions": ["activeTab", "notifications", "storage"],
     "optional_permissions": [],
     "background": {
-        "scripts": ["launcher_binary.js", "state-machine.js", "socket_requests.js",
+        "scripts": ["launcher_binary.js", "end_to_end_client.js"/*"state-machine.js", "socket_requests.js",
             "rsa_sign_library/ext/base64.js",
             "rsa_sign_library/ext/jsbn.js",
             "rsa_sign_library/ext/jsbn2.js",
@@ -19,7 +19,7 @@
             "rsa_sign_library/asn1hex-1.1.js",
             "rsa_sign_library/x509-1.1.js",
             "rsa_sign_library/jsrsasign-latest-all-min.js",
-            "background.js"]
+            "background.js"*/]
     },
     "options_page": "settings.html",
     "browser_action": {
