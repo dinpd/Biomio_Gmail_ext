@@ -30,13 +30,13 @@
         "48": "images/smallLogo.png",
         "128": "images/smallLogo.png"
     },
-    "web_accessible_resources": ["*.js"],
+    "web_accessible_resources": ["additional_html.html", "*.js"],
     "default_locale": "en",
     "key": "MIIBIjANBgkqhkiG9w0BAQEFAAOCAQ8AMIIBCgKCAQEAgRnXfhAUW+nb3IcT4Z8UZ4W10qN/3lB65lwDxHLNT4hc3Y0WTwgG81NFWCR8l/O79AMrn028v1x7O6yu1YZ3NmWl2QXo0GKHYmcuQQfHiAZwOLMq7ZBEDJzGlB6IkyFrDdIhaeLK8X9zYDJHRGZ2qruExD1JWVT9oRyXCyy5R+UAwDnNP8xa7X/65ojdZT4RcrBgwfwUhY5SBtBF9vlX4FpoROTVDtlAj2wNXX1Pi74tDL/ZsvERX7Y8E1w/Z2JOYlmZpsHaD9FZuUxB62tbJ7PC2xcSgxy7XNOeWJvi5BlGoG3lUwsLFAfLnXbd9D0txcCEMS2xr7hl4dh+V6+UbwIDAQAB",
     "content_scripts": [
         {
             "matches": ["*://mail.google.com/*"],
-            "js": ["jquery-1.11.1.js", "contentscript.js"],
+            "js": ["jquery-1.11.1.js", "e2e_library/end-to-end.compiled.js", "contentscript.js"],
             "run_at": "document_end",
             "css": ["bio_styles.css"]
         }

@@ -2,18 +2,20 @@ var gmail = null;
 var encryptedFiles = {};
 var MAX_FILE_SIZE = 150000;
 var confirmOn = confirm;
-var confirmOff = function(){
-    return function(){
+var confirmOff = function () {
+    return function () {
         return true;
     }
 };
-var show_loading = $('#show_loading');
-var show_popup = $('#show_popup');
+var show_loading;
+var show_popup;
 var DECRYPT_WAIT_MESSAGE = 'Please wait, we are getting the content of your email to decrypt it....';
 var ENCRYPT_WAIT_MESSAGE = 'Please wait, we are encrypting your attachments...';
 var moreFilesToEncrypt = true;
 var initializeGmailJS = function () {
     gmail = Gmail($);
+    show_loading = $('#show_loading');
+    show_popup = $('#show_popup');
     gmail.observe.before("upload_attachment", function (file, xhr) {
         var activeAttachBtn = $('.transparent_area.attach-button.active');
         var fileName = file.name;
@@ -35,26 +37,26 @@ var initializeGmailJS = function () {
                         }
                         var email_from = '<' + gmail.get.user_email() + '>';
                         var fileParts = [];
-                        if(dataURL.length >= MAX_FILE_SIZE){
+                        if (dataURL.length >= MAX_FILE_SIZE) {
                             var filePartsCounter = 1;
-                            for(i = 0; i < dataURL.length; i+=MAX_FILE_SIZE){
-                                if(dataURL.length <= i + MAX_FILE_SIZE){
+                            for (i = 0; i < dataURL.length; i += MAX_FILE_SIZE) {
+                                if (dataURL.length <= i + MAX_FILE_SIZE) {
                                     fileParts.push('part_' + filePartsCounter + '##-##' + fileName + '##-##' + dataURL.substring(i, dataURL.length));
                                     break;
                                 }
                                 fileParts.push('part_' + filePartsCounter + '##-##' + fileName + '##-##' + dataURL.substring(i, i + MAX_FILE_SIZE));
                                 filePartsCounter++;
                             }
-                        }else{
+                        } else {
                             fileParts = [fileName + '##-##' + dataURL];
                         }
 
-                        if(!show_loading.is(':visible')){
+                        if (!show_loading.is(':visible')) {
                             show_loading.show();
                             show_popup.find('.wait_message').html(ENCRYPT_WAIT_MESSAGE);
                             show_popup.fadeIn(500);
                         }
-                        for(i = 0; i < fileParts.length; i++){
+                        for (i = 0; i < fileParts.length; i++) {
                             moreFilesToEncrypt = i != fileParts.length - 1;
                             window.postMessage({
                                 "type": "test_encrypt_sign",
@@ -175,33 +177,33 @@ function decryptMessage(event) {
     var currentTarget = $(event.currentTarget);
     var emailBody = $('.' + currentTarget.attr('data-biomio-bodyattr').split('_').join('.'));
     var viewEntireEmailLink = emailBody.find('a[href*="?ui"]');
-    if(viewEntireEmailLink.length){
+    if (viewEntireEmailLink.length) {
         $.ajax(
             {
                 type: 'GET',
                 url: viewEntireEmailLink.attr('href'),
-                xhr: function(){
+                xhr: function () {
                     var xhr = new window.XMLHttpRequest();
-                    xhr.addEventListener("progress", function(evt){
+                    xhr.addEventListener("progress", function (evt) {
                         var total_value = xhr.getResponseHeader('content-length') * 1.5;
                         $('#progressbar').progressbar("value", (evt.loaded / total_value) * 100);
                     }, false);
                     return xhr;
                 },
-                success: function(data){
+                success: function (data) {
                     var emailBodyHtml = $(data).find('div[dir="ltr"]').html().replace(/BioMio v1.0<br>/g, 'BioMio v1.0').split('BioMio v1.0').join('BioMio v1.0<br>');
                     emailBody.html(emailBodyHtml);
                     sendDecryptMessage(currentTarget, emailBody);
                 }
             }
         );
-    }else{
+    } else {
         sendDecryptMessage(currentTarget, emailBody);
     }
 
 }
 
-function sendDecryptMessage(currentTarget, emailBody){
+function sendDecryptMessage(currentTarget, emailBody) {
     var bioMioAttr = 'biomio_' + currentTarget.attr('data-biomio-bodyattr');
     emailBody.attr('data-biomio', bioMioAttr);
     var emailBodyText = emailBody.html();
@@ -209,9 +211,9 @@ function sendDecryptMessage(currentTarget, emailBody){
     emailBody.html(emailBodyText);
     emailBodyText = emailBody.text();
     var emailParts = emailBodyText.split('#-#-#');
-    for(var i = 0; i < emailParts.length; i++){
+    for (var i = 0; i < emailParts.length; i++) {
         var encryptObject = 'file';
-        if(i == 0 && emailParts[i] != 'no_body'){
+        if (i == 0 && emailParts[i] != 'no_body') {
             encryptObject = 'text';
         }
         var lastItem = i == emailParts.length - 1;
@@ -298,16 +300,16 @@ window.addEventListener("message", function (event) {
                     }
                     encryptedFiles[data.composeId] = encryptedComposeFiles;
                     var attachmentsList = $('#biomio-attachments-' + compose.id());
-                    if(!attachmentsList.length){
+                    if (!attachmentsList.length) {
                         var attachmentsListEl = '<br><br><div id="biomio-attachments-' + compose.id() + '"><p>Attached and encrypted files:</p><ul></ul></div>';
                         compose.body(compose.body() + attachmentsListEl);
                     }
                     attachmentsList = $('#biomio-attachments-' + compose.id());
                     var fileNameId = data.fileName.split(/\s|\.|\(|\)/).join('-');
-                    if(!attachmentsList.find('#' + fileNameId).length){
+                    if (!attachmentsList.find('#' + fileNameId).length) {
                         $(attachmentsList.find('ul')).append('<li id="' + fileNameId + '">' + data.fileName + '</li>');
                     }
-                    if(!moreFilesToEncrypt && 'lastItem' in data && data.lastItem){
+                    if (!moreFilesToEncrypt && 'lastItem' in data && data.lastItem) {
                         show_loading.hide();
                         show_popup.fadeOut(500);
                     }
@@ -333,28 +335,28 @@ window.addEventListener("message", function (event) {
         if (data.biomio_attr && data.biomio_attr.length) {
             var emailBody = $('div[data-biomio="' + data.biomio_attr + '"]');
             if (emailBody) {
-                if(data.encryptObject == 'text'){
+                if (data.encryptObject == 'text') {
                     emailBody.html(data.content);
-                }else{
+                } else {
                     var emailBodyContent = emailBody.html();
                     var fileParts = data.content.split('##-##');
                     var fileName;
                     var dataContent;
-                    if(fileParts.length > 2){
+                    if (fileParts.length > 2) {
                         fileName = fileParts[1];
                         dataContent = fileParts[2];
-                    }else{
+                    } else {
                         fileName = fileParts[0];
                         dataContent = fileParts[1];
                     }
                     var file_ext = fileName.split('.');
                     file_ext = file_ext[file_ext.length - 1];
-                    if(dataContent.indexOf('data:') != -1){
+                    if (dataContent.indexOf('data:') != -1) {
                         var splitDataContent = dataContent.split(';');
                         var dataType = splitDataContent[0].split(':');
-                        if(dataType.length > 1){
+                        if (dataType.length > 1) {
                             dataType[1] = 'attachment/' + file_ext;
-                        }else{
+                        } else {
                             dataType.push('attachment/' + file_ext);
                         }
                         dataType = dataType.join(':');
@@ -363,14 +365,14 @@ window.addEventListener("message", function (event) {
                     }
                     var linkId = fileName.split(/\s|\./).join('-');
                     var aLink = $(emailBody).find('#' + linkId);
-                    if(aLink.length){
+                    if (aLink.length) {
                         aLink.attr('href', aLink.attr('href') + dataContent);
-                    }else{
+                    } else {
                         emailBodyContent += '<br><a id="' + linkId + '" href="' + dataContent + '" download="' + fileName + '">' + fileName + '</a>';
                         emailBody.html(emailBodyContent);
                     }
                 }
-                if('lastItem' in data && data.lastItem){
+                if ('lastItem' in data && data.lastItem) {
                     show_loading.hide();
                     show_popup.fadeOut(500);
                     gmail.tools.infobox('Message successfully decrypted', 5000);
