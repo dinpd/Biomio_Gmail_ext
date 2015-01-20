@@ -1,6 +1,5 @@
 var gmail = null;
 var encryptedFiles = {};
-var MAX_FILE_SIZE = 150000;
 var confirmOn = confirm;
 var confirmOff = function () {
     return function () {
@@ -11,7 +10,6 @@ var show_loading;
 var show_popup;
 var DECRYPT_WAIT_MESSAGE = 'Please wait, we are getting the content of your email to decrypt it....';
 var ENCRYPT_WAIT_MESSAGE = 'Please wait, we are encrypting your attachments...';
-var moreFilesToEncrypt = true;
 var initializeGmailJS = function () {
     gmail = Gmail($);
     show_loading = $('#show_loading');
@@ -28,54 +26,28 @@ var initializeGmailJS = function () {
                 reader.onload = (function (compose, fileName) {
                     return function (e) {
                         e.preventDefault();
-                        var dataURL = reader.result;
-                        var recipients_arr = compose.to().concat(compose.cc()).concat(compose.bcc());
-                        var i;
-                        for (i = 0; i < recipients_arr.length; i++) {
-                            var recipient = recipients_arr[i].split(' ');
-                            recipients_arr[i] = recipient[recipient.length - 1];
-                        }
-                        var email_from = '<' + gmail.get.user_email() + '>';
-                        var fileParts = [];
-                        if (dataURL.length >= MAX_FILE_SIZE) {
-                            var filePartsCounter = 1;
-                            for (i = 0; i < dataURL.length; i += MAX_FILE_SIZE) {
-                                if (dataURL.length <= i + MAX_FILE_SIZE) {
-                                    fileParts.push('part_' + filePartsCounter + '##-##' + fileName + '##-##' + dataURL.substring(i, dataURL.length));
-                                    break;
-                                }
-                                fileParts.push('part_' + filePartsCounter + '##-##' + fileName + '##-##' + dataURL.substring(i, i + MAX_FILE_SIZE));
-                                filePartsCounter++;
-                            }
-                        } else {
-                            fileParts = [fileName + '##-##' + dataURL];
-                        }
-
-                        if (!show_loading.is(':visible')) {
-                            show_loading.show();
-                            show_popup.find('.wait_message').html(ENCRYPT_WAIT_MESSAGE);
-                            show_popup.fadeIn(500);
-                        }
-                        for (i = 0; i < fileParts.length; i++) {
-                            moreFilesToEncrypt = i != fileParts.length - 1;
+                        show_loading.show();
+                        show_popup.find('.wait_message').html(ENCRYPT_WAIT_MESSAGE);
+                        show_popup.fadeIn(200, function(){
+                            var dataURL = reader.result;
+                            var recipients_arr = compose.to().concat(compose.cc()).concat(compose.bcc());
                             window.postMessage({
-                                "type": "test_encrypt_sign",
+                                "type": "encrypt_sign",
                                 "data": {
                                     action: "encrypt_only",
-                                    content: fileParts[i],
-                                    currentUser: email_from,
+                                    content: dataURL,
+                                    currentUser: gmail.get.user_email(),
                                     recipients: recipients_arr,
                                     composeId: compose.id(),
                                     encryptObject: 'file',
-                                    fileName: fileName,
-                                    lastItem: !moreFilesToEncrypt
+                                    fileName: fileName
                                 }
                             }, '*');
-                        }
+                        });
                     };
                 })(compose, fileName);
                 reader.readAsDataURL(file);
-                hideBodyErrosShowMessage("Your attachment was successfully encrypted.");
+                hideBodyErrosShowMessage(ENCRYPT_WAIT_MESSAGE);
                 xhr.abort();
             } else if (needToCheck.length && needToCheck.is(':checked')) {
                 hideBodyErrosShowMessage("It is required to specify recipients to be able to encrypt the attachment. " +
@@ -135,12 +107,6 @@ var initializeGmailJS = function () {
     });
 
 };
-
-function lengthInUtf8Bytes(str) {
-    // Matches only the 10.. bytes that are non-initial characters in a multi-byte sequence.
-    var m = encodeURIComponent(str).match(/%[89ABab]/g);
-    return str.length + (m ? m.length : 0);
-}
 
 function hideBodyErrosShowMessage(message) {
     setTimeout(function () {
@@ -218,7 +184,7 @@ function sendDecryptMessage(currentTarget, emailBody) {
         }
         var lastItem = i == emailParts.length - 1;
         window.postMessage({
-            "type": "decrypt_message",
+            "type": "decryptMessage",
             "data": {
                 action: "decrypt_verify",
                 content: emailParts[i],
@@ -239,18 +205,13 @@ function sendMessageClicked(event) {
     if (compose) {
         if (encryptRequired(compose)) {
             var recipients_arr = compose.to().concat(compose.cc()).concat(compose.bcc());
-            for (var i = 0; i < recipients_arr.length; i++) {
-                var recipient = recipients_arr[i].split(' ');
-                recipients_arr[i] = recipient[recipient.length - 1];
-            }
-            var email_from = '<' + gmail.get.user_email() + '>';
             $('#biomio-attachments-' + compose.id()).remove();
             window.postMessage({
-                "type": "test_encrypt_sign",
+                "type": "encrypt_sign",
                 "data": {
                     action: "encrypt_only",
                     content: compose.body(),
-                    currentUser: email_from,
+                    currentUser: gmail.get.user_email(),
                     recipients: recipients_arr,
                     composeId: compose.id(),
                     encryptObject: 'text'
@@ -309,10 +270,9 @@ window.addEventListener("message", function (event) {
                     if (!attachmentsList.find('#' + fileNameId).length) {
                         $(attachmentsList.find('ul')).append('<li id="' + fileNameId + '">' + data.fileName + '</li>');
                     }
-                    if (!moreFilesToEncrypt && 'lastItem' in data && data.lastItem) {
-                        show_loading.hide();
-                        show_popup.fadeOut(500);
-                    }
+                    show_loading.hide();
+                    show_popup.fadeOut(500);
+                    gmail.tools.infobox("Your attachment was successfully encrypted.");
                 } else {
                     if (data.composeId in encryptedFiles) {
                         encryptedComposeFiles = encryptedFiles[data.composeId];
@@ -406,6 +366,6 @@ var checkLoaded = function () {
     } else {
         setTimeout(checkLoaded, 100);
     }
-}
+};
 
 checkLoaded();
