@@ -1,4 +1,7 @@
 var MAX_FILE_SIZE = 150000;
+var EMAIL_PARTS_SEPARATOR = '#-#-#';
+var FILE_PARTS_SEPARATOR = '#--#';
+var FILE_NAME_SEPARATOR = '##-##';
 var gmail_scripts = ['gmail.js', 'gmail_executor.js'];
 var gmail_scripts_urls = [];
 
@@ -35,33 +38,46 @@ function encryptMessage(data) {
     prepareEncryptParameters(data);
     var keys = [];
     var sender_private_key = pgpContext.searchPrivateKey(uid).result_[0];
-    for(var i = 0; i < data.recipients.length; i++){
+    for (var i = 0; i < data.recipients.length; i++) {
         var pub_key = pgpContext.searchPublicKey(uid);
-        if(pub_key.result_){
+        if (pub_key.result_) {
             $.extend(keys, pub_key.result_);
         }
     }
-    if(data.hasOwnProperty('encryptObject') && data.encryptObject == 'file'){
+    if (data.hasOwnProperty('encryptObject') && data.encryptObject == 'file') {
         data.content = encryptFile(data, keys, sender_private_key);
-    }else{
+    } else {
         data.content = _encryptMessage(data.content, keys, sender_private_key);
     }
     data.completedAction = 'encrypt_only';
     sendResponse(data);
 }
 
-function _encryptMessage(content, keys, sender_key){
+function _encryptMessage(content, keys, sender_key) {
     var encrypted_content = pgpContext.encryptSign(content, [], keys, [], sender_key);
     return encrypted_content.result_;
 }
 
 function decryptMessage(data) {
     console.log('Decrypt: ', data);
-    var decrypted_text = pgpContext.verifyDecrypt(function(){}, data.content);
-    decrypted_text = e2e.byteArrayToStringAsync(decrypted_text.result_.decrypt.data, decrypted_text.result_.decrypt.options.charset);
-    data.content = decrypted_text.result_;
+    var emailParts = data.content.split(EMAIL_PARTS_SEPARATOR);
+    data.content = _decryptMessage(emailParts[0]);
+    if (emailParts.length > 1) {
+        data['decryptedFiles'] = [];
+        for (var i = 1; i < emailParts.length; i++) {
+            data.decryptedFiles.push(decryptFile(emailParts[i]));
+        }
+    }
     data.completedAction = 'decrypt_verify';
     sendResponse(data);
+}
+
+function _decryptMessage(content) {
+    var decryptedText = pgpContext.verifyDecrypt(function () {
+    }, content);
+    decryptedText = decryptedText.result_.decrypt;
+    decryptedText = e2e.byteArrayToStringAsync(decryptedText.data, decryptedText.options.charset);
+    return decryptedText.result_;
 }
 
 function sendResponse(message) {
@@ -69,7 +85,7 @@ function sendResponse(message) {
     window.postMessage(message, '*');
 }
 
-function prepareEncryptParameters(data){
+function prepareEncryptParameters(data) {
     var recipients_arr = data.recipients;
     for (var i = 0; i < recipients_arr.length; i++) {
         var recipient = recipients_arr[i].split(' ');
@@ -79,23 +95,57 @@ function prepareEncryptParameters(data){
     data.currentUser = '<' + data.currentUser + '>';
 }
 
-function encryptFile(data, public_keys, sender_key){
+function encryptFile(data, public_keys, sender_key) {
     var fileContent = data.content;
     var fileParts = [];
     var encryptedFileParts = [];
     if (fileContent.length >= MAX_FILE_SIZE) {
         for (var i = 0; i < fileContent.length; i += MAX_FILE_SIZE) {
             if (fileContent.length <= i + MAX_FILE_SIZE) {
-                fileParts.push(fileContent.substring(i, fileContent.length));
+                fileParts.push(data.fileName + FILE_NAME_SEPARATOR + fileContent.substring(i, fileContent.length));
                 break;
             }
             fileParts.push(fileContent.substring(i, i + MAX_FILE_SIZE));
         }
     } else {
-        fileParts = [fileContent];
+        fileParts = [data.fileName + FILE_NAME_SEPARATOR + fileContent];
     }
     for (var k = 0; k < fileParts.length; k++) {
         encryptedFileParts.push(_encryptMessage(fileParts[k], public_keys, sender_key));
     }
-    return encryptedFileParts.join('<br>');
+    return encryptedFileParts.join(FILE_PARTS_SEPARATOR);
+}
+
+function decryptFile(encryptedFile) {
+    var encryptedFileParts = encryptedFile.split(FILE_PARTS_SEPARATOR);
+    var fileName = '';
+    var decryptedFile = '';
+    for (var i = 0; i < encryptedFileParts.length; i++) {
+        var decryptedFilePart = _decryptMessage(encryptedFileParts[i]);
+        if (!fileName.length) {
+            var fileNamePart = decryptedFilePart.split(FILE_NAME_SEPARATOR);
+            if (fileNamePart.length > 1) {
+                fileName = fileNamePart[0];
+                decryptedFilePart = fileNamePart[1];
+            }
+        }
+        decryptedFile += decryptedFilePart;
+    }
+    return makeFileDownloadable(fileName, decryptedFile);
+}
+
+function makeFileDownloadable(fileName, decryptedFile){
+    var file_ext = fileName.split('.');
+    file_ext = file_ext[file_ext.length - 1];
+    var splitDataContent = decryptedFile.split(';');
+    var dataType = splitDataContent[0].split(':');
+    if (dataType.length > 1) {
+        dataType[1] = 'attachment/' + file_ext;
+    } else {
+        dataType.push('attachment/' + file_ext);
+    }
+    dataType = dataType.join(':');
+    splitDataContent[0] = dataType;
+    decryptedFile = splitDataContent.join(';');
+    return {fileName: fileName, decryptedFile: decryptedFile};
 }

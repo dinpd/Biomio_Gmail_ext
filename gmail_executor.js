@@ -10,6 +10,10 @@ var show_loading;
 var show_popup;
 var DECRYPT_WAIT_MESSAGE = 'Please wait, we are getting the content of your email to decrypt it....';
 var ENCRYPT_WAIT_MESSAGE = 'Please wait, we are encrypting your attachments...';
+var FILE_ENCRYPT_SUCCESS_MESSAGE = "Your attachment was successfully encrypted.";
+var DECRYPT_SUCCESS_MESSAGE = 'Message successfully decrypted';
+var NO_MESSAGE = '[NO_MESSAGE]';
+var EMAIL_PARTS_SEPARATOR = '#-#-#';
 var initializeGmailJS = function () {
     gmail = Gmail($);
     show_loading = $('#show_loading');
@@ -28,7 +32,7 @@ var initializeGmailJS = function () {
                         e.preventDefault();
                         show_loading.show();
                         show_popup.find('.wait_message').html(ENCRYPT_WAIT_MESSAGE);
-                        show_popup.fadeIn(200, function(){
+                        show_popup.fadeIn(200, function () {
                             var dataURL = reader.result;
                             var recipients_arr = compose.to().concat(compose.cc()).concat(compose.bcc());
                             window.postMessage({
@@ -47,10 +51,10 @@ var initializeGmailJS = function () {
                     };
                 })(compose, fileName);
                 reader.readAsDataURL(file);
-                hideBodyErrosShowMessage(ENCRYPT_WAIT_MESSAGE);
+                hideBodyErrorsShowMessage(ENCRYPT_WAIT_MESSAGE);
                 xhr.abort();
             } else if (needToCheck.length && needToCheck.is(':checked')) {
-                hideBodyErrosShowMessage("It is required to specify recipients to be able to encrypt the attachment. " +
+                hideBodyErrorsShowMessage("It is required to specify recipients to be able to encrypt the attachment. " +
                 "If you don't want to encrypt the files just uncheck 'BioMio encryption' checkbox");
                 xhr.abort();
             }
@@ -108,7 +112,7 @@ var initializeGmailJS = function () {
 
 };
 
-function hideBodyErrosShowMessage(message) {
+function hideBodyErrorsShowMessage(message) {
     setTimeout(function () {
         var gm_errors;
         var i = 0;
@@ -133,12 +137,21 @@ function attachClicked(event) {
 
 }
 
+function showHideInfoPopup(infoMessage, hide) {
+    if (hide) {
+        show_loading.hide();
+        show_popup.fadeOut(500);
+    } else {
+        show_loading.show();
+        show_popup.find('.wait_message').html(infoMessage);
+        show_popup.fadeIn(500);
+    }
+    gmail.tools.infobox(infoMessage, 5000);
+}
+
 function decryptMessage(event) {
     event.preventDefault();
-    gmail.tools.infobox("Decrypting your message, please wait....");
-    show_loading.show();
-    show_popup.find('.wait_message').html(DECRYPT_WAIT_MESSAGE);
-    show_popup.fadeIn(500);
+    showHideInfoPopup(DECRYPT_WAIT_MESSAGE);
     $('#progressbar').progressbar({value: 0});
     var currentTarget = $(event.currentTarget);
     var emailBody = $('.' + currentTarget.attr('data-biomio-bodyattr').split('_').join('.'));
@@ -176,25 +189,14 @@ function sendDecryptMessage(currentTarget, emailBody) {
     emailBodyText = $.trim(emailBodyText.replace(/<br>/g, '\n'));
     emailBody.html(emailBodyText);
     emailBodyText = emailBody.text();
-    var emailParts = emailBodyText.split('#-#-#');
-    for (var i = 0; i < emailParts.length; i++) {
-        var encryptObject = 'file';
-        if (i == 0 && emailParts[i] != 'no_body') {
-            encryptObject = 'text';
+    window.postMessage({
+        "type": "decryptMessage",
+        "data": {
+            action: "decrypt_verify",
+            content: emailBodyText,
+            biomio_attr: bioMioAttr
         }
-        var lastItem = i == emailParts.length - 1;
-        window.postMessage({
-            "type": "decryptMessage",
-            "data": {
-                action: "decrypt_verify",
-                content: emailParts[i],
-                biomio_attr: bioMioAttr,
-                encryptObject: encryptObject,
-                file_name: 'attachment ' + i,
-                lastItem: lastItem
-            }
-        }, '*');
-    }
+    }, '*');
     currentTarget.remove();
 }
 
@@ -260,30 +262,20 @@ window.addEventListener("message", function (event) {
                         encryptedComposeFiles = [data.content];
                     }
                     encryptedFiles[data.composeId] = encryptedComposeFiles;
-                    var attachmentsList = $('#biomio-attachments-' + compose.id());
-                    if (!attachmentsList.length) {
-                        var attachmentsListEl = '<br><br><div id="biomio-attachments-' + compose.id() + '"><p>Attached and encrypted files:</p><ul></ul></div>';
-                        compose.body(compose.body() + attachmentsListEl);
-                    }
-                    attachmentsList = $('#biomio-attachments-' + compose.id());
-                    var fileNameId = data.fileName.split(/\s|\.|\(|\)/).join('-');
-                    if (!attachmentsList.find('#' + fileNameId).length) {
-                        $(attachmentsList.find('ul')).append('<li id="' + fileNameId + '">' + data.fileName + '</li>');
-                    }
-                    show_loading.hide();
-                    show_popup.fadeOut(500);
-                    gmail.tools.infobox("Your attachment was successfully encrypted.");
+                    updateEncryptedAttachmentsList(compose, data.fileName);
+                    showHideInfoPopup(FILE_ENCRYPT_SUCCESS_MESSAGE, true);
                 } else {
                     if (data.composeId in encryptedFiles) {
                         encryptedComposeFiles = encryptedFiles[data.composeId];
-                        var contentToPush = 'no_body';
+                        var contentToPush = NO_MESSAGE;
                         if (content.length) {
                             contentToPush = content;
                         }
                         encryptedComposeFiles.splice(0, 0, contentToPush);
-                        content = encryptedComposeFiles.join('#-#-#');
+                        content = encryptedComposeFiles.join(EMAIL_PARTS_SEPARATOR);
                         delete encryptedFiles[data.composeId];
                         confirm = confirmOff();
+                        $('#biomio-attachments-' + compose.id()).remove();
                     }
                     compose.body(content);
                     triggerSendButton(compose);
@@ -291,56 +283,42 @@ window.addEventListener("message", function (event) {
                 }
             }
         }
-    } else if (data.completedAction && (data.completedAction == "decrypt_verify")) {
-        if (data.biomio_attr && data.biomio_attr.length) {
-            var emailBody = $('div[data-biomio="' + data.biomio_attr + '"]');
-            if (emailBody) {
-                if (data.encryptObject == 'text') {
-                    emailBody.html(data.content);
-                } else {
-                    var emailBodyContent = emailBody.html();
-                    var fileParts = data.content.split('##-##');
-                    var fileName;
-                    var dataContent;
-                    if (fileParts.length > 2) {
-                        fileName = fileParts[1];
-                        dataContent = fileParts[2];
-                    } else {
-                        fileName = fileParts[0];
-                        dataContent = fileParts[1];
-                    }
-                    var file_ext = fileName.split('.');
-                    file_ext = file_ext[file_ext.length - 1];
-                    if (dataContent.indexOf('data:') != -1) {
-                        var splitDataContent = dataContent.split(';');
-                        var dataType = splitDataContent[0].split(':');
-                        if (dataType.length > 1) {
-                            dataType[1] = 'attachment/' + file_ext;
-                        } else {
-                            dataType.push('attachment/' + file_ext);
-                        }
-                        dataType = dataType.join(':');
-                        splitDataContent[0] = dataType;
-                        dataContent = splitDataContent.join(';');
-                    }
-                    var linkId = fileName.split(/\s|\./).join('-');
-                    var aLink = $(emailBody).find('#' + linkId);
-                    if (aLink.length) {
-                        aLink.attr('href', aLink.attr('href') + dataContent);
-                    } else {
-                        emailBodyContent += '<br><a id="' + linkId + '" href="' + dataContent + '" download="' + fileName + '">' + fileName + '</a>';
-                        emailBody.html(emailBodyContent);
-                    }
-                }
-                if ('lastItem' in data && data.lastItem) {
-                    show_loading.hide();
-                    show_popup.fadeOut(500);
-                    gmail.tools.infobox('Message successfully decrypted', 5000);
+    } else if (data.hasOwnProperty('completedAction') && data.completedAction == "decrypt_verify") {
+        var emailBody = $('div[data-biomio="' + data.biomio_attr + '"]');
+        if (emailBody) {
+            emailBody.html(data.content);
+            if (data.hasOwnProperty('decryptedFiles')) {
+                var decryptedFiles = data.decryptedFiles;
+                emailBody.html(emailBody.html() + '<br><p>Email Attachments</p>');
+                for (var i = 0; i < decryptedFiles.length; i++) {
+                    updateDecryptedAttachmentsList(emailBody, emailBody.html(), decryptedFiles[i]);
                 }
             }
+            showHideInfoPopup(DECRYPT_SUCCESS_MESSAGE, true);
         }
     }
 });
+
+function updateDecryptedAttachmentsList(emailBody, emailBodyContent, fileObject) {
+    var linkId = fileObject.fileName.split(/\s|\./).join('-');
+    emailBodyContent += '<br><a id="' + linkId + '" href="' + fileObject.decryptedFile + '" download="' + fileObject.fileName + '">' + fileObject.fileName + '</a>';
+    emailBody.html(emailBodyContent);
+}
+
+function updateEncryptedAttachmentsList(compose, fileName) {
+    var attachmentListId = 'biomio-attachments-' + compose.id();
+    var attachmentList = $('#' + attachmentListId);
+    if (!attachmentList.length) {
+        var attachmentsListEl = '<br><br><div id="' + attachmentListId + '"><p>Attached and encrypted files:</p><ul></ul></div>';
+        compose.body(compose.body() + attachmentsListEl);
+    }
+    attachmentList = $('#' + attachmentListId);
+    var fileNameId = fileName.split(/\s|\.|\(|\)/).join('-');
+    if (!attachmentList.find('#' + fileNameId).length) {
+        $(attachmentList.find('ul')).append('<li id="' + fileNameId + '">' + fileName + '</li>');
+
+    }
+}
 
 function triggerSendButton(compose) {
     compose.find('.T-I.J-J5-Ji[role="button"]').trigger('click');
