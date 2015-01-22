@@ -1,13 +1,3 @@
-var pgpContext = new e2e.openpgp.ContextImpl();
-var ctxApi = new e2e.ext.api.Api(pgpContext);
-pgpContext.setKeyRingPassphrase('');
-pgpContext.setArmorHeader(
-    'Version',
-    'BioMio v1.0');
-
-ctxApi.installApi();
-//console.log(ctxApi.pgpCtx_.importKey(function(){}, "-----BEGIN RSA PRIVATE KEY-----\nMIICWwIBAAKBgQCbJ1wAitBwoICb4n8anXMkPMRUPXBB+F5+aFyNPcX/t/AmxQ2i\ndxw85t+bPJ3AjfXmTXZ1jVMgcyc4GkXQkBgUvzXiuYcPNKHHwoGFvG/TTgkr/TW7\n8/wrXi17x8OAtiWVXKhRPjtBL6YCgVIbCywggk7Yj7NuF9BBUbyvGWC4+wIDAQAB\nAoGAFMAd2OC34ehFaxPOxgN6y8ToyQ9yfRA3qxZQEn/JhFrYXocKPMlLWIXUMBHa\nU09pLMT9a9lb3cIo46L35V3wKljazqo00kG+MOMkmShXZ1Zs+72JRUWGs+HAMoCJ\nwltyavf3ckBXhu5cY+eyPTLYasqioVIzWeMLy+XGwvcpQMkCQQDDnC20EO/+BLyV\nnxMBIGI/iQb34Ww1VpELJR4m/hVpuMWmkTaNtGYgagGKuF3qaUcQAIffKTsSK7yF\nzGm151O3AkEAyw3CxwgdU92pFpXbwxebaXEoEofWoQChHcku9nx9/Cuq3rSGJgiG\n8kfiHjr3A5C2IjUyyVih4Wfqa6cdaAYs3QJAU+UMBQquo7fMWi+bqwQEn1NZ1b6s\n9kNmee01fWvEK0/AFax6RVR16LkOaDyiqwL0I3zWyXOZjjWL6aa+P/IzCQJAfLjs\nHhLW6M+rb8sG3LOga0jtI0y6wdRAIqqTpSVcwUsVPoxGJhBwy1rqAkWXumHl7ecd\nVd2SOYD51bwlbOL2JQJAfgH31nXQm9sW3NPm8WYMHV1akZ2bN5b1nU8L8ofA/Juv\n939MM1FGkJ53OHnbaGdjnAwRuVWDRIGKV0IVVjYBjQ==\n-----END RSA PRIVATE KEY-----"));
-
 var STATE_CONNECTED = 'connected';
 var STATE_REGISTRATION_HANDSHAKE = 'registration';
 var STATE_REGULAR_HANDSHAKE = 'regular_handshake';
@@ -211,3 +201,5 @@ state_machine = StateMachine.create({
 });
 
 state_machine.connect('Connecting to websocket - ' + SERVER_URL);
+
+
