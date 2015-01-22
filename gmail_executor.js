@@ -1,42 +1,23 @@
-var gmail;
-var encryptedFiles;
-var confirmOn;
-var confirmOff;
-var showLoading;
-var showPopup;
-var DECRYPT_WAIT_MESSAGE;
-var ENCRYPT_WAIT_MESSAGE;
-var FILE_ENCRYPT_SUCCESS_MESSAGE;
-var DECRYPT_SUCCESS_MESSAGE;
-var NO_MESSAGE;
-var EMAIL_PARTS_SEPARATOR;
-
-/**
- * Initializes variables with default values.
- */
-function setupDefaults() {
+var gmail = null;
+var encryptedFiles = {};
+var confirmOn = confirm;
+var confirmOff = function () {
+    return function () {
+        return true;
+    }
+};
+var show_loading;
+var show_popup;
+var DECRYPT_WAIT_MESSAGE = 'Please wait, we are getting the content of your email to decrypt it....';
+var ENCRYPT_WAIT_MESSAGE = 'Please wait, we are encrypting your attachments...';
+var FILE_ENCRYPT_SUCCESS_MESSAGE = "Your attachment was successfully encrypted.";
+var DECRYPT_SUCCESS_MESSAGE = 'Message successfully decrypted';
+var NO_MESSAGE = '[NO_MESSAGE]';
+var EMAIL_PARTS_SEPARATOR = '#-#-#';
+var initializeGmailJS = function () {
     gmail = Gmail($);
-    encryptedFiles = {};
-    confirmOn = confirm;
-    confirmOff = function () {
-        return function () {
-            return true;
-        }
-    };
-    showLoading = $('#show_loading');
-    showPopup = $('#show_popup');
-    DECRYPT_WAIT_MESSAGE = 'Please wait, we are getting the content of your email to decrypt it....';
-    ENCRYPT_WAIT_MESSAGE = 'Please wait, we are encrypting your attachments...';
-    FILE_ENCRYPT_SUCCESS_MESSAGE = "Your attachment was successfully encrypted.";
-    DECRYPT_SUCCESS_MESSAGE = 'Message successfully decrypted';
-    NO_MESSAGE = '[NO_MESSAGE]';
-    EMAIL_PARTS_SEPARATOR = '#-#-#';
-}
-
-/**
- * Initializes Gmail JS events.
- */
-var initializeGmailJSEvents = function () {
+    show_loading = $('#show_loading');
+    show_popup = $('#show_popup');
     gmail.observe.before("upload_attachment", function (file, xhr) {
         var activeAttachBtn = $('.transparent_area.attach-button.active');
         var fileName = file.name;
@@ -49,9 +30,9 @@ var initializeGmailJSEvents = function () {
                 reader.onload = (function (compose, fileName) {
                     return function (e) {
                         e.preventDefault();
-                        showLoading.show();
-                        showPopup.find('.wait_message').html(ENCRYPT_WAIT_MESSAGE);
-                        showPopup.fadeIn(200, function () {
+                        show_loading.show();
+                        show_popup.find('.wait_message').html(ENCRYPT_WAIT_MESSAGE);
+                        show_popup.fadeIn(200, function () {
                             var dataURL = reader.result;
                             var recipients_arr = compose.to().concat(compose.cc()).concat(compose.bcc());
                             window.postMessage({
@@ -131,10 +112,6 @@ var initializeGmailJSEvents = function () {
 
 };
 
-/**
- * Hides gmail error messages and shows given message inside gmail info box.
- * @param {string=} message to show.
- */
 function hideBodyErrorsShowMessage(message) {
     setTimeout(function () {
         var gm_errors;
@@ -151,10 +128,6 @@ function hideBodyErrorsShowMessage(message) {
     }, 1);
 }
 
-/**
- * Handles event when attach file button is clicked.
- * @param event
- */
 function attachClicked(event) {
     var existingActiveAttach = $('.transparent_area.attach-button');
     if (existingActiveAttach.length) {
@@ -164,27 +137,18 @@ function attachClicked(event) {
 
 }
 
-/**
- * Show/Hides info popup with given message to user. Also blocks entire page till action is completed.
- * @param {string=} infoMessage to show inside the popup
- * @param {boolean} hide - false if is not specified.
- */
 function showHideInfoPopup(infoMessage, hide) {
     if (hide) {
-        showLoading.hide();
-        showPopup.fadeOut(500);
+        show_loading.hide();
+        show_popup.fadeOut(500);
     } else {
-        showLoading.show();
-        showPopup.find('.wait_message').html(infoMessage);
-        showPopup.fadeIn(500);
+        show_loading.show();
+        show_popup.find('.wait_message').html(infoMessage);
+        show_popup.fadeIn(500);
     }
     gmail.tools.infobox(infoMessage, 5000);
 }
 
-/**
- * handles event when decrypt button is clicked.
- * @param event
- */
 function decryptMessage(event) {
     event.preventDefault();
     showHideInfoPopup(DECRYPT_WAIT_MESSAGE);
@@ -218,11 +182,6 @@ function decryptMessage(event) {
 
 }
 
-/**
- * Sends content to contentscript for decryption.
- * @param currentTarget
- * @param {jQuery.element=} emailBody of the current email.
- */
 function sendDecryptMessage(currentTarget, emailBody) {
     var bioMioAttr = 'biomio_' + currentTarget.attr('data-biomio-bodyattr');
     emailBody.attr('data-biomio', bioMioAttr);
@@ -241,10 +200,6 @@ function sendDecryptMessage(currentTarget, emailBody) {
     currentTarget.remove();
 }
 
-/**
- * Handles event when 'Send' email button is clicked.
- * @param event
- */
 function sendMessageClicked(event) {
     event.preventDefault();
     var currComposeID = $(event.currentTarget).attr('data-composeId');
@@ -270,22 +225,12 @@ function sendMessageClicked(event) {
     }
 }
 
-/**
- * Checks whether encryption is required.
- * @param {gmail.dom.compose=} compose - current compose window opened by user.
- * @returns {boolean}
- */
 function encryptRequired(compose) {
     var hasRecipients = compose.to().length || compose.cc().length || compose.bcc().length;
     var needToCheck = compose.find('#encrypt-body-' + compose.id());
     return needToCheck.length && needToCheck.is(':checked') && hasRecipients;
 }
 
-/**
- * Returns Opened compose window by given compose ID.
- * @param {string=} composeId of the required compose window.
- * @returns {gmail.dom.compose} or {null} if not found.
- */
 function getComposeByID(composeId) {
     var availableComposes = gmail.dom.composes();
     for (var i = 0; i < availableComposes.length; i++) {
@@ -297,9 +242,6 @@ function getComposeByID(composeId) {
     return null;
 }
 
-/**
- * Window events listener. Required to listen for messages from contentscript.
- */
 window.addEventListener("message", function (event) {
     var data = event.data;
     if (data.completedAction) {
@@ -357,23 +299,12 @@ window.addEventListener("message", function (event) {
     }
 });
 
-/**
- * Generates/Updates decrypted attachments list.
- * @param {jQuery.elem=} emailBody of the current email
- * @param {string=} emailBodyContent html of the current email.
- * @param {Object=} fileObject with attached file data.
- */
 function updateDecryptedAttachmentsList(emailBody, emailBodyContent, fileObject) {
     var linkId = fileObject.fileName.split(/\s|\./).join('-');
     emailBodyContent += '<br><a id="' + linkId + '" href="' + fileObject.decryptedFile + '" download="' + fileObject.fileName + '">' + fileObject.fileName + '</a>';
     emailBody.html(emailBodyContent);
 }
 
-/**
- * Generates/Updates encrypted attachments list.
- * @param {gmail.dom.compose=} compose object of the current compose window.
- * @param {string=} fileName of the attached encrypted file.
- */
 function updateEncryptedAttachmentsList(compose, fileName) {
     var attachmentListId = 'biomio-attachments-' + compose.id();
     var attachmentList = $('#' + attachmentListId);
@@ -389,17 +320,10 @@ function updateEncryptedAttachmentsList(compose, fileName) {
     }
 }
 
-/**
- * Sends the email by clicking 'Send' button.
- * @param {gmail.dom.compose=} compose object of the current compose window.
- */
 function triggerSendButton(compose) {
     compose.find('.T-I.J-J5-Ji[role="button"]').trigger('click');
 }
 
-/**
- * Checks when jQuery is loaded and starts script initialization.
- */
 var checkLoaded = function () {
     if (window.jQuery) {
         $.fn.onAvailable = function (e) {
@@ -415,8 +339,7 @@ var checkLoaded = function () {
                 }, 50);
             }
         };
-        setupDefaults();
-        initializeGmailJSEvents();
+        initializeGmailJS();
 
     } else {
         setTimeout(checkLoaded, 100);
