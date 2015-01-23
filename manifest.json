@@ -1,45 +1,59 @@
 {
-    "manifest_version": 2,
-    "name": "BioMio",
-    "description": "This extension will allow you to encrypt/decrypt your emails",
-    "version": "1.0",
-    "permissions": ["activeTab", "notifications", "storage"],
-    "optional_permissions": [],
-    "background": {
-        "scripts": ["state-machine.js", "socket_requests.js",
-            "rsa_sign_library/ext/base64.js",
-            "rsa_sign_library/ext/jsbn.js",
-            "rsa_sign_library/ext/jsbn2.js",
-            "rsa_sign_library/ext/rsa.js",
-            "rsa_sign_library/ext/rsa2.js",
-            "rsa_sign_library/ext/cryptojs-312-core-fix.js",
-            "rsa_sign_library/rsasign-1.2.js",
-            "rsa_sign_library/rsapem-1.1.js",
-            "rsa_sign_library/crypto-1.1.js",
-            "rsa_sign_library/asn1hex-1.1.js",
-            "rsa_sign_library/x509-1.1.js",
-            "rsa_sign_library/jsrsasign-latest-all-min.js",
-            "background.js"]
-    },
-    "browser_action": {
-        "default_title": "BioMio",
-        "default_icon": "images/smallLogo.png"
-    },
-    "icons": {
-        "16": "images/smallLogo.png",
-        "48": "images/smallLogo.png",
-        "128": "images/smallLogo.png"
-    },
-    "web_accessible_resources": ["additional_html.html", "*.js"],
-    "default_locale": "en",
-    "key": "MIIBIjANBgkqhkiG9w0BAQEFAAOCAQ8AMIIBCgKCAQEAgRnXfhAUW+nb3IcT4Z8UZ4W10qN/3lB65lwDxHLNT4hc3Y0WTwgG81NFWCR8l/O79AMrn028v1x7O6yu1YZ3NmWl2QXo0GKHYmcuQQfHiAZwOLMq7ZBEDJzGlB6IkyFrDdIhaeLK8X9zYDJHRGZ2qruExD1JWVT9oRyXCyy5R+UAwDnNP8xa7X/65ojdZT4RcrBgwfwUhY5SBtBF9vlX4FpoROTVDtlAj2wNXX1Pi74tDL/ZsvERX7Y8E1w/Z2JOYlmZpsHaD9FZuUxB62tbJ7PC2xcSgxy7XNOeWJvi5BlGoG3lUwsLFAfLnXbd9D0txcCEMS2xr7hl4dh+V6+UbwIDAQAB",
-    "content_scripts": [
-        {
-            "matches": ["*://mail.google.com/*"],
-            "js": ["jquery-1.11.1.js", "e2e_library/end-to-end.compiled.js", "contentscript.js"],
-            "run_at": "document_end",
-            "css": ["bio_styles.css"]
-        }
-    ],
-    "content_security_policy": "script-src 'self' 'unsafe-eval'; object-src 'self'"
+  "manifest_version": 2,
+  "name": "BioMio",
+  "description": "This extension will allow you to encrypt/decrypt your emails",
+  "version": "1.0",
+  "permissions": [
+    "activeTab",
+    "notifications",
+    "storage"
+  ],
+  "optional_permissions": [],
+  "background": {
+    "scripts": [
+      "state-machine.js",
+      "socket_requests.js",
+      "rsa_sign_library/ext/base64.js",
+      "rsa_sign_library/ext/jsbn.js",
+      "rsa_sign_library/ext/jsbn2.js",
+      "rsa_sign_library/ext/rsa.js",
+      "rsa_sign_library/ext/rsa2.js",
+      "rsa_sign_library/ext/cryptojs-312-core-fix.js",
+      "rsa_sign_library/rsasign-1.2.js",
+      "rsa_sign_library/rsapem-1.1.js",
+      "rsa_sign_library/crypto-1.1.js",
+      "rsa_sign_library/asn1hex-1.1.js",
+      "rsa_sign_library/x509-1.1.js",
+      "rsa_sign_library/jsrsasign-latest-all-min.js",
+      "background.js"
+    ]
+  },
+  "browser_action": {
+    "default_title": "BioMio",
+    "default_icon": "images/smallLogo.png"
+  },
+  "icons": {
+    "16": "images/smallLogo.png",
+    "48": "images/smallLogo.png",
+    "128": "images/smallLogo.png"
+  },
+  "web_accessible_resources": [
+    "additional_html.html",
+    "*.js"
+  ],
+  "default_locale": "en",
+  "key": "MIIBIjANBgkqhkiG9w0BAQEFAAOCAQ8AMIIBCgKCAQEAgRnXfhAUW+nb3IcT4Z8UZ4W10qN/3lB65lwDxHLNT4hc3Y0WTwgG81NFWCR8l/O79AMrn028v1x7O6yu1YZ3NmWl2QXo0GKHYmcuQQfHiAZwOLMq7ZBEDJzGlB6IkyFrDdIhaeLK8X9zYDJHRGZ2qruExD1JWVT9oRyXCyy5R+UAwDnNP8xa7X/65ojdZT4RcrBgwfwUhY5SBtBF9vlX4FpoROTVDtlAj2wNXX1Pi74tDL/ZsvERX7Y8E1w/Z2JOYlmZpsHaD9FZuUxB62tbJ7PC2xcSgxy7XNOeWJvi5BlGoG3lUwsLFAfLnXbd9D0txcCEMS2xr7hl4dh+V6+UbwIDAQAB",
+  "content_scripts": [
+    {
+      "matches": ["*://mail.google.com/*"],
+      "js": [
+        "jquery-1.11.1.js",
+        "e2e_library/end-to-end.compiled.js",
+        "contentscript.js"
+      ],
+      "run_at": "document_end",
+      "css": ["bio_styles.css"]
+    }
+  ],
+  "content_security_policy": "script-src 'self' 'unsafe-eval'; object-src 'self'"
 }

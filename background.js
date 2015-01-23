@@ -150,7 +150,7 @@ var socketOnMessage = function (event) {
                 for (var i = 0; i < dataResp.keys.length; i++) {
                     currentRequestData[dataResp.keys[i]] = dataResp.values[i];
                 }
-                if(session_info.pass_phrase == '' && currentRequestData.hasOwnProperty('pass_phrase')){
+                if (session_info.pass_phrase == '' && currentRequestData.hasOwnProperty('pass_phrase')) {
                     session_info.pass_phrase = currentRequestData.pass_phrase;
                 }
                 if (state_machine.is(STATE_PASS_PHRASE) && session_info.public_keys_required) {

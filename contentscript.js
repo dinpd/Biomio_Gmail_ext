@@ -56,9 +56,9 @@ chrome.extension.onRequest.addListener(
                 sendResponse({'error': data['error']})
             } else {
                 var callback = ''
-                if(data['action'] == 'encrypt_only'){
+                if (data['action'] == 'encrypt_only') {
                     callback = encryptMessage;
-                }else{
+                } else {
                     callback = decryptMessage;
                 }
                 _importKeys(data, callback);
@@ -150,7 +150,7 @@ function sendResponse(message) {
  * @param {Object=} data with required information.
  */
 function prepareEncryptParameters(data) {
-    if(data.hasOwnProperty('recipients')){
+    if (data.hasOwnProperty('recipients')) {
         var recipients_arr = data.recipients;
         for (var i = 0; i < recipients_arr.length; i++) {
             var recipient = recipients_arr[i].split(' ');
@@ -243,13 +243,17 @@ function makeFileDownloadable(fileName, decryptedFile) {
 function _importKeys(data, callback) {
     var pass_phrase = data.pass_phrase
     pgpContext.setKeyRingPassphrase(pass_phrase);
-    if(data.hasOwnProperty('private_pgp_key')){
-        pgpContext.importKey(function(){return null}, data['private_pgp_key'], pass_phrase);
+    if (data.hasOwnProperty('private_pgp_key')) {
+        pgpContext.importKey(function () {
+            return null
+        }, data['private_pgp_key'], pass_phrase);
     }
-    if(data.hasOwnProperty('public_pgp_keys')){
+    if (data.hasOwnProperty('public_pgp_keys')) {
         var public_pgp_keys = data['public_pgp_keys'].split(',');
-        for(var i = 0; i < public_pgp_keys.length; i++){
-            pgpContext.importKey(function(){return null}, public_pgp_keys[i], pass_phrase);
+        for (var i = 0; i < public_pgp_keys.length; i++) {
+            pgpContext.importKey(function () {
+                return null
+            }, public_pgp_keys[i], pass_phrase);
         }
     }
     if (callback) {

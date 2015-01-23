@@ -146,7 +146,7 @@ function getHeaderString(token) {
  * @param {Object=} keyValueDict - RPC method input values
  * @returns {String}
  */
-function getRpcRequest(token, method, keyValueDict){
+function getRpcRequest(token, method, keyValueDict) {
     var request = RPC_REQUEST;
     request.header.token = token;
     request.msg.call = method;
@@ -154,8 +154,8 @@ function getRpcRequest(token, method, keyValueDict){
         keys: [],
         values: []
     };
-    for(var key in keyValueDict){
-        if(keyValueDict.hasOwnProperty(key)){
+    for (var key in keyValueDict) {
+        if (keyValueDict.hasOwnProperty(key)) {
             request.msg.data.keys.push(key);
             request.msg.data.values.push(keyValueDict[key]);
         }

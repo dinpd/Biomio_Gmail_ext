@@ -310,7 +310,7 @@ window.addEventListener("message", function (event) {
     if (data.completedAction) {
         console.log(event);
     }
-    if(data.hasOwnProperty('error')){
+    if (data.hasOwnProperty('error')) {
         showHideInfoPopup(data['error'], true);
         alert(data['error']);
     } else if (data.completedAction && (data.completedAction == "encrypt_only")) {
