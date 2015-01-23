@@ -5,11 +5,13 @@ var confirmOff;
 var showLoading;
 var showPopup;
 var DECRYPT_WAIT_MESSAGE;
-var ENCRYPT_WAIT_MESSAGE;
+var FILE_ENCRYPT_WAIT_MESSAGE;
 var FILE_ENCRYPT_SUCCESS_MESSAGE;
 var DECRYPT_SUCCESS_MESSAGE;
 var NO_MESSAGE;
 var EMAIL_PARTS_SEPARATOR;
+var ENCRYPT_WAIT_MESSAGE;
+var ENCRYPT_SUCCESS_MESSAGE;
 
 /**
  * Initializes variables with default values.
@@ -26,7 +28,9 @@ function setupDefaults() {
     showLoading = $('#show_loading');
     showPopup = $('#show_popup');
     DECRYPT_WAIT_MESSAGE = 'Please wait, we are getting the content of your email to decrypt it....';
-    ENCRYPT_WAIT_MESSAGE = 'Please wait, we are encrypting your attachments...';
+    ENCRYPT_WAIT_MESSAGE = 'Please wait, we are encrypting your message...';
+    ENCRYPT_SUCCESS_MESSAGE = 'Your message was successfully decrypted.';
+    FILE_ENCRYPT_WAIT_MESSAGE = 'Please wait, we are encrypting your attachments...';
     FILE_ENCRYPT_SUCCESS_MESSAGE = "Your attachment was successfully encrypted.";
     DECRYPT_SUCCESS_MESSAGE = 'Message successfully decrypted';
     NO_MESSAGE = '[NO_MESSAGE]';
@@ -50,7 +54,7 @@ var initializeGmailJSEvents = function () {
                     return function (e) {
                         e.preventDefault();
                         showLoading.show();
-                        showPopup.find('.wait_message').html(ENCRYPT_WAIT_MESSAGE);
+                        showPopup.find('.wait_message').html(FILE_ENCRYPT_WAIT_MESSAGE);
                         showPopup.fadeIn(200, function () {
                             var dataURL = reader.result;
                             var recipients_arr = compose.to().concat(compose.cc()).concat(compose.bcc());
@@ -70,7 +74,7 @@ var initializeGmailJSEvents = function () {
                     };
                 })(compose, fileName);
                 reader.readAsDataURL(file);
-                hideBodyErrorsShowMessage(ENCRYPT_WAIT_MESSAGE);
+                hideBodyErrorsShowMessage(FILE_ENCRYPT_WAIT_MESSAGE);
                 xhr.abort();
             } else if (needToCheck.length && needToCheck.is(':checked')) {
                 hideBodyErrorsShowMessage("It is required to specify recipients to be able to encrypt the attachment. " +
@@ -251,6 +255,7 @@ function sendMessageClicked(event) {
     var compose = getComposeByID(currComposeID);
     if (compose) {
         if (encryptRequired(compose)) {
+            showHideInfoPopup(ENCRYPT_WAIT_MESSAGE);
             var recipients_arr = compose.to().concat(compose.cc()).concat(compose.bcc());
             $('#biomio-attachments-' + compose.id()).remove();
             window.postMessage({
@@ -305,7 +310,10 @@ window.addEventListener("message", function (event) {
     if (data.completedAction) {
         console.log(event);
     }
-    if (data.completedAction && (data.completedAction == "encrypt_only")) {
+    if(data.hasOwnProperty('error')){
+        showHideInfoPopup(data['error'], true);
+        alert(data['error']);
+    } else if (data.completedAction && (data.completedAction == "encrypt_only")) {
         if (data.encryptObject && data.encryptObject.length) {
             var compose = getComposeByID(data.composeId);
             if (compose) {
@@ -337,6 +345,7 @@ window.addEventListener("message", function (event) {
                     }
                     compose.body(content);
                     triggerSendButton(compose);
+                    showHideInfoPopup(ENCRYPT_SUCCESS_MESSAGE, true);
                     confirm = confirmOn;
                 }
             }

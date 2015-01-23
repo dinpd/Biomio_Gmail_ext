@@ -4,7 +4,7 @@ var FILE_PARTS_SEPARATOR = '#--#';
 var FILE_NAME_SEPARATOR = '##-##';
 var gmail_scripts = ['gmail.js', 'gmail_executor.js'];
 var gmail_scripts_urls = [];
-var currentRequest;
+var KEY_PREFIX = 'BioMio ';
 
 //Get urls for each extension script that must be injected into page.
 for (var i = 0; i < gmail_scripts.length; i++) {
@@ -30,267 +30,42 @@ window.onload = function () {
     });
 };
 
-//////////////// SOCKET ////////////////////////
-
-var STATE_CONNECTED = 'connected';
-var STATE_REGISTRATION_HANDSHAKE = 'registration';
-var STATE_REGULAR_HANDSHAKE = 'regular_handshake';
-var STATE_READY = 'connection_ready';
-var STATE_DISCONNECTED = 'disconnected';
-var socket_connection;
-//var SERVER_URL = "wss://gb.vakoms.com:8080/websocket";
-var SERVER_URL = "wss://localhost:8080/websocket";
-var STORAGE_RSA_KEY = 'biomio_private_key';
-var user_info = {};
-
-var state_machine;
-var session_alive_interval;
-var refresh_token_interval;
-
-var iterations = 0;
-
-var CURRENT_EMAIL_TEST = 'andriy.lobashchuk@vakoms.com';
-var RECIPIENT_EMAIL_TEST = 'orrionandi@gmail.com';
-
-var publicKeysRequiredFlag = false;
-var passPhraseRequiredFlag = false;
-
-var keepAlive = function () {
-    session_alive_interval = setInterval(function () {
-        console.log('keepAlive');
-        if (state_machine.is(STATE_READY)) {
-            socket_connection.send(getCustomRequest(NOP_REQUEST, user_info.token));
-            iterations++;
-        } else {
-            clearInterval(session_alive_interval);
-        }
-        if (iterations == 2) {
-            sendRpcRequest(RPC_GET_PASS_PHRASE_METHOD, {'email': CURRENT_EMAIL_TEST});
-        }
-        if (iterations == 4) {
-            sendRpcRequest(RPC_GET_PUBLIC_KEY_METHOD, {'email': RECIPIENT_EMAIL_TEST});
-        }
-        if (iterations > 6) {
-            socket_connection.disconnect('WebSocket connection closed: Url - ' + socket_connection.url);
-        }
-    }, (SOCKET_CONNECTION_TIMEOUT - 2000));
-};
-
-function sendRpcRequest(method, keyValueDict) {
-    if (state_machine.is(STATE_READY)) {
-        socket_connection.send(getRpcRequest(user_info.token, method, keyValueDict));
-    } else {
-        console.log("Message cannot be sent, because state machine is currently in state: ", state_machine.current);
-    }
-}
-
-var refresh_token = function () {
-    refresh_token_interval = setInterval(function () {
-        console.log('refresh TOKEN');
-        if (state_machine.is(STATE_READY)) {
-            socket_connection.send(getCustomRequest(NOP_REQUEST, user_info.refresh_token));
-        } else {
-            clearInterval(refresh_token_interval);
-        }
-    }, (user_info.ttl - 2000));
-};
-
-var socketOnError = function (data) {
-    state_machine.disconnect('WebSocket exception (URL - ' + socket_connection.url + ')');
-};
-
-var socketOnOpen = function () {
-    chrome.storage.sync.get(STORAGE_RSA_KEY, function (data) {
-        console.log(data);
-        if (STORAGE_RSA_KEY in data) {
-            user_info.rsa_private_key = data[STORAGE_RSA_KEY];
-            state_machine.handshake('WebSocket connection opened: Url - ' + socket_connection.url);
-        } else {
-            state_machine.register('WebSocket connection opened: Url - ' + socket_connection.url);
-        }
-    });
-};
-
-var socketOnClose = function () {
-    if (!state_machine.is(STATE_DISCONNECTED)) {
-        state_machine.disconnect('WebSocket connection closed: Url - ' + socket_connection.url);
-    }
-};
-
-var socketOnSend = function (request) {
-    console.log('REQUEST: ', request);
-    socket_connection.send_(request);
-    increaseRequestCounter();
-    clearInterval(session_alive_interval);
-    keepAlive();
-};
-
-var socketOnMessage = function (event) {
-    var data = JSON.parse(event.data);
-    console.log(data);
-    if (data.msg.oid == 'bye') return;
-    if (state_machine.is(STATE_REGISTRATION_HANDSHAKE) || state_machine.is(STATE_REGULAR_HANDSHAKE)) {
-        user_info.token = data.header.token;
-        user_info.refresh_token = data.msg.refreshToken;
-        user_info.ttl = data.msg.ttl * 1000;
-        if ('key' in data.msg) {
-            user_info.rsa_private_key = data.msg.key;
-            var rsa_private_key = {};
-            rsa_private_key[STORAGE_RSA_KEY] = user_info.rsa_private_key;
-            chrome.storage.sync.set(rsa_private_key);
-        }
-        state_machine.ready('Handshake was successful!\nToken: ' + user_info.token + '\nRefresh token: ' + user_info.refresh_token);
-    } else if (state_machine.is(STATE_READY)) {
-        if (data.msg.oid == 'nop' && user_info.token != data.header.token) {
-            user_info.token = data.header.token;
-            clearInterval(refresh_token_interval);
-            refresh_token();
-        } else if (data.msg.oid == 'rpcResp') {
-            var dataResp = data.msg.data;
-            if (dataResp.keys.indexOf('error') > -1) {
-                console.log('Error received from rpc method: ', dataResp.values[0]);
-            } else {
-                if (data.msg.call == RPC_GET_PASS_PHRASE_METHOD) {
-                    console.log('=======================================');
-                    console.log('Received data from ' + RPC_GET_PASS_PHRASE_METHOD + ' method: ');
-                    for (var i = 0; i < dataResp.keys.length; i++) {
-                        console.log(dataResp.keys[i], dataResp.values[i]);
-                        user_info[dataResp.keys[i]] = dataResp.values[i];
-                    }
-                    pgpContext.setKeyRingPassphrase(user_info['pass_phrase']);
-                    console.log('=======================================');
-                    passPhraseRequiredFlag = false;
-                    if(!publicKeysRequiredFlag){
-                        window.postMessage(currentRequest);
-                    }
-                } else if (data.msg.call == RPC_GET_PUBLIC_KEY_METHOD) {
-                    console.log('=======================================');
-                    console.log('Received data from ' + RPC_GET_PUBLIC_KEY_METHOD + ' method: ');
-                    for (var i = 0; i < dataResp.keys.length; i++) {
-                        console.log(dataResp.keys[i], dataResp.values[i]);
-                        user_info[dataResp.keys[i]] = dataResp.values[i];
-                    }
-                    console.log('=======================================');
-                    publicKeysRequiredFlag = false;
-                    data['gotPublicKeys'] = true;
-                    if(!passPhraseRequiredFlag){
-                        window.postMessage(currentRequest);
-                    }
-                }
-            }
-        }
-    }
-};
-
-var onConnect = function (event, from, to, msg) {
-    console.log(msg);
-    socket_connection = new WebSocket(SERVER_URL);
-    socket_connection.onerror = socketOnError;
-    socket_connection.onopen = socketOnOpen;
-    socket_connection.onclose = socketOnClose;
-    socket_connection.send_ = socket_connection.send;
-    socket_connection.send = socketOnSend;
-    socket_connection.onmessage = socketOnMessage;
-};
-
-var onRegister = function (event, from, to, msg) {
-    console.log(msg);
-    console.log('Started registration....');
-    socket_connection.send(getHandshakeRequest('secret'));
-};
-
-var onHandshake = function (event, from, to, msg) {
-    console.log(msg);
-    console.log('Starting regular handshake....');
-    socket_connection.send(getHandshakeRequest());
-};
-
-var onReady = function (event, from, to, msg) {
-    console.log(msg);
-    if (from == STATE_REGISTRATION_HANDSHAKE) {
-        console.log('Sending ACK');
-        socket_connection.send(getCustomRequest(ACK_REQUEST, user_info.token));
-    } else if (from == STATE_REGULAR_HANDSHAKE) {
-        console.log('Sending DIGEST');
-        var rsa = new RSAKey();
-        rsa.readPrivateKeyFromPEMString(user_info.rsa_private_key);
-        console.log(getHeaderString(user_info.token));
-        var hSig = rsa.signString(getHeaderString(user_info.token), 'sha1');
-        console.log(hSig);
-        socket_connection.send(getDigestRequest(hSig, user_info.token));
-    }
-    clearInterval(session_alive_interval);
-    clearInterval(refresh_token_interval);
-    keepAlive();
-    refresh_token();
-};
-
-var onDisconnect = function (event, from, to, msg) {
-    console.log(msg);
-    if (socket_connection.readyState != 3) {
-        socket_connection.send(getCustomRequest(BYE_REQUEST, user_info.token));
-    }
-};
-
-state_machine = StateMachine.create({
-    events: [
-        {name: 'connect', from: 'none', to: STATE_CONNECTED},
-        {name: 'register', from: STATE_CONNECTED, to: STATE_REGISTRATION_HANDSHAKE},
-        {name: 'handshake', from: [STATE_CONNECTED, STATE_REGISTRATION_HANDSHAKE], to: STATE_REGULAR_HANDSHAKE},
-        {name: 'ready', from: [STATE_REGISTRATION_HANDSHAKE, STATE_REGULAR_HANDSHAKE], to: STATE_READY},
-        {name: 'disconnect', from: '*', to: STATE_DISCONNECTED}
-    ],
-    callbacks: {
-        onconnect: onConnect,
-        onregister: onRegister,
-        onhandshake: onHandshake,
-        onready: onReady,
-        ondisconnect: onDisconnect
-    }
-});
-
-/**
- * Checks whether socket connection is initialized, if not - initializes it.
- *
- * @param {boolean=} publicKeysRequired indicates whether it is required to get public keys from server.
- * @param {Array.String=} emails to get public keys for.
- * @param {String=} currentUserEmail to get pass phrase for.
- * @returns {boolean}
- * @private
- */
-function _isConnectionInitialized(publicKeysRequired, emails, currentUserEmail) {
-    publicKeysRequiredFlag = publicKeysRequired && !publicKeysRequiredFlag;
-    passPhraseRequiredFlag = !user_info.hasOwnProperty('pass_phrase') && !passPhraseRequiredFlag;
-    if (state_machine.is(STATE_DISCONNECTED)) {
-        state_machine.connect('Connecting to websocket - ' + SERVER_URL);
-        return false;
-    }else{
-        if(publicKeysRequiredFlag){
-            sendRpcRequest(RPC_GET_PUBLIC_KEY_METHOD, {'emails': emails});
-        }
-        if(passPhraseRequiredFlag){
-            sendRpcRequest(RPC_GET_PASS_PHRASE_METHOD, {'email': currentUserEmail});
-        }
-    }
-    return publicKeysRequiredFlag || passPhraseRequiredFlag;
-}
-
-////////////////// SOCKET ////////////////////
-
-
-var uid = 'Autogenerated Key (Biomio) <test@mail.com>';
-
 /**
  * Window listener which listens for messages from gmail_executor script.
  */
 window.addEventListener("message", function (event) {
-    currentRequest = event.data;
-    if (currentRequest.hasOwnProperty('type') && currentRequest.type == "encrypt_sign") {
-        encryptMessage(currentRequest.data);
-    } else if (currentRequest.hasOwnProperty('type') && currentRequest.type == "decryptMessage") {
-        decryptMessage(currentRequest.data);
+    var currData = event.data.data;
+    if (event.data.hasOwnProperty('type') && event.data.type == "encrypt_sign") {
+        prepareEncryptParameters(currData);
+        chrome.runtime.sendMessage({command: 'get_phrase_keys', data: currData});
+    } else if (event.data.hasOwnProperty('type') && event.data.type == "decryptMessage") {
+        prepareEncryptParameters(currData);
+        chrome.runtime.sendMessage({command: 'get_phrase', data: currData});
     }
 }, false);
+
+/**
+ * Chrome requests listener which listens for messages from background script.
+ */
+chrome.extension.onRequest.addListener(
+    function (request) {
+        console.log(request);
+        if (request.command == 'socket_response') {
+            var data = request.data;
+            if (data.hasOwnProperty('error')) {
+                sendResponse({'error': data['error']})
+            } else {
+                var callback = ''
+                if(data['action'] == 'encrypt_only'){
+                    callback = encryptMessage;
+                }else{
+                    callback = decryptMessage;
+                }
+                _importKeys(data, callback);
+            }
+        }
+    }
+);
 
 /**
  * Parses required data from data object and encrypts it.
@@ -298,30 +73,28 @@ window.addEventListener("message", function (event) {
  */
 function encryptMessage(data) {
     console.log('Encrypt: ', data);
-    prepareEncryptParameters(data);
-    if(_isConnectionInitialized(true, data.recipients, data.currentUser)){
-        var keys = [];
-        var sender_private_key = pgpContext.searchPrivateKey(uid).result_[0];
-        for (var i = 0; i < data.recipients.length; i++) {
-            var pub_key = pgpContext.searchPublicKey(uid);
-            if (pub_key.result_) {
-                $.extend(keys, pub_key.result_);
-            }
+    var keys = [];
+    var sender_private_key = pgpContext.searchPrivateKey(KEY_PREFIX + data.currentUser).result_[0];
+    for (var i = 0; i < data.recipients.length; i++) {
+        var pub_key = pgpContext.searchPublicKey(KEY_PREFIX + data.recipients[i]);
+        if (pub_key.result_) {
+            $.extend(keys, pub_key.result_);
         }
-        if (data.hasOwnProperty('encryptObject') && data.encryptObject == 'file') {
-            data.content = encryptFile(data, keys, sender_private_key);
-        } else {
-            data.content = _encryptMessage(data.content, keys, sender_private_key);
-        }
-        data.completedAction = 'encrypt_only';
-        sendResponse(data);
     }
+    console.log(keys);
+    if (data.hasOwnProperty('encryptObject') && data.encryptObject == 'file') {
+        data.content = encryptFile(data, keys, sender_private_key);
+    } else {
+        data.content = _encryptMessage(data.content, keys, sender_private_key);
+    }
+    data.completedAction = 'encrypt_only';
+    sendResponse(data);
 }
 
 /**
  * Encrypts given content with array of public keys and signs it with sender's private key.
  * @param {string=} content to encrypt
- * @param {Array.Key=} keys array of public key objects.
+ * @param {Array=} keys array of public key objects.
  * @param {Key=} sender_key Private OpenPGP key.
  * @returns {string} encrypted content.
  * @private
@@ -377,19 +150,21 @@ function sendResponse(message) {
  * @param {Object=} data with required information.
  */
 function prepareEncryptParameters(data) {
-    var recipients_arr = data.recipients;
-    for (var i = 0; i < recipients_arr.length; i++) {
-        var recipient = recipients_arr[i].split(' ');
-        recipients_arr[i] = recipient[recipient.length - 1];
+    if(data.hasOwnProperty('recipients')){
+        var recipients_arr = data.recipients;
+        for (var i = 0; i < recipients_arr.length; i++) {
+            var recipient = recipients_arr[i].split(' ');
+            recipients_arr[i] = recipient[recipient.length - 1];
+        }
+        data.recipients = recipients_arr;
     }
-    data.recipients = recipients_arr;
     data.currentUser = '<' + data.currentUser + '>';
 }
 
 /**
  * Encrypts given file with array of public keys and sender's private key.
  * @param {Object=} data with required encryption information.
- * @param {Array.Key=} public_keys array of Key objects with recipients public keys.
+ * @param {Array=} public_keys array of Key objects with recipients public keys.
  * @param {Key} sender_key object with sender's private key.
  * @returns {string} encrypted file.
  */
@@ -459,3 +234,25 @@ function makeFileDownloadable(fileName, decryptedFile) {
     return {fileName: fileName, decryptedFile: decryptedFile};
 }
 
+/**
+ * Imports public/private keys into OpenPGP keyring with given pass phrase.
+ * @param {Object=} data with all required information.
+ * @param {function(Object)=} callback which should be executed after keys are imported.
+ * @private
+ */
+function _importKeys(data, callback) {
+    var pass_phrase = data.pass_phrase
+    pgpContext.setKeyRingPassphrase(pass_phrase);
+    if(data.hasOwnProperty('private_pgp_key')){
+        pgpContext.importKey(function(){return null}, data['private_pgp_key'], pass_phrase);
+    }
+    if(data.hasOwnProperty('public_pgp_keys')){
+        var public_pgp_keys = data['public_pgp_keys'].split(',');
+        for(var i = 0; i < public_pgp_keys.length; i++){
+            pgpContext.importKey(function(){return null}, public_pgp_keys[i], pass_phrase);
+        }
+    }
+    if (callback) {
+        callback(data);
+    }
+}

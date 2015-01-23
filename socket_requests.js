@@ -8,7 +8,7 @@ var SOCKET_CONNECTION_TIMEOUT = 10000;
 var RPC_NAMESPACE = 'extension_test_plugin';
 
 var RPC_GET_PASS_PHRASE_METHOD = 'get_pass_phrase';
-var RPC_GET_PUBLIC_KEY_METHOD = 'get_user_public_pgp_key';
+var RPC_GET_PUBLIC_KEY_METHOD = 'get_users_public_pgp_keys';
 
 var REQUEST_HEADER = {
     protoVer: PROTO_VERSION,
@@ -78,6 +78,11 @@ var BYE_REQUEST = {
     header: REQUEST_HEADER
 };
 
+/**
+ * Generates handshake request.
+ * @param {String=} secret - user defined secret
+ * @returns {String}
+ */
 function getHandshakeRequest(secret) {
     var request = REGULAR_REQUEST;
     if (typeof secret !== 'undefined') {
@@ -87,6 +92,12 @@ function getHandshakeRequest(secret) {
     return JSON.stringify(request);
 }
 
+/**
+ * Generates digest request.
+ * @param {String=} key - digest.
+ * @param {String=} token
+ * @returns {String}
+ */
 function getDigestRequest(key, token) {
     var request = REGULAR_DIGEST_REQUEST;
     request.msg.key = key;
@@ -96,15 +107,29 @@ function getDigestRequest(key, token) {
     return request;
 }
 
+/**
+ * Generates custom request based on request type.
+ * @param {String=} request type.
+ * @param {String=} token
+ * @returns {String}
+ */
 function getCustomRequest(request, token) {
     request.header.token = token;
     return JSON.stringify(request);
 }
 
+/**
+ * Increases socket requests counter.
+ */
 function increaseRequestCounter() {
     REQUEST_HEADER.seq += 2;
 }
 
+/**
+ * Generates header for digest.
+ * @param {String=} token
+ * @returns {String}
+ */
 function getHeaderString(token) {
     var header = REQUEST_HEADER;
     header.token = token;
@@ -114,10 +139,21 @@ function getHeaderString(token) {
     return header;
 }
 
+/**
+ * Generates RPC request with given data dictionary.
+ * @param {String=} token
+ * @param {String=} method - RPC method type (name).
+ * @param {Object=} keyValueDict - RPC method input values
+ * @returns {String}
+ */
 function getRpcRequest(token, method, keyValueDict){
     var request = RPC_REQUEST;
     request.header.token = token;
     request.msg.call = method;
+    request.msg.data = {
+        keys: [],
+        values: []
+    };
     for(var key in keyValueDict){
         if(keyValueDict.hasOwnProperty(key)){
             request.msg.data.keys.push(key);
