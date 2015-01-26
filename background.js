@@ -153,7 +153,7 @@ var socketOnMessage = function (event) {
                 for (var i = 0; i < dataResp.keys.length; i++) {
                     currentRequestData[dataResp.keys[i]] = dataResp.values[i];
                 }
-                if (currentRequestData.hasOwnProperty('pass_phrase')) {
+                if (session_info.pass_phrase == '' && currentRequestData.hasOwnProperty('pass_phrase')) {
                     session_info.pass_phrase = currentRequestData.pass_phrase;
                     sendResponse(TIMER_RESPONSE_TYPE, {showTimer: false});
                 }
@@ -237,7 +237,11 @@ var onReady = function (event, from, to, msg, noActionRequired) {
         clearInterval(refresh_token_interval);
         keepAlive();
         refresh_token();
-        state_machine.pass_phrase('Getting pass phrase');
+        if(session_info.pass_phrase == ''){
+            state_machine.pass_phrase('Getting pass phrase');
+        }else if(session_info.public_keys_required){
+            state_machine.public_keys('Getting public keys...');
+        }
     }
 };
 
@@ -250,7 +254,6 @@ var onReady = function (event, from, to, msg, noActionRequired) {
  */
 var onDisconnect = function (event, from, to, msg) {
     console.log(msg);
-    resetSessionInfo();
     if (socket_connection && socket_connection.readyState != 3) {
         socket_connection.send(getCustomRequest(BYE_REQUEST, session_info.token));
     }
@@ -320,11 +323,13 @@ chrome.runtime.onMessage.addListener(
             state_machine.disconnect();
         } else if (['get_phrase_keys', 'get_phrase'].indexOf(request.command) != -1) {
             currentRequestData = request.data;
+            if(session_info.pass_phrase == ''){
+                sendResponse(TIMER_RESPONSE_TYPE, {showTimer: true});
+            }
             if (request.command == 'get_phrase_keys') {
                 session_info.public_keys_required = true;
                 if (state_machine.is(STATE_DISCONNECTED)) {
                     state_machine.connect('Connecting to websocket - ' + SERVER_URL);
-                    sendResponse(TIMER_RESPONSE_TYPE, {showTimer: true});
                 } else {
                     state_machine.public_keys('Getting public keys...');
                 }
@@ -332,7 +337,6 @@ chrome.runtime.onMessage.addListener(
                 session_info.public_keys_required = false;
                 if (state_machine.is(STATE_DISCONNECTED)) {
                     state_machine.connect('Connecting to websocket - ' + SERVER_URL);
-                    sendResponse(TIMER_RESPONSE_TYPE, {showTimer: true});
                 } else {
                     currentRequestData['pass_phrase'] = session_info.pass_phrase;
                     sendResponse(COMMON_RESPONSE_TYPE, currentRequestData);
@@ -350,18 +354,6 @@ function sendResponse(command, response) {
     if(command == COMMON_RESPONSE_TYPE){
         currentRequestData = {};
     }
-}
-
-function resetSessionInfo() {
-    currentRequestData = {};
-    session_info = {
-        public_keys_required: false,
-        pass_phrase: '',
-        token: '',
-        refresh_token: '',
-        ttl: '',
-        rsa_private_key: ''
-    };
 }
 
 //chrome.storage.sync.remove('biomio_private_key', function(){
