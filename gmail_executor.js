@@ -45,9 +45,14 @@ function setupDefaults() {
     CANCEL_PROBE_MESSAGE_TYPE = 'cancel_probe';
     PROBE_ERROR_MESSAGE = "Your message wasn't encrypted because we were not able to identify you in time.";
 
-    $('#biomio_ok_button').on('click', function(e){
+    $('#biomio_ok_button').on('click', function (e) {
         e.preventDefault();
         showHideInfoPopup('', true);
+    });
+
+    $(document).on('click', '#biomio_decrypt_button', function (e) {
+        e.preventDefault();
+        decryptMessage(e);
     });
 }
 
@@ -99,19 +104,6 @@ var initializeGmailJSEvents = function () {
         }
     });
 
-    gmail.observe.on('load_email_menu', function (match) {
-        console.log('Menu loaded', match);
-        var biomioDecryptButton = $('#biomio_decrypt_button');
-        if (biomioDecryptButton.length) {
-            var biomioDecryptButtonCopy = biomioDecryptButton.clone();
-            biomioDecryptButtonCopy.attr('id', biomioDecryptButton.attr('id') + '_inserted');
-            match.append(biomioDecryptButtonCopy);
-            biomioDecryptButton.remove();
-            biomioDecryptButtonCopy.show();
-
-        }
-    });
-
     gmail.observe.on('view_thread', function (match) {
 
     });
@@ -121,11 +113,8 @@ var initializeGmailJSEvents = function () {
         if (emailBody.html().indexOf('BEGIN PGP MESSAGE') != -1) {
             var bioMioAttr = emailBody.attr('class').split(' ');
             $('#biomio_decrypt_button').remove();
-            var decryptButton = '<div class="J-N" style="-webkit-user-select: none;display: none;" data-biomio-bodyattr="'
-                + bioMioAttr.join('_') + '" id="biomio_decrypt_button" role="menuitem" onclick="decryptMessage(event)"><div class="J-N-Jz">' +
-                '<div><div class="cj"><img class="dS J-N-JX" src="images/cleardot.gif" alt>Decrypt message</div>' +
-                '</div></div></div></div>';
-            emailBody.after(decryptButton);
+            emailBody.find('div[dir="ltr"]').prepend('<div id="biomio_decrypt_element"><input type="button" value="Decrypt" id="biomio_decrypt_button" data-biomio-bodyattr="'
+            + bioMioAttr.join('_') + '"><br><br></div>');
         }
     });
 
@@ -210,7 +199,9 @@ function decryptMessage(event) {
     showHideInfoPopup(DECRYPT_WAIT_MESSAGE);
     $('#biomio_progressbar').progressbar({value: 0});
     var currentTarget = $(event.currentTarget);
-    var emailBody = $('.' + currentTarget.attr('data-biomio-bodyattr').split('_').join('.'));
+    var emailBodyAttr = currentTarget.attr('data-biomio-bodyattr');
+    currentTarget.parent().remove();
+    var emailBody = $('.' + emailBodyAttr.split('_').join('.'));
     var viewEntireEmailLink = emailBody.find('a[href*="?ui"]');
     if (viewEntireEmailLink.length) {
         $.ajax(
@@ -228,12 +219,12 @@ function decryptMessage(event) {
                 success: function (data) {
                     var emailBodyHtml = $(data).find('div[dir="ltr"]').html().replace(/BioMio v1.0<br>/g, 'BioMio v1.0').split('BioMio v1.0').join('BioMio v1.0<br>');
                     emailBody.html(emailBodyHtml);
-                    sendDecryptMessage(currentTarget, emailBody);
+                    sendDecryptMessage(emailBodyAttr, emailBody);
                 }
             }
         );
     } else {
-        sendDecryptMessage(currentTarget, emailBody);
+        sendDecryptMessage(emailBodyAttr, emailBody);
     }
 
 }
@@ -243,8 +234,8 @@ function decryptMessage(event) {
  * @param currentTarget
  * @param {jQuery.element=} emailBody of the current email.
  */
-function sendDecryptMessage(currentTarget, emailBody) {
-    var bioMioAttr = 'biomio_' + currentTarget.attr('data-biomio-bodyattr');
+function sendDecryptMessage(emailBodyAttr, emailBody) {
+    var bioMioAttr = 'biomio_' + emailBodyAttr;
     emailBody.attr('data-biomio', bioMioAttr);
     var emailBodyText = emailBody.html();
     emailBodyText = $.trim(emailBodyText.replace(/<br>/g, '\n'));
@@ -258,7 +249,6 @@ function sendDecryptMessage(currentTarget, emailBody) {
             biomio_attr: bioMioAttr
         }
     }, '*');
-    currentTarget.remove();
 }
 
 /**
@@ -329,11 +319,11 @@ window.addEventListener("message", function (event) {
     if (data.hasOwnProperty('error')) {
         showHideInfoPopup(data['error'], true);
         alert(data['error']);
-    } else if (data.hasOwnProperty('showTimer')){
-        if(data['showTimer']){
+    } else if (data.hasOwnProperty('showTimer')) {
+        if (data['showTimer']) {
             showHideInfoPopup(PROBE_WAIT_MESSAGE);
             calculateTime();
-        }else{
+        } else {
             clearInterval(showTimer);
             showHideInfoPopup(ENCRYPT_WAIT_MESSAGE);
         }
@@ -439,7 +429,7 @@ function calculateTime() {
     biomio_timer.show();
     showTimer = setInterval(function () {
         timer--;
-        if(timer <= 0){
+        if (timer <= 0) {
             sendContentMessage(CANCEL_PROBE_MESSAGE_TYPE, {});
             biomio_timer.text('');
             showHideInfoPopup(PROBE_ERROR_MESSAGE);
@@ -458,7 +448,7 @@ function calculateTime() {
  * @param {String=} type of the message
  * @param {Object=} message data object.
  */
-function sendContentMessage(type, message){
+function sendContentMessage(type, message) {
     console.log('Type:', type);
     console.log('Message:', message);
     window.postMessage({type: type, data: message}, '*');
