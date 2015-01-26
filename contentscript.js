@@ -41,6 +41,8 @@ window.addEventListener("message", function (event) {
     } else if (event.data.hasOwnProperty('type') && event.data.type == "decryptMessage") {
         prepareEncryptParameters(currData);
         chrome.runtime.sendMessage({command: 'get_phrase', data: currData});
+    } else if (event.data.hasOwnProperty('type') && event.data.type == 'cancel_probe'){
+        chrome.runtime.sendMessage({command: event.data.type, data: currData});
     }
 }, false);
 
@@ -50,8 +52,8 @@ window.addEventListener("message", function (event) {
 chrome.extension.onRequest.addListener(
     function (request) {
         console.log(request);
+        var data = request.data;
         if (request.command == 'socket_response') {
-            var data = request.data;
             if (data.hasOwnProperty('error')) {
                 sendResponse({'error': data['error']})
             } else {
@@ -63,6 +65,8 @@ chrome.extension.onRequest.addListener(
                 }
                 _importKeys(data, callback);
             }
+        } else if(request.command == 'show_timer'){
+            sendResponse({showTimer: data['showTimer']});
         }
     }
 );

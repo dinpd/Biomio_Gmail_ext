@@ -18,6 +18,9 @@ var session_info = {
     rsa_private_key: '',
     tab_id: ''
 };
+var COMMON_RESPONSE_TYPE = 'socket_response';
+var TIMER_RESPONSE_TYPE = 'show_timer';
+
 
 var state_machine;
 var session_alive_interval;
@@ -145,18 +148,19 @@ var socketOnMessage = function (event) {
             if (dataResp.keys.indexOf('error') > -1) {
                 console.log('Error received from rpc method: ', dataResp.values[0]);
                 currentRequestData['error'] = dataResp.values[0];
-                sendResponse();
+                sendResponse(COMMON_RESPONSE_TYPE, currentRequestData);
             } else {
                 for (var i = 0; i < dataResp.keys.length; i++) {
                     currentRequestData[dataResp.keys[i]] = dataResp.values[i];
                 }
-                if (session_info.pass_phrase == '' && currentRequestData.hasOwnProperty('pass_phrase')) {
+                if (currentRequestData.hasOwnProperty('pass_phrase')) {
                     session_info.pass_phrase = currentRequestData.pass_phrase;
+                    sendResponse(TIMER_RESPONSE_TYPE, {showTimer: false});
                 }
                 if (state_machine.is(STATE_PASS_PHRASE) && session_info.public_keys_required) {
                     state_machine.public_keys('Getting public keys...');
                 } else {
-                    sendResponse();
+                    sendResponse(COMMON_RESPONSE_TYPE, currentRequestData);
                     state_machine.ready('Ready state...', true);
                 }
             }
@@ -246,6 +250,7 @@ var onReady = function (event, from, to, msg, noActionRequired) {
  */
 var onDisconnect = function (event, from, to, msg) {
     console.log(msg);
+    resetSessionInfo();
     if (socket_connection && socket_connection.readyState != 3) {
         socket_connection.send(getCustomRequest(BYE_REQUEST, session_info.token));
     }
@@ -310,22 +315,28 @@ state_machine = StateMachine.create({
 chrome.runtime.onMessage.addListener(
     function (request, sender) {
         console.log(request);
-        currentRequestData = request.data;
         session_info.tab_id = sender.tab.id;
-        if (request.command == 'get_phrase_keys') {
-            session_info.public_keys_required = true;
-            if (state_machine.is(STATE_DISCONNECTED)) {
-                state_machine.connect('Connecting to websocket - ' + SERVER_URL);
-            } else {
-                state_machine.public_keys('Getting public keys...');
-            }
-        } else if (request.command == 'get_phrase') {
-            session_info.public_keys_required = false;
-            if (state_machine.is(STATE_DISCONNECTED)) {
-                state_machine.connect('Connecting to websocket - ' + SERVER_URL);
-            } else {
-                currentRequestData['pass_phrase'] = session_info.pass_phrase;
-                sendResponse();
+        if (request.command == 'cancel_probe') {
+            state_machine.disconnect();
+        } else if (['get_phrase_keys', 'get_phrase'].indexOf(request.command) != -1) {
+            currentRequestData = request.data;
+            if (request.command == 'get_phrase_keys') {
+                session_info.public_keys_required = true;
+                if (state_machine.is(STATE_DISCONNECTED)) {
+                    state_machine.connect('Connecting to websocket - ' + SERVER_URL);
+                    sendResponse(TIMER_RESPONSE_TYPE, {showTimer: true});
+                } else {
+                    state_machine.public_keys('Getting public keys...');
+                }
+            } else if (request.command == 'get_phrase') {
+                session_info.public_keys_required = false;
+                if (state_machine.is(STATE_DISCONNECTED)) {
+                    state_machine.connect('Connecting to websocket - ' + SERVER_URL);
+                    sendResponse(TIMER_RESPONSE_TYPE, {showTimer: true});
+                } else {
+                    currentRequestData['pass_phrase'] = session_info.pass_phrase;
+                    sendResponse(COMMON_RESPONSE_TYPE, currentRequestData);
+                }
             }
         }
     }
@@ -334,9 +345,23 @@ chrome.runtime.onMessage.addListener(
 /**
  * Sends message to content script.
  */
-function sendResponse() {
-    chrome.tabs.sendRequest(session_info.tab_id, {command: 'socket_response', data: currentRequestData});
+function sendResponse(command, response) {
+    chrome.tabs.sendRequest(session_info.tab_id, {command: command, data: response});
+    if(command == COMMON_RESPONSE_TYPE){
+        currentRequestData = {};
+    }
+}
+
+function resetSessionInfo() {
     currentRequestData = {};
+    session_info = {
+        public_keys_required: false,
+        pass_phrase: '',
+        token: '',
+        refresh_token: '',
+        ttl: '',
+        rsa_private_key: ''
+    };
 }
 
 //chrome.storage.sync.remove('biomio_private_key', function(){

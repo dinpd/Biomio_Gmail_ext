@@ -1,17 +1,22 @@
-var gmail;
-var encryptedFiles;
-var confirmOn;
-var confirmOff;
-var showLoading;
-var showPopup;
-var DECRYPT_WAIT_MESSAGE;
-var FILE_ENCRYPT_WAIT_MESSAGE;
-var FILE_ENCRYPT_SUCCESS_MESSAGE;
-var DECRYPT_SUCCESS_MESSAGE;
-var NO_MESSAGE;
-var EMAIL_PARTS_SEPARATOR;
-var ENCRYPT_WAIT_MESSAGE;
-var ENCRYPT_SUCCESS_MESSAGE;
+var gmail,
+    encryptedFiles,
+    confirmOn,
+    confirmOff,
+    showLoading,
+    showPopup,
+    showTimer,
+    DECRYPT_WAIT_MESSAGE,
+    FILE_ENCRYPT_WAIT_MESSAGE,
+    FILE_ENCRYPT_SUCCESS_MESSAGE,
+    DECRYPT_SUCCESS_MESSAGE,
+    NO_MESSAGE,
+    EMAIL_PARTS_SEPARATOR,
+    ENCRYPT_WAIT_MESSAGE,
+    ENCRYPT_SUCCESS_MESSAGE,
+    TIME_TO_WAIT_PROBE, //seconds
+    PROBE_WAIT_MESSAGE,
+    CANCEL_PROBE_MESSAGE_TYPE,
+    PROBE_ERROR_MESSAGE;
 
 /**
  * Initializes variables with default values.
@@ -25,8 +30,8 @@ function setupDefaults() {
             return true;
         }
     };
-    showLoading = $('#show_loading');
-    showPopup = $('#show_popup');
+    showLoading = $('#biomio_show_loading');
+    showPopup = $('#biomio_show_popup');
     DECRYPT_WAIT_MESSAGE = 'Please wait, we are getting the content of your email to decrypt it....';
     ENCRYPT_WAIT_MESSAGE = 'Please wait, we are encrypting your message...';
     ENCRYPT_SUCCESS_MESSAGE = 'Your message was successfully decrypted.';
@@ -35,6 +40,15 @@ function setupDefaults() {
     DECRYPT_SUCCESS_MESSAGE = 'Message successfully decrypted';
     NO_MESSAGE = '[NO_MESSAGE]';
     EMAIL_PARTS_SEPARATOR = '#-#-#';
+    TIME_TO_WAIT_PROBE = 300;
+    PROBE_WAIT_MESSAGE = 'To proceed with encryption it is required to identify yourself on Biom.io service. Server will wait for your probe for 5 minutes.';
+    CANCEL_PROBE_MESSAGE_TYPE = 'cancel_probe';
+    PROBE_ERROR_MESSAGE = "Your message wasn't encrypted because we were not able to identify you in time.";
+
+    $('#biomio_ok_button').on('click', function(e){
+        e.preventDefault();
+        showHideInfoPopup('', true);
+    });
 }
 
 /**
@@ -54,7 +68,7 @@ var initializeGmailJSEvents = function () {
                     return function (e) {
                         e.preventDefault();
                         showLoading.show();
-                        showPopup.find('.wait_message').html(FILE_ENCRYPT_WAIT_MESSAGE);
+                        showPopup.find('.biomio_wait_message').html(FILE_ENCRYPT_WAIT_MESSAGE);
                         showPopup.fadeIn(200, function () {
                             var dataURL = reader.result;
                             var recipients_arr = compose.to().concat(compose.cc()).concat(compose.bcc());
@@ -174,12 +188,14 @@ function attachClicked(event) {
  * @param {boolean} hide - false if is not specified.
  */
 function showHideInfoPopup(infoMessage, hide) {
+    $('#biomio_timer').hide();
+    $('#biomio_ok_button').hide();
     if (hide) {
         showLoading.hide();
         showPopup.fadeOut(500);
     } else {
         showLoading.show();
-        showPopup.find('.wait_message').html(infoMessage);
+        showPopup.find('.biomio_wait_message').html(infoMessage);
         showPopup.fadeIn(500);
     }
     gmail.tools.infobox(infoMessage, 5000);
@@ -192,7 +208,7 @@ function showHideInfoPopup(infoMessage, hide) {
 function decryptMessage(event) {
     event.preventDefault();
     showHideInfoPopup(DECRYPT_WAIT_MESSAGE);
-    $('#progressbar').progressbar({value: 0});
+    $('#biomio_progressbar').progressbar({value: 0});
     var currentTarget = $(event.currentTarget);
     var emailBody = $('.' + currentTarget.attr('data-biomio-bodyattr').split('_').join('.'));
     var viewEntireEmailLink = emailBody.find('a[href*="?ui"]');
@@ -205,7 +221,7 @@ function decryptMessage(event) {
                     var xhr = new window.XMLHttpRequest();
                     xhr.addEventListener("progress", function (evt) {
                         var total_value = xhr.getResponseHeader('content-length') * 1.5;
-                        $('#progressbar').progressbar("value", (evt.loaded / total_value) * 100);
+                        $('#biomio_progressbar').progressbar("value", (evt.loaded / total_value) * 100);
                     }, false);
                     return xhr;
                 },
@@ -313,6 +329,14 @@ window.addEventListener("message", function (event) {
     if (data.hasOwnProperty('error')) {
         showHideInfoPopup(data['error'], true);
         alert(data['error']);
+    } else if (data.hasOwnProperty('showTimer')){
+        if(data['showTimer']){
+            showHideInfoPopup(PROBE_WAIT_MESSAGE);
+            calculateTime();
+        }else{
+            clearInterval(showTimer);
+            showHideInfoPopup(ENCRYPT_WAIT_MESSAGE);
+        }
     } else if (data.completedAction && (data.completedAction == "encrypt_only")) {
         if (data.encryptObject && data.encryptObject.length) {
             var compose = getComposeByID(data.composeId);
@@ -404,6 +428,40 @@ function updateEncryptedAttachmentsList(compose, fileName) {
  */
 function triggerSendButton(compose) {
     compose.find('.T-I.J-J5-Ji[role="button"]').trigger('click');
+}
+
+/**
+ * Shows timer for user. Time that user has to provide a probe from his device.
+ */
+function calculateTime() {
+    var timer = TIME_TO_WAIT_PROBE;
+    var biomio_timer = $('#biomio_timer');
+    biomio_timer.show();
+    showTimer = setInterval(function () {
+        timer--;
+        if(timer <= 0){
+            sendContentMessage(CANCEL_PROBE_MESSAGE_TYPE, {});
+            biomio_timer.text('');
+            showHideInfoPopup(PROBE_ERROR_MESSAGE);
+            $('#biomio_ok_button').show();
+            biomio_timer.show();
+            clearInterval(showTimer);
+        }
+        var minutes = Math.floor((timer %= 3600) / 60);
+        var seconds = timer % 60;
+        biomio_timer.text((minutes < 10 ? '0' + minutes : minutes) + ' : ' + (seconds < 10 ? '0' + seconds : seconds));
+    }, 1000);
+}
+
+/**
+ * Sends window message to content script.
+ * @param {String=} type of the message
+ * @param {Object=} message data object.
+ */
+function sendContentMessage(type, message){
+    console.log('Type:', type);
+    console.log('Message:', message);
+    window.postMessage({type: type, data: message}, '*');
 }
 
 /**

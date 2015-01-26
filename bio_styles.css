@@ -1,14 +1,17 @@
 .transparent_area {
-    opacity:0;
-    filter: alpha(opacity = 0);
-    position:absolute;
-    top:0; bottom:0; left:0; right:0;
-    display:block;
-    z-index:9999;
-    background:transparent;
+    opacity: 0;
+    filter: alpha(opacity=0);
+    position: absolute;
+    top: 0;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    display: block;
+    z-index: 9999;
+    background: transparent;
 }
 
-.black_overlay{
+.biomio_black_overlay {
     display: none;
     position: absolute;
     top: 0%;
@@ -16,12 +19,13 @@
     width: 100%;
     height: 100%;
     background-color: gray;
-    z-index:1001;
+    z-index: 1001;
     -moz-opacity: 0.8;
-    opacity:.80;
+    opacity: .80;
     filter: alpha(opacity=80);
 }
-.white_content {
+
+.biomio_white_content {
     display: none;
     position: absolute;
     top: 25%;
@@ -31,12 +35,28 @@
     padding: 16px;
     border: 1px solid blue;
     background-color: #ffffff;
-    z-index:1002;
+    z-index: 1002;
     overflow: auto;
     opacity: 0.8;
 }
 
-.wait_message {
+.biomio_wait_message {
     text-align: center;
-    margin-top: 40px;
+    margin-top: 25px;
+}
+
+#biomio_timer {
+    display: none;
+    text-align: center;
+    color: red;
+    font-weight: bold;
+    font-size: 20px;
+}
+
+#biomio_ok_button {
+    display: none;
+}
+
+.biomio_buttons {
+    text-align: center;
 }
