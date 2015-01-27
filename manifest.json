@@ -25,6 +25,7 @@
       "rsa_sign_library/asn1hex-1.1.js",
       "rsa_sign_library/x509-1.1.js",
       "rsa_sign_library/jsrsasign-latest-all-min.js",
+      "logger.js",
       "background.js"
     ]
   },
@@ -49,6 +50,7 @@
       "js": [
         "jquery-1.11.1.js",
         "e2e_library/end-to-end.compiled.js",
+        "logger.js",
         "contentscript.js"
       ],
       "run_at": "document_end",

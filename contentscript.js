@@ -92,6 +92,7 @@ function encryptMessage(data) {
         data.content = _encryptMessage(data.content, keys, sender_private_key);
     }
     data.completedAction = 'encrypt_only';
+    _clearPublicKeys(data.recipients);
     sendResponse(data);
 }
 
@@ -109,7 +110,7 @@ function _encryptMessage(content, keys, sender_key) {
 }
 
 /**
- * Parses required data fro data object and decrypts it.
+ * Parses required data for data object and decrypts it.
  * @param {Object=} data with required information for decryption.
  */
 function decryptMessage(data) {
@@ -245,7 +246,7 @@ function makeFileDownloadable(fileName, decryptedFile) {
  * @private
  */
 function _importKeys(data, callback) {
-    var pass_phrase = data.pass_phrase
+    var pass_phrase = data.pass_phrase;
     pgpContext.setKeyRingPassphrase(pass_phrase);
     if (data.hasOwnProperty('private_pgp_key')) {
         pgpContext.importKey(function () {
@@ -262,5 +263,11 @@ function _importKeys(data, callback) {
     }
     if (callback) {
         callback(data);
+    }
+}
+
+function _clearPublicKeys(emails){
+    for (var i = 0; i < emails.length; i++) {
+        pgpContext.deletePublicKey(emails[i]);
     }
 }

@@ -231,7 +231,7 @@ function decryptMessage(event) {
 
 /**
  * Sends content to contentscript for decryption.
- * @param currentTarget
+ * @param emailBodyAttr
  * @param {jQuery.element=} emailBody of the current email.
  */
 function sendDecryptMessage(emailBodyAttr, emailBody) {
@@ -246,7 +246,8 @@ function sendDecryptMessage(emailBodyAttr, emailBody) {
         "data": {
             action: "decrypt_verify",
             content: emailBodyText,
-            biomio_attr: bioMioAttr
+            biomio_attr: bioMioAttr,
+            currentUser: gmail.get.user_email()
         }
     }, '*');
 }

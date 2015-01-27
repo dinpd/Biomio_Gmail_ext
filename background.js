@@ -160,6 +160,9 @@ var socketOnMessage = function (event) {
                 if (state_machine.is(STATE_PASS_PHRASE) && session_info.public_keys_required) {
                     state_machine.public_keys('Getting public keys...');
                 } else {
+                    if(!currentRequestData.hasOwnProperty('pass_phrase')){
+                        currentRequestData.pass_phrase = session_info.pass_phrase;
+                    }
                     sendResponse(COMMON_RESPONSE_TYPE, currentRequestData);
                     state_machine.ready('Ready state...', true);
                 }
