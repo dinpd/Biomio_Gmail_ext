@@ -57,7 +57,7 @@ chrome.extension.onRequest.addListener(
             if (data.hasOwnProperty('error')) {
                 sendResponse({'error': data['error']})
             } else {
-                var callback = ''
+                var callback = function(){};
                 if (data['action'] == 'encrypt_only') {
                     callback = encryptMessage;
                 } else {
@@ -246,8 +246,9 @@ function makeFileDownloadable(fileName, decryptedFile) {
  * @private
  */
 function _importKeys(data, callback) {
-    var pass_phrase = data.pass_phrase;
-    pgpContext.setKeyRingPassphrase(pass_phrase);
+    var pass_phrase = data.pass_phrase_data.pass_phrase;
+    var current_acc = data.pass_phrase_data.current_acc;
+    pgpContext.setKeyRingPassphrase(pass_phrase, current_acc);
     if (data.hasOwnProperty('private_pgp_key')) {
         pgpContext.importKey(function () {
             return null

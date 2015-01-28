@@ -11,7 +11,10 @@ var SERVER_URL = "wss://localhost:8080/websocket";
 var STORAGE_RSA_KEY = 'biomio_private_key';
 var session_info = {
     public_keys_required: false,
-    pass_phrase: '',
+    pass_phrase_data: {
+        pass_phrase: '',
+        current_acc: ''
+    },
     token: '',
     refresh_token: '',
     ttl: '',
@@ -21,6 +24,7 @@ var session_info = {
 var COMMON_RESPONSE_TYPE = 'socket_response';
 var TIMER_RESPONSE_TYPE = 'show_timer';
 
+var APP_ID_STORAGE_KEY = 'BIOMIO_APP_ID';
 
 var state_machine;
 var session_alive_interval;
@@ -29,6 +33,28 @@ var refresh_token_interval;
 var iterations = 0;
 
 var currentRequestData = {};
+
+chrome.storage.sync.get(APP_ID_STORAGE_KEY, function(data){
+    var appId;
+    log(LOG_LEVEL.DEBUG, data);
+    if(APP_ID_STORAGE_KEY in data){
+        appId = data[APP_ID_STORAGE_KEY];
+        log(LOG_LEVEL.INFO, 'exists');
+    }else{
+        appId = randomString(32, '0123456789abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ');
+        var app_id_storage = {};
+        app_id_storage[APP_ID_STORAGE_KEY] = appId;
+        chrome.storage.sync.set(app_id_storage);
+        log(LOG_LEVEL.INFO, 'created');
+    }
+    setAppID(appId);
+});
+
+function randomString(length, chars) {
+    var result = '';
+    for (var i = length; i > 0; --i) result += chars[Math.round(Math.random() * (chars.length - 1))];
+    return result;
+}
 
 /**
  * Keeps session alive. Runs each connection timeout value seconds.
@@ -151,7 +177,12 @@ var socketOnMessage = function (event) {
                 sendResponse(COMMON_RESPONSE_TYPE, currentRequestData);
             } else {
                 for (var i = 0; i < dataResp.keys.length; i++) {
-                    currentRequestData[dataResp.keys[i]] = dataResp.values[i];
+                    if (dataResp.keys[i] == 'pass_phrase') {
+                        session_info.pass_phrase_data.pass_phrase = dataResp.values[i];
+                        session_info.pass_phrase_data.current_acc = currentRequestData['currentUser'];
+                    } else {
+                        currentRequestData[dataResp.keys[i]] = dataResp.values[i];
+                    }
                 }
                 if (session_info.pass_phrase == '' && currentRequestData.hasOwnProperty('pass_phrase')) {
                     session_info.pass_phrase = currentRequestData.pass_phrase;
@@ -160,8 +191,8 @@ var socketOnMessage = function (event) {
                 if (state_machine.is(STATE_PASS_PHRASE) && session_info.public_keys_required) {
                     state_machine.public_keys('Getting public keys...');
                 } else {
-                    if(!currentRequestData.hasOwnProperty('pass_phrase')){
-                        currentRequestData.pass_phrase = session_info.pass_phrase;
+                    if (!currentRequestData.hasOwnProperty('pass_phrase_data')) {
+                        currentRequestData.pass_phrase_data = session_info.pass_phrase_data;
                     }
                     sendResponse(COMMON_RESPONSE_TYPE, currentRequestData);
                     state_machine.ready('Ready state...', true);
@@ -240,9 +271,9 @@ var onReady = function (event, from, to, msg, noActionRequired) {
         clearInterval(refresh_token_interval);
         keepAlive();
         refresh_token();
-        if(session_info.pass_phrase == ''){
+        if (session_info.pass_phrase_data.pass_phrase == '' || session_info.pass_phrase_data.current_acc == '') {
             state_machine.pass_phrase('Getting pass phrase');
-        }else if(session_info.public_keys_required){
+        } else if (session_info.public_keys_required) {
             state_machine.public_keys('Getting public keys...');
         }
     }
@@ -326,7 +357,9 @@ chrome.runtime.onMessage.addListener(
             state_machine.disconnect();
         } else if (['get_phrase_keys', 'get_phrase'].indexOf(request.command) != -1) {
             currentRequestData = request.data;
-            if(session_info.pass_phrase == ''){
+            if (session_info.pass_phrase_data.pass_phrase == ''
+                || currentRequestData['currentUser'] != session_info.pass_phrase_data.current_acc) {
+                session_info.pass_phrase_data.current_acc = '';
                 sendResponse(TIMER_RESPONSE_TYPE, {showTimer: true});
             }
             if (request.command == 'get_phrase_keys') {
@@ -338,10 +371,11 @@ chrome.runtime.onMessage.addListener(
                 }
             } else if (request.command == 'get_phrase') {
                 session_info.public_keys_required = false;
-                if (state_machine.is(STATE_DISCONNECTED)) {
+                if (state_machine.is(STATE_DISCONNECTED) || session_info.pass_phrase_data.pass_phrase == ''
+                    || currentRequestData['currentUser'] != session_info.pass_phrase_data.current_acc) {
                     state_machine.connect('Connecting to websocket - ' + SERVER_URL);
                 } else {
-                    currentRequestData['pass_phrase'] = session_info.pass_phrase;
+                    currentRequestData['pass_phrase_data'] = session_info.pass_phrase_data;
                     sendResponse(COMMON_RESPONSE_TYPE, currentRequestData);
                 }
             }
@@ -354,7 +388,7 @@ chrome.runtime.onMessage.addListener(
  */
 function sendResponse(command, response) {
     chrome.tabs.sendRequest(session_info.tab_id, {command: command, data: response});
-    if(command == COMMON_RESPONSE_TYPE){
+    if (command == COMMON_RESPONSE_TYPE) {
         currentRequestData = {};
     }
 }
@@ -364,4 +398,8 @@ function sendResponse(command, response) {
 //});
 //chrome.storage.sync.get('biomio_private_key', function(data){
 //    console.log(data);
+//});
+//
+//chrome.storage.local.remove('UserKeyRing_<andriy.lobashchuk@vakoms.com>', function(){
+//    console.log('done');
 //});

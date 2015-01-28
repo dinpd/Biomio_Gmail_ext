@@ -1,5 +1,5 @@
 var PROTO_VERSION = "1.0";
-var APP_ID = 'abcsd';
+var APP_ID = '';
 var OS_ID = 'os id';
 var ID = 'id';
 var HEADER_OID = 'clientHeader';
@@ -161,4 +161,8 @@ function getRpcRequest(token, method, keyValueDict) {
         }
     }
     return JSON.stringify(request);
+}
+
+function setAppID(appId){
+    APP_ID = appId;
 }
