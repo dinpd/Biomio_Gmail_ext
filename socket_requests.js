@@ -10,73 +10,14 @@ var RPC_NAMESPACE = 'extension_test_plugin';
 var RPC_GET_PASS_PHRASE_METHOD = 'get_pass_phrase';
 var RPC_GET_PUBLIC_KEY_METHOD = 'get_users_public_pgp_keys';
 
-var REQUEST_HEADER = {
-    protoVer: PROTO_VERSION,
-    seq: 0,
-    oid: HEADER_OID,
-    appId: APP_ID,
-    osId: OS_ID,
-    id: ID,
-    devId: DEV_ID
-};
-
-var RPC_REQUEST = {
-    msg: {
-        oid: 'rpcReq',
-        namespace: RPC_NAMESPACE,
-        call: 'STRING_METHOD_NAME',
-        data: {
-            keys: [],
-            values: []
-        }
-    },
-    header: REQUEST_HEADER
-};
-
-var REGISTRATION_REQUEST = {
-    msg: {
-        oid: "clientHello",
-        secret: "STRING_VALUE"
-    },
-    header: REQUEST_HEADER
-};
-
-var ACK_REQUEST = {
-    msg: {
-        oid: 'ack'
-    },
-    header: REQUEST_HEADER // + token
-};
-
-var NOP_REQUEST = {
-    msg: {
-        oid: 'nop'
-    },
-    header: REQUEST_HEADER // + token = refresh_token
-};
-
-var REGULAR_REQUEST = {
-    msg: {
-        oid: "clientHello"
-    },
-    header: REQUEST_HEADER
-
-};
-
-var REGULAR_DIGEST_REQUEST = {
-    msg: {
-        oid: "auth",
-        key: "STRING"
-    },
-    header: REQUEST_HEADER
-};
-
-var BYE_REQUEST = {
-    msg: {
-        oid: "bye"
-    },
-    header: REQUEST_HEADER
-};
+var REQUEST_HEADER,
+    RPC_REQUEST,
+    REGISTRATION_REQUEST,
+    ACK_REQUEST,
+    NOP_REQUEST,
+    REGULAR_REQUEST,
+    REGULAR_DIGEST_REQUEST,
+    BYE_REQUEST;
 
 /**
  * Generates handshake request.
@@ -165,4 +106,75 @@ function getRpcRequest(token, method, keyValueDict) {
 
 function setAppID(appId){
     APP_ID = appId;
+    setupDefaults();
+}
+
+function setupDefaults(){
+    REQUEST_HEADER = {
+        protoVer: PROTO_VERSION,
+        seq: 0,
+        oid: HEADER_OID,
+        appId: APP_ID,
+        osId: OS_ID,
+        id: ID,
+        devId: DEV_ID
+    };
+
+    RPC_REQUEST = {
+        msg: {
+            oid: 'rpcReq',
+            namespace: RPC_NAMESPACE,
+            call: 'STRING_METHOD_NAME',
+            data: {
+                keys: [],
+                values: []
+            }
+        },
+        header: REQUEST_HEADER
+    };
+
+    REGISTRATION_REQUEST = {
+        msg: {
+            oid: "clientHello",
+            secret: "STRING_VALUE"
+        },
+        header: REQUEST_HEADER
+    };
+
+    ACK_REQUEST = {
+        msg: {
+            oid: 'ack'
+        },
+        header: REQUEST_HEADER // + token
+    };
+
+    NOP_REQUEST = {
+        msg: {
+            oid: 'nop'
+        },
+        header: REQUEST_HEADER // + token = refresh_token
+    };
+
+    REGULAR_REQUEST = {
+        msg: {
+            oid: "clientHello"
+        },
+        header: REQUEST_HEADER
+
+    };
+
+    REGULAR_DIGEST_REQUEST = {
+        msg: {
+            oid: "auth",
+            key: "STRING"
+        },
+        header: REQUEST_HEADER
+    };
+
+    BYE_REQUEST = {
+        msg: {
+            oid: "bye"
+        },
+        header: REQUEST_HEADER
+    };
 }

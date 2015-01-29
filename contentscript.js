@@ -136,6 +136,7 @@ function decryptMessage(data) {
 function _decryptMessage(content) {
     var decryptedText = pgpContext.verifyDecrypt(function () {
     }, content);
+    log(LOG_LEVEL.DEBUG, decryptedText);
     decryptedText = decryptedText.result_.decrypt;
     decryptedText = e2e.byteArrayToStringAsync(decryptedText.data, decryptedText.options.charset);
     return decryptedText.result_;
@@ -155,6 +156,7 @@ function sendResponse(message) {
  * @param {Object=} data with required information.
  */
 function prepareEncryptParameters(data) {
+    data.currentUser = '<' + data.currentUser + '>';
     if (data.hasOwnProperty('recipients')) {
         var recipients_arr = data.recipients;
         for (var i = 0; i < recipients_arr.length; i++) {
@@ -163,7 +165,6 @@ function prepareEncryptParameters(data) {
         }
         data.recipients = recipients_arr;
     }
-    data.currentUser = '<' + data.currentUser + '>';
 }
 
 /**

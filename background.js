@@ -7,7 +7,7 @@ var STATE_PASS_PHRASE = 'get_pass_phrase';
 var STATE_PUBLIC_KEYS = 'get_public_keys';
 var socket_connection;
 //var SERVER_URL = "wss://gb.vakoms.com:8080/websocket";
-var SERVER_URL = "wss://localhost:8080/websocket";
+var SERVER_URL = "wss://192.168.157.172:8081/websocket";
 var STORAGE_RSA_KEY = 'biomio_private_key';
 var session_info = {
     public_keys_required: false,
@@ -180,13 +180,10 @@ var socketOnMessage = function (event) {
                     if (dataResp.keys[i] == 'pass_phrase') {
                         session_info.pass_phrase_data.pass_phrase = dataResp.values[i];
                         session_info.pass_phrase_data.current_acc = currentRequestData['currentUser'];
+                        sendResponse(TIMER_RESPONSE_TYPE, {showTimer: false});
                     } else {
                         currentRequestData[dataResp.keys[i]] = dataResp.values[i];
                     }
-                }
-                if (session_info.pass_phrase == '' && currentRequestData.hasOwnProperty('pass_phrase')) {
-                    session_info.pass_phrase = currentRequestData.pass_phrase;
-                    sendResponse(TIMER_RESPONSE_TYPE, {showTimer: false});
                 }
                 if (state_machine.is(STATE_PASS_PHRASE) && session_info.public_keys_required) {
                     state_machine.public_keys('Getting public keys...');
@@ -371,12 +368,14 @@ chrome.runtime.onMessage.addListener(
                 }
             } else if (request.command == 'get_phrase') {
                 session_info.public_keys_required = false;
-                if (state_machine.is(STATE_DISCONNECTED) || session_info.pass_phrase_data.pass_phrase == ''
-                    || currentRequestData['currentUser'] != session_info.pass_phrase_data.current_acc) {
-                    state_machine.connect('Connecting to websocket - ' + SERVER_URL);
-                } else {
+                if (session_info.pass_phrase_data.pass_phrase != ''
+                    && currentRequestData['currentUser'] == session_info.pass_phrase_data.current_acc) {
                     currentRequestData['pass_phrase_data'] = session_info.pass_phrase_data;
                     sendResponse(COMMON_RESPONSE_TYPE, currentRequestData);
+                }else if (state_machine.is(STATE_DISCONNECTED)) {
+                    state_machine.connect('Connecting to websocket - ' + SERVER_URL);
+                } else {
+                    state_machine.pass_phrase('Getting pass phrase');
                 }
             }
         }
@@ -391,6 +390,32 @@ function sendResponse(command, response) {
     if (command == COMMON_RESPONSE_TYPE) {
         currentRequestData = {};
     }
+}
+
+chrome.tabs.onRemoved.addListener(function(tabId){
+    if(tabId == session_info.tab_id){
+        if(!state_machine.is(STATE_DISCONNECTED)){
+            state_machine.disconnect();
+        }
+        resetAllData();
+    }
+});
+
+function resetAllData(){
+    currentRequestData = {};
+    session_info = {
+        public_keys_required: false,
+        pass_phrase_data: {
+            pass_phrase: '',
+            current_acc: ''
+        },
+        token: '',
+        refresh_token: '',
+        ttl: '',
+        rsa_private_key: '',
+        tab_id: ''
+    };
+    setupDefaults();
 }
 
 //chrome.storage.sync.remove('biomio_private_key', function(){

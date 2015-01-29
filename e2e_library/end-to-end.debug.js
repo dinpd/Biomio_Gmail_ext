@@ -17911,7 +17911,7 @@ e2e.openpgp.KeyRing.ENCRYPTED_ = "E";
 e2e.openpgp.KeyRing.HMAC_SIZE_ = 32;
 e2e.openpgp.KeyRing.HASH_BLOCK_SIZE_ = 64;
 e2e.openpgp.KeyRing.HMAC_KEY_SIZE_ = 16;
-e2e.openpgp.KeyRing.SALT_ = "Salt";
+e2e.openpgp.KeyRing.SALT_ = "Salt_";
 e2e.openpgp.KeyRing.SALT_SIZE_ = 8;
 e2e.openpgp.KeyRing.ECC_SEED_SIZE = 16;
 e2e.openpgp.KeyRing.prototype.changePassphrase = function $e2e$openpgp$KeyRing$$changePassphrase$($passphrase$$) {
@@ -18087,7 +18087,7 @@ e2e.openpgp.KeyRing.prototype.isEncrypted = function $e2e$openpgp$KeyRing$$isEnc
 };
 e2e.openpgp.KeyRing.prototype.reset = function $e2e$openpgp$KeyRing$$reset$() {
   this.localStorage_.remove(e2e.openpgp.KeyRing.USER_KEY_RING_ + this.emailKeySuffix_);
-  this.localStorage_.remove(e2e.openpgp.KeyRing.SALT_);
+  this.localStorage_.remove(e2e.openpgp.KeyRing.SALT_ + this.emailKeySuffix_);
   this.pubKeyRing_ = new goog.structs.Map;
   this.privKeyRing_ = new goog.structs.Map;
   this.passphrase_ = null;
@@ -18146,8 +18146,8 @@ e2e.openpgp.KeyRing.prototype.encrypt_ = function $e2e$openpgp$KeyRing$$encrypt_
   return goog.crypt.base64.encodeByteArray($ciphertext$$16_formatted_plaintext$$);
 };
 e2e.openpgp.KeyRing.prototype.getOrCreateSalt_ = function $e2e$openpgp$KeyRing$$getOrCreateSalt_$() {
-  var $serialized$$ = this.localStorage_.get(e2e.openpgp.KeyRing.SALT_), $salt$$;
-  $serialized$$ ? $salt$$ = goog.crypt.base64.decodeStringToByteArray($serialized$$) : ($salt$$ = e2e.random.getRandomBytes(e2e.openpgp.KeyRing.SALT_SIZE_), $serialized$$ = goog.crypt.base64.encodeByteArray($salt$$), this.localStorage_.set(e2e.openpgp.KeyRing.SALT_, $serialized$$));
+  var $serialized$$ = this.localStorage_.get(e2e.openpgp.KeyRing.SALT_ + this.emailKeySuffix_), $salt$$;
+  $serialized$$ ? $salt$$ = goog.crypt.base64.decodeStringToByteArray($serialized$$) : ($salt$$ = e2e.random.getRandomBytes(e2e.openpgp.KeyRing.SALT_SIZE_), $serialized$$ = goog.crypt.base64.encodeByteArray($salt$$), this.localStorage_.set(e2e.openpgp.KeyRing.SALT_ + this.emailKeySuffix_, $serialized$$));
   return $salt$$;
 };
 e2e.openpgp.KeyRing.prototype.keyRingToObject_ = function $e2e$openpgp$KeyRing$$keyRingToObject_$($keyRing$$) {
