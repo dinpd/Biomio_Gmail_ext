@@ -30,26 +30,33 @@ var state_machine;
 var session_alive_interval;
 var refresh_token_interval;
 
-var iterations = 0;
-
 var currentRequestData = {};
 
-chrome.storage.sync.get(APP_ID_STORAGE_KEY, function(data){
+/**
+ * Gets or creates applications APP_ID
+ */
+chrome.storage.sync.get(APP_ID_STORAGE_KEY, function (data) {
     var appId;
-    log(LOG_LEVEL.DEBUG, data);
-    if(APP_ID_STORAGE_KEY in data){
+    if (APP_ID_STORAGE_KEY in data) {
         appId = data[APP_ID_STORAGE_KEY];
-        log(LOG_LEVEL.INFO, 'exists');
-    }else{
+        log(LOG_LEVEL.DEBUG, 'APP_ID exists');
+    } else {
         appId = randomString(32, '0123456789abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ');
         var app_id_storage = {};
         app_id_storage[APP_ID_STORAGE_KEY] = appId;
         chrome.storage.sync.set(app_id_storage);
-        log(LOG_LEVEL.INFO, 'created');
+        log(LOG_LEVEL.DEBUG, 'APP_ID created');
     }
+    log(LOG_LEVEL.DEBUG, appId);
     setAppID(appId);
 });
 
+/**
+ * Generates random string for app_id
+ * @param length of the string
+ * @param chars that should be used for random selection
+ * @returns {string}
+ */
 function randomString(length, chars) {
     var result = '';
     for (var i = length; i > 0; --i) result += chars[Math.round(Math.random() * (chars.length - 1))];
@@ -61,29 +68,25 @@ function randomString(length, chars) {
  */
 var keepAlive = function () {
     session_alive_interval = setInterval(function () {
-        console.log('keepAlive');
+        log(LOG_LEVEL.DEBUG, 'keep alive nop');
         if (!state_machine.is(STATE_DISCONNECTED)) {
             socket_connection.send(getCustomRequest(NOP_REQUEST, session_info.token));
-            iterations++;
         } else {
             clearInterval(session_alive_interval);
         }
-        //if (iterations > 6) {
-        //    socket_connection.disconnect('WebSocket connection closed: Url - ' + socket_connection.url);
-        //}
     }, (SOCKET_CONNECTION_TIMEOUT - 2000));
 };
 
 /**
  * Sends RPC request.
- * @param {String=} method RPC method type.
- * @param {Object=} keyValueDict - rpc method input values.
+ * @param {string} method RPC method type.
+ * @param {Object} keyValueDict - rpc method input values.
  */
 function sendRpcRequest(method, keyValueDict) {
     if (state_machine.is(STATE_PASS_PHRASE) || state_machine.is(STATE_PUBLIC_KEYS)) {
         socket_connection.send(getRpcRequest(session_info.token, method, keyValueDict));
     } else {
-        console.log("Message cannot be sent, because state machine is currently in state: ", state_machine.current);
+        log(LOG_LEVEL.WARNING, "Message cannot be sent, because state machine is currently in state: " + state_machine.current);
     }
 }
 
@@ -92,7 +95,7 @@ function sendRpcRequest(method, keyValueDict) {
  */
 var refresh_token = function () {
     refresh_token_interval = setInterval(function () {
-        console.log('refresh TOKEN');
+        log(LOG_LEVEL.DEBUG, 'refresh token nop');
         if (!state_machine.is(STATE_DISCONNECTED)) {
             socket_connection.send(getCustomRequest(NOP_REQUEST, session_info.refresh_token));
         } else {
@@ -103,7 +106,6 @@ var refresh_token = function () {
 
 /**
  * Handles WebSocket exceptions.
- * @param data
  */
 var socketOnError = function () {
     state_machine.disconnect('WebSocket exception (URL - ' + socket_connection.url + ')');
@@ -114,7 +116,8 @@ var socketOnError = function () {
  */
 var socketOnOpen = function () {
     chrome.storage.sync.get(STORAGE_RSA_KEY, function (data) {
-        console.log(data);
+        log(LOG_LEVEL.DEBUG, 'STORAGE_RSA_KEY:');
+        log(LOG_LEVEL.DEBUG, data);
         if (STORAGE_RSA_KEY in data) {
             session_info.rsa_private_key = data[STORAGE_RSA_KEY];
             state_machine.handshake('WebSocket connection opened: Url - ' + socket_connection.url);
@@ -135,10 +138,10 @@ var socketOnClose = function () {
 
 /**
  * Method overrides WebSocket.send() method.
- * @param {String=} request to send to server.
+ * @param {string} request to send to server.
  */
 var socketOnSend = function (request) {
-    console.log('REQUEST: ', request);
+    log(LOG_LEVEL.DEBUG, 'REQUEST: ' + request);
     socket_connection.send_(request);
     increaseRequestCounter();
     clearInterval(session_alive_interval);
@@ -151,7 +154,8 @@ var socketOnSend = function (request) {
  */
 var socketOnMessage = function (event) {
     var data = JSON.parse(event.data);
-    console.log(data);
+    log(LOG_LEVEL.DEBUG, 'Received message from server:');
+    log(LOG_LEVEL.DEBUG, data);
     if (data.msg.oid == 'bye') return;
     if (state_machine.is(STATE_REGISTRATION_HANDSHAKE) || state_machine.is(STATE_REGULAR_HANDSHAKE)) {
         session_info.token = data.header.token;
@@ -164,7 +168,7 @@ var socketOnMessage = function (event) {
             chrome.storage.sync.set(rsa_private_key);
         }
         state_machine.ready('Handshake was successful!\nToken: ' + session_info.token + '\nRefresh token: ' + session_info.refresh_token);
-    } else if (state_machine.is(STATE_READY) || state_machine.is(STATE_PASS_PHRASE) || state_machine.is(STATE_PUBLIC_KEYS)) {
+    } else if ([STATE_READY, STATE_PASS_PHRASE, STATE_PUBLIC_KEYS].indexOf(state_machine.current) != -1) {
         if (data.msg.oid == 'nop' && session_info.token != data.header.token) {
             session_info.token = data.header.token;
             clearInterval(refresh_token_interval);
@@ -172,7 +176,7 @@ var socketOnMessage = function (event) {
         } else if (data.msg.oid == 'rpcResp') {
             var dataResp = data.msg.data;
             if (dataResp.keys.indexOf('error') > -1) {
-                console.log('Error received from rpc method: ', dataResp.values[0]);
+                log(LOG_LEVEL.ERROR, 'Error received from rpc method: ' + dataResp.values[0]);
                 currentRequestData['error'] = dataResp.values[0];
                 sendResponse(COMMON_RESPONSE_TYPE, currentRequestData);
             } else {
@@ -204,10 +208,10 @@ var socketOnMessage = function (event) {
  * @param event
  * @param from
  * @param to
- * @param {String=} msg to print inside console.
+ * @param {string} msg to print inside console.
  */
 var onConnect = function (event, from, to, msg) {
-    console.log(msg);
+    log(LOG_LEVEL.DEBUG, msg);
     socket_connection = new WebSocket(SERVER_URL);
     socket_connection.onerror = socketOnError;
     socket_connection.onopen = socketOnOpen;
@@ -222,11 +226,11 @@ var onConnect = function (event, from, to, msg) {
  * @param event
  * @param from
  * @param to
- * @param {String=} msg to print inside console.
+ * @param {string} msg to print inside console.
  */
 var onRegister = function (event, from, to, msg) {
-    console.log(msg);
-    console.log('Started registration....');
+    log(LOG_LEVEL.DEBUG, msg);
+    log(LOG_LEVEL.DEBUG, 'Started registration....');
     socket_connection.send(getHandshakeRequest('secret'));
 };
 
@@ -235,11 +239,11 @@ var onRegister = function (event, from, to, msg) {
  * @param event
  * @param from
  * @param to
- * @param {String=} msg to print inside console.
+ * @param {string} msg to print inside console.
  */
 var onHandshake = function (event, from, to, msg) {
-    console.log(msg);
-    console.log('Starting regular handshake....');
+    log(LOG_LEVEL.DEBUG, msg);
+    log(LOG_LEVEL.DEBUG, 'Starting regular handshake....');
     socket_connection.send(getHandshakeRequest());
 };
 
@@ -248,17 +252,17 @@ var onHandshake = function (event, from, to, msg) {
  * @param event
  * @param from
  * @param to
- * @param {String=} msg to print inside console.
- * @param {boolean=} noActionRequired optional parameter
+ * @param {string} msg to print inside console.
+ * @param {boolean} noActionRequired optional parameter
  */
 var onReady = function (event, from, to, msg, noActionRequired) {
-    console.log(msg);
+    log(LOG_LEVEL.DEBUG, msg);
     if (typeof noActionRequired == 'undefined' || !noActionRequired) {
         if (from == STATE_REGISTRATION_HANDSHAKE) {
-            console.log('Sending ACK');
+            log(LOG_LEVEL.DEBUG, 'Sending ACK');
             socket_connection.send(getCustomRequest(ACK_REQUEST, session_info.token));
         } else if (from == STATE_REGULAR_HANDSHAKE) {
-            console.log('Sending DIGEST');
+            log(LOG_LEVEL.DEBUG, 'Sending DIGEST');
             var rsa = new RSAKey();
             rsa.readPrivateKeyFromPEMString(session_info.rsa_private_key);
             var hSig = rsa.signString(getHeaderString(session_info.token), 'sha1');
@@ -281,10 +285,10 @@ var onReady = function (event, from, to, msg, noActionRequired) {
  * @param event
  * @param from
  * @param to
- * @param {String=} msg to print inside console.
+ * @param {string} msg to print inside console.
  */
 var onDisconnect = function (event, from, to, msg) {
-    console.log(msg);
+    log(LOG_LEVEL.DEBUG, msg);
     if (socket_connection && socket_connection.readyState != 3) {
         socket_connection.send(getCustomRequest(BYE_REQUEST, session_info.token));
     }
@@ -295,10 +299,10 @@ var onDisconnect = function (event, from, to, msg) {
  * @param event
  * @param from
  * @param to
- * @param {String=} msg to print inside console.
+ * @param {string} msg to print inside console.
  */
 var onPassPhrase = function (event, from, to, msg) {
-    console.log(msg);
+    log(LOG_LEVEL.DEBUG, msg);
     sendRpcRequest(RPC_GET_PASS_PHRASE_METHOD, {'email': currentRequestData.currentUser});
 };
 
@@ -307,10 +311,10 @@ var onPassPhrase = function (event, from, to, msg) {
  * @param event
  * @param from
  * @param to
- * @param {String=} msg to print inside console.
+ * @param {string} msg to print inside console.
  */
 var onPublicKeys = function (event, from, to, msg) {
-    console.log(msg);
+    log(LOG_LEVEL.DEBUG, msg);
     sendRpcRequest(RPC_GET_PUBLIC_KEY_METHOD, {'emails': currentRequestData.recipients.join(',')});
 };
 
@@ -348,7 +352,8 @@ state_machine = StateMachine.create({
  */
 chrome.runtime.onMessage.addListener(
     function (request, sender) {
-        console.log(request);
+        log(LOG_LEVEL.DEBUG, 'Received request from content script:');
+        log(LOG_LEVEL.DEBUG, request);
         session_info.tab_id = sender.tab.id;
         if (request.command == 'cancel_probe') {
             state_machine.disconnect();
@@ -372,7 +377,7 @@ chrome.runtime.onMessage.addListener(
                     && currentRequestData['currentUser'] == session_info.pass_phrase_data.current_acc) {
                     currentRequestData['pass_phrase_data'] = session_info.pass_phrase_data;
                     sendResponse(COMMON_RESPONSE_TYPE, currentRequestData);
-                }else if (state_machine.is(STATE_DISCONNECTED)) {
+                } else if (state_machine.is(STATE_DISCONNECTED)) {
                     state_machine.connect('Connecting to websocket - ' + SERVER_URL);
                 } else {
                     state_machine.pass_phrase('Getting pass phrase');
@@ -392,16 +397,23 @@ function sendResponse(command, response) {
     }
 }
 
-chrome.tabs.onRemoved.addListener(function(tabId){
-    if(tabId == session_info.tab_id){
-        if(!state_machine.is(STATE_DISCONNECTED)){
+/**
+ * Chrome tabs listener which listens for tab close event.
+ * After gmail tab is closed it disconnets from server.
+ */
+chrome.tabs.onRemoved.addListener(function (tabId) {
+    if (tabId == session_info.tab_id) {
+        if (!state_machine.is(STATE_DISCONNECTED)) {
             state_machine.disconnect();
         }
         resetAllData();
     }
 });
 
-function resetAllData(){
+/**
+ * Resets all session data.
+ */
+function resetAllData() {
     currentRequestData = {};
     session_info = {
         public_keys_required: false,

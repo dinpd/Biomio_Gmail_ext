@@ -28,6 +28,7 @@ window.onload = function () {
             biomio_elems.append('<script src="' + gmail_scripts_urls[i] + '"></script>');
         }
     });
+    log(LOG_LEVEL.DEBUG, 'Scripts were injected.');
 };
 
 /**
@@ -41,7 +42,7 @@ window.addEventListener("message", function (event) {
     } else if (event.data.hasOwnProperty('type') && event.data.type == "decryptMessage") {
         prepareEncryptParameters(currData);
         chrome.runtime.sendMessage({command: 'get_phrase', data: currData});
-    } else if (event.data.hasOwnProperty('type') && event.data.type == 'cancel_probe'){
+    } else if (event.data.hasOwnProperty('type') && event.data.type == 'cancel_probe') {
         chrome.runtime.sendMessage({command: event.data.type, data: currData});
     }
 }, false);
@@ -51,13 +52,15 @@ window.addEventListener("message", function (event) {
  */
 chrome.extension.onRequest.addListener(
     function (request) {
-        console.log(request);
+        log(LOG_LEVEL.DEBUG, 'Received message from background script:');
+        log(LOG_LEVEL.DEBUG, request);
         var data = request.data;
         if (request.command == 'socket_response') {
             if (data.hasOwnProperty('error')) {
                 sendResponse({'error': data['error']})
             } else {
-                var callback = function(){};
+                var callback = function () {
+                };
                 if (data['action'] == 'encrypt_only') {
                     callback = encryptMessage;
                 } else {
@@ -65,7 +68,7 @@ chrome.extension.onRequest.addListener(
                 }
                 _importKeys(data, callback);
             }
-        } else if(request.command == 'show_timer'){
+        } else if (request.command == 'show_timer') {
             sendResponse({showTimer: data['showTimer']});
         }
     }
@@ -73,10 +76,11 @@ chrome.extension.onRequest.addListener(
 
 /**
  * Parses required data from data object and encrypts it.
- * @param {Object=} data with required information for encryption.
+ * @param {Object} data with required information for encryption.
  */
 function encryptMessage(data) {
-    console.log('Encrypt: ', data);
+    log(LOG_LEVEL.DEBUG, 'Data for encryption:');
+    log(LOG_LEVEL.DEBUG, data);
     var keys = [];
     var sender_private_key = pgpContext.searchPrivateKey(KEY_PREFIX + data.currentUser).result_[0];
     for (var i = 0; i < data.recipients.length; i++) {
@@ -85,7 +89,6 @@ function encryptMessage(data) {
             $.extend(keys, pub_key.result_);
         }
     }
-    console.log(keys);
     if (data.hasOwnProperty('encryptObject') && data.encryptObject == 'file') {
         data.content = encryptFile(data, keys, sender_private_key);
     } else {
@@ -98,23 +101,26 @@ function encryptMessage(data) {
 
 /**
  * Encrypts given content with array of public keys and signs it with sender's private key.
- * @param {string=} content to encrypt
- * @param {Array=} keys array of public key objects.
- * @param {Key=} sender_key Private OpenPGP key.
+ * @param {string} content to encrypt
+ * @param {Array} keys array of public key objects.
+ * @param {Key} sender_key Private OpenPGP key.
  * @returns {string} encrypted content.
  * @private
  */
 function _encryptMessage(content, keys, sender_key) {
     var encrypted_content = pgpContext.encryptSign(content, [], keys, [], sender_key);
+    log(LOG_LEVEL.DEBUG, 'Encryption result:');
+    log(LOG_LEVEL.DEBUG, encrypted_content);
     return encrypted_content.result_;
 }
 
 /**
  * Parses required data for data object and decrypts it.
- * @param {Object=} data with required information for decryption.
+ * @param {Object} data with required information for decryption.
  */
 function decryptMessage(data) {
-    console.log('Decrypt: ', data);
+    log(LOG_LEVEL.DEBUG, 'Data for decryption:');
+    log(LOG_LEVEL.DEBUG, data);
     var emailParts = data.content.split(EMAIL_PARTS_SEPARATOR);
     data.content = _decryptMessage(emailParts[0]);
     if (emailParts.length > 1) {
@@ -129,13 +135,14 @@ function decryptMessage(data) {
 
 /**
  * Decrypts given content
- * @param {string=} content to decrypt
+ * @param {string} content to decrypt
  * @returns {string} decrypted content.
  * @private
  */
 function _decryptMessage(content) {
     var decryptedText = pgpContext.verifyDecrypt(function () {
     }, content);
+    log(LOG_LEVEL.DEBUG, 'Decryption result:');
     log(LOG_LEVEL.DEBUG, decryptedText);
     decryptedText = decryptedText.result_.decrypt;
     decryptedText = e2e.byteArrayToStringAsync(decryptedText.data, decryptedText.options.charset);
@@ -144,16 +151,17 @@ function _decryptMessage(content) {
 
 /**
  * Sends message to gmail_executor script.
- * @param {Object=} message to send.
+ * @param {Object} message to send.
  */
 function sendResponse(message) {
-    console.log(message);
+    log(LOG_LEVEL.DEBUG, 'Sending message to gmail_executor script:');
+    log(LOG_LEVEL.DEBUG, message);
     window.postMessage(message, '*');
 }
 
 /**
  * Parses recipients list and generates array with recipients emails, also generates valid sender email UID.
- * @param {Object=} data with required information.
+ * @param {Object} data with required information.
  */
 function prepareEncryptParameters(data) {
     data.currentUser = '<' + data.currentUser + '>';
@@ -169,8 +177,8 @@ function prepareEncryptParameters(data) {
 
 /**
  * Encrypts given file with array of public keys and sender's private key.
- * @param {Object=} data with required encryption information.
- * @param {Array=} public_keys array of Key objects with recipients public keys.
+ * @param {Object} data with required encryption information.
+ * @param {Array} public_keys array of Key objects with recipients public keys.
  * @param {Key} sender_key object with sender's private key.
  * @returns {string} encrypted file.
  */
@@ -197,7 +205,7 @@ function encryptFile(data, public_keys, sender_key) {
 
 /**
  * Decrypts given file.
- * @param {string=} encryptedFile to decrypt.
+ * @param {string} encryptedFile to decrypt.
  * @returns {{fileName: string, decryptedFile: string}}
  */
 function decryptFile(encryptedFile) {
@@ -220,8 +228,8 @@ function decryptFile(encryptedFile) {
 
 /**
  * Adds some parameters to file's data URL so file becomes downloadable.
- * @param {string=} fileName of the current decrypted file.
- * @param {string=} decryptedFile
+ * @param {string} fileName of the current decrypted file.
+ * @param {string} decryptedFile
  * @returns {{fileName: string, decryptedFile: string}}
  */
 function makeFileDownloadable(fileName, decryptedFile) {
@@ -242,34 +250,47 @@ function makeFileDownloadable(fileName, decryptedFile) {
 
 /**
  * Imports public/private keys into OpenPGP keyring with given pass phrase.
- * @param {Object=} data with all required information.
+ * @param {Object} data with all required information.
  * @param {function(Object)=} callback which should be executed after keys are imported.
  * @private
  */
 function _importKeys(data, callback) {
     var pass_phrase = data.pass_phrase_data.pass_phrase;
     var current_acc = data.pass_phrase_data.current_acc;
-    pgpContext.setKeyRingPassphrase(pass_phrase, current_acc);
-    if (data.hasOwnProperty('private_pgp_key')) {
-        pgpContext.importKey(function () {
-            return null
-        }, data['private_pgp_key'], pass_phrase);
-    }
-    if (data.hasOwnProperty('public_pgp_keys')) {
-        var public_pgp_keys = data['public_pgp_keys'].split(',');
-        for (var i = 0; i < public_pgp_keys.length; i++) {
+    try {
+        pgpContext.setKeyRingPassphrase(pass_phrase, current_acc);
+        if (data.hasOwnProperty('private_pgp_key')) {
+            log(LOG_LEVEL.DEBUG, 'Importing PRIVATE PGP KEYS');
             pgpContext.importKey(function () {
                 return null
-            }, public_pgp_keys[i], pass_phrase);
+            }, data['private_pgp_key'], pass_phrase);
         }
+        if (data.hasOwnProperty('public_pgp_keys')) {
+            log(LOG_LEVEL.DEBUG, 'Importing PUBLIC PGP KEYS');
+            var public_pgp_keys = data['public_pgp_keys'].split(',');
+            for (var i = 0; i < public_pgp_keys.length; i++) {
+                pgpContext.importKey(function () {
+                    return null
+                }, public_pgp_keys[i], pass_phrase);
+            }
+        }
+    } catch (error) {
+        log(LOG_LEVEL.SEVERE, 'Unable to setup KeyRing: ' + error.message);
     }
+
     if (callback) {
         callback(data);
     }
 }
 
-function _clearPublicKeys(emails){
+/**
+ * Deletes public keys from KeyRing for given array of emails.
+ * @param {Array} emails that should be used to delete public pgp keys.
+ * @private
+ */
+function _clearPublicKeys(emails) {
     for (var i = 0; i < emails.length; i++) {
         pgpContext.deletePublicKey(emails[i]);
     }
+    log(LOG_LEVEL.DEBUG, 'Deleted PUBLIC PGP KEYS from KeyRing');
 }

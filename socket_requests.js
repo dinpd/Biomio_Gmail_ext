@@ -21,7 +21,7 @@ var REQUEST_HEADER,
 
 /**
  * Generates handshake request.
- * @param {String=} secret - user defined secret
+ * @param {string} secret - user defined secret
  * @returns {String}
  */
 function getHandshakeRequest(secret) {
@@ -35,8 +35,8 @@ function getHandshakeRequest(secret) {
 
 /**
  * Generates digest request.
- * @param {String=} key - digest.
- * @param {String=} token
+ * @param {string} key - digest.
+ * @param {string} token
  * @returns {String}
  */
 function getDigestRequest(key, token) {
@@ -50,8 +50,8 @@ function getDigestRequest(key, token) {
 
 /**
  * Generates custom request based on request type.
- * @param {String=} request type.
- * @param {String=} token
+ * @param {string} request type.
+ * @param {string} token
  * @returns {String}
  */
 function getCustomRequest(request, token) {
@@ -68,8 +68,8 @@ function increaseRequestCounter() {
 
 /**
  * Generates header for digest.
- * @param {String=} token
- * @returns {String}
+ * @param {string} token
+ * @returns {string}
  */
 function getHeaderString(token) {
     var header = REQUEST_HEADER;
@@ -82,10 +82,10 @@ function getHeaderString(token) {
 
 /**
  * Generates RPC request with given data dictionary.
- * @param {String=} token
- * @param {String=} method - RPC method type (name).
- * @param {Object=} keyValueDict - RPC method input values
- * @returns {String}
+ * @param {string} token
+ * @param {string} method - RPC method type (name).
+ * @param {Object} keyValueDict - RPC method input values
+ * @returns {string}
  */
 function getRpcRequest(token, method, keyValueDict) {
     var request = RPC_REQUEST;
@@ -104,12 +104,19 @@ function getRpcRequest(token, method, keyValueDict) {
     return JSON.stringify(request);
 }
 
-function setAppID(appId){
+/**
+ * Sets application APP_ID and initializes defaults.
+ * @param {string} appId
+ */
+function setAppID(appId) {
     APP_ID = appId;
     setupDefaults();
 }
 
-function setupDefaults(){
+/**
+ * Initializes default values.
+ */
+function setupDefaults() {
     REQUEST_HEADER = {
         protoVer: PROTO_VERSION,
         seq: 0,

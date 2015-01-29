@@ -314,9 +314,6 @@ function getComposeByID(composeId) {
  */
 window.addEventListener("message", function (event) {
     var data = event.data;
-    if (data.completedAction) {
-        console.log(event);
-    }
     if (data.hasOwnProperty('error')) {
         showHideInfoPopup(data['error'], true);
         alert(data['error']);
@@ -450,8 +447,6 @@ function calculateTime() {
  * @param {Object=} message data object.
  */
 function sendContentMessage(type, message) {
-    console.log('Type:', type);
-    console.log('Message:', message);
     window.postMessage({type: type, data: message}, '*');
 }
 
