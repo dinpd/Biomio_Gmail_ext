@@ -10,8 +10,8 @@ var DEBUG_MODE = true;
 
 /**
  * Logs given message according to given log TYPE.
- * @param {String=} level
- * @param {String=} message
+ * @param {string} level
+ * @param {(string|Object)} message
  */
 function log(level, message) {
     if (level == LOG_LEVEL.SEVERE || level == LOG_LEVEL.ERROR) {
@@ -30,7 +30,7 @@ function log(level, message) {
 
 /**
  * Returns css color string accroding to given log level.
- * @param {String=} level
+ * @param {string} level
  * @returns {string}
  */
 function getLevelColor(level) {

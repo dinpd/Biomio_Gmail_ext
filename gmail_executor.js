@@ -14,7 +14,6 @@ var gmail,
     ENCRYPT_WAIT_MESSAGE,
     ENCRYPT_SUCCESS_MESSAGE,
     TIME_TO_WAIT_PROBE, //seconds
-    PROBE_WAIT_MESSAGE,
     CANCEL_PROBE_MESSAGE_TYPE,
     PROBE_ERROR_MESSAGE;
 
@@ -41,7 +40,6 @@ function setupDefaults() {
     NO_MESSAGE = '[NO_MESSAGE]';
     EMAIL_PARTS_SEPARATOR = '#-#-#';
     TIME_TO_WAIT_PROBE = 300;
-    PROBE_WAIT_MESSAGE = 'To proceed with encryption it is required to identify yourself on Biom.io service. Server will wait for your probe for 5 minutes.';
     CANCEL_PROBE_MESSAGE_TYPE = 'cancel_probe';
     PROBE_ERROR_MESSAGE = "Your message wasn't encrypted because we were not able to identify you in time.";
 
@@ -315,11 +313,13 @@ function getComposeByID(composeId) {
 window.addEventListener("message", function (event) {
     var data = event.data;
     if (data.hasOwnProperty('error')) {
-        showHideInfoPopup(data['error'], true);
-        alert(data['error']);
+        showHideInfoPopup(data['error'], false);
+        clearInterval(showTimer);
+        $('#biomio_ok_button').show();
+        //alert(data['error']);
     } else if (data.hasOwnProperty('showTimer')) {
         if (data['showTimer']) {
-            showHideInfoPopup(PROBE_WAIT_MESSAGE);
+            showHideInfoPopup(data['message']);
             calculateTime();
         } else {
             clearInterval(showTimer);

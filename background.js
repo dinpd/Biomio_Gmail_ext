@@ -6,8 +6,9 @@ var STATE_DISCONNECTED = 'disconnected';
 var STATE_PASS_PHRASE = 'get_pass_phrase';
 var STATE_PUBLIC_KEYS = 'get_public_keys';
 var socket_connection;
-//var SERVER_URL = "wss://gb.vakoms.com:8080/websocket";
-var SERVER_URL = "wss://192.168.157.172:8081/websocket";
+var SERVER_URL = "wss://gb.vakoms.com:8080/websocket";
+//var SERVER_URL = "wss://192.168.157.172:8081/websocket";
+//var SERVER_URL = "wss://localhost:8080/websocket";
 var STORAGE_RSA_KEY = 'biomio_private_key';
 var session_info = {
     public_keys_required: false,
@@ -21,8 +22,6 @@ var session_info = {
     rsa_private_key: '',
     tab_id: ''
 };
-var COMMON_RESPONSE_TYPE = 'socket_response';
-var TIMER_RESPONSE_TYPE = 'show_timer';
 
 var APP_ID_STORAGE_KEY = 'BIOMIO_APP_ID';
 
@@ -35,7 +34,7 @@ var currentRequestData = {};
 /**
  * Gets or creates applications APP_ID
  */
-chrome.storage.sync.get(APP_ID_STORAGE_KEY, function (data) {
+chrome.storage.local.get(APP_ID_STORAGE_KEY, function (data) {
     var appId;
     if (APP_ID_STORAGE_KEY in data) {
         appId = data[APP_ID_STORAGE_KEY];
@@ -44,7 +43,7 @@ chrome.storage.sync.get(APP_ID_STORAGE_KEY, function (data) {
         appId = randomString(32, '0123456789abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ');
         var app_id_storage = {};
         app_id_storage[APP_ID_STORAGE_KEY] = appId;
-        chrome.storage.sync.set(app_id_storage);
+        chrome.storage.local.set(app_id_storage);
         log(LOG_LEVEL.DEBUG, 'APP_ID created');
     }
     log(LOG_LEVEL.DEBUG, appId);
@@ -108,6 +107,11 @@ var refresh_token = function () {
  * Handles WebSocket exceptions.
  */
 var socketOnError = function () {
+    if (state_machine.current == STATE_CONNECTED) {
+        sendResponse(REQUEST_COMMANDS.ERROR, {error: ERROR_MESSAGES.SERVER_CONNECTION_ERROR});
+    } else {
+        sendResponse(REQUEST_COMMANDS.ERROR, {error: ERROR_MESSAGES.SERVER_ERROR});
+    }
     state_machine.disconnect('WebSocket exception (URL - ' + socket_connection.url + ')');
 };
 
@@ -115,7 +119,7 @@ var socketOnError = function () {
  * Handles WebSocket open event
  */
 var socketOnOpen = function () {
-    chrome.storage.sync.get(STORAGE_RSA_KEY, function (data) {
+    chrome.storage.local.get(STORAGE_RSA_KEY, function (data) {
         log(LOG_LEVEL.DEBUG, 'STORAGE_RSA_KEY:');
         log(LOG_LEVEL.DEBUG, data);
         if (STORAGE_RSA_KEY in data) {
@@ -156,18 +160,24 @@ var socketOnMessage = function (event) {
     var data = JSON.parse(event.data);
     log(LOG_LEVEL.DEBUG, 'Received message from server:');
     log(LOG_LEVEL.DEBUG, data);
-    if (data.msg.oid == 'bye') return;
+    if (data.msg.oid == 'bye') {
+        if (data.hasOwnProperty('status')) {
+            log(LOG_LEVEL.DEBUG, data.status);
+        }
+        return;
+    }
     if (state_machine.is(STATE_REGISTRATION_HANDSHAKE) || state_machine.is(STATE_REGULAR_HANDSHAKE)) {
         session_info.token = data.header.token;
-        session_info.refresh_token = data.msg.refreshToken;
+        session_info.refresh_token = data.msg["refreshToken"];
         session_info.ttl = data.msg.ttl * 1000;
         if ('key' in data.msg) {
             session_info.rsa_private_key = data.msg.key;
             var rsa_private_key = {};
             rsa_private_key[STORAGE_RSA_KEY] = session_info.rsa_private_key;
-            chrome.storage.sync.set(rsa_private_key);
+            chrome.storage.local.set(rsa_private_key);
         }
-        state_machine.ready('Handshake was successful!\nToken: ' + session_info.token + '\nRefresh token: ' + session_info.refresh_token);
+        state_machine.ready('Handshake was successful!');
+        log(LOG_LEVEL.DEBUG, session_info);
     } else if ([STATE_READY, STATE_PASS_PHRASE, STATE_PUBLIC_KEYS].indexOf(state_machine.current) != -1) {
         if (data.msg.oid == 'nop' && session_info.token != data.header.token) {
             session_info.token = data.header.token;
@@ -177,14 +187,14 @@ var socketOnMessage = function (event) {
             var dataResp = data.msg.data;
             if (dataResp.keys.indexOf('error') > -1) {
                 log(LOG_LEVEL.ERROR, 'Error received from rpc method: ' + dataResp.values[0]);
-                currentRequestData['error'] = dataResp.values[0];
-                sendResponse(COMMON_RESPONSE_TYPE, currentRequestData);
+                currentRequestData['error'] = ERROR_MESSAGES.SERVER_RPC_ERROR + dataResp.values[0];
+                sendResponse(REQUEST_COMMANDS.ERROR, currentRequestData);
             } else {
                 for (var i = 0; i < dataResp.keys.length; i++) {
                     if (dataResp.keys[i] == 'pass_phrase') {
                         session_info.pass_phrase_data.pass_phrase = dataResp.values[i];
                         session_info.pass_phrase_data.current_acc = currentRequestData['currentUser'];
-                        sendResponse(TIMER_RESPONSE_TYPE, {showTimer: false});
+                        sendResponse(REQUEST_COMMANDS.SHOW_TIMER, {showTimer: false});
                     } else {
                         currentRequestData[dataResp.keys[i]] = dataResp.values[i];
                     }
@@ -195,7 +205,7 @@ var socketOnMessage = function (event) {
                     if (!currentRequestData.hasOwnProperty('pass_phrase_data')) {
                         currentRequestData.pass_phrase_data = session_info.pass_phrase_data;
                     }
-                    sendResponse(COMMON_RESPONSE_TYPE, currentRequestData);
+                    sendResponse(REQUEST_COMMANDS.COMMON_RESPONSE, currentRequestData);
                     state_machine.ready('Ready state...', true);
                 }
             }
@@ -357,26 +367,30 @@ chrome.runtime.onMessage.addListener(
         session_info.tab_id = sender.tab.id;
         if (request.command == 'cancel_probe') {
             state_machine.disconnect();
-        } else if (['get_phrase_keys', 'get_phrase'].indexOf(request.command) != -1) {
+            resetAllData();
+        } else if ([SOCKET_REQUEST_TYPES.GET_PUBLIC_KEYS, SOCKET_REQUEST_TYPES.GET_PASS_PHRASE].indexOf(request.command) != -1) {
             currentRequestData = request.data;
             if (session_info.pass_phrase_data.pass_phrase == ''
                 || currentRequestData['currentUser'] != session_info.pass_phrase_data.current_acc) {
                 session_info.pass_phrase_data.current_acc = '';
-                sendResponse(TIMER_RESPONSE_TYPE, {showTimer: true});
+                sendResponse(REQUEST_COMMANDS.SHOW_TIMER, {
+                    showTimer: true,
+                    message: NOTIFICATION_MESSAGES.PROBE_WAIT_MESSAGE
+                });
             }
-            if (request.command == 'get_phrase_keys') {
+            if (request.command == SOCKET_REQUEST_TYPES.GET_PUBLIC_KEYS) {
                 session_info.public_keys_required = true;
                 if (state_machine.is(STATE_DISCONNECTED)) {
                     state_machine.connect('Connecting to websocket - ' + SERVER_URL);
                 } else {
                     state_machine.public_keys('Getting public keys...');
                 }
-            } else if (request.command == 'get_phrase') {
+            } else if (request.command == SOCKET_REQUEST_TYPES.GET_PASS_PHRASE) {
                 session_info.public_keys_required = false;
                 if (session_info.pass_phrase_data.pass_phrase != ''
                     && currentRequestData['currentUser'] == session_info.pass_phrase_data.current_acc) {
                     currentRequestData['pass_phrase_data'] = session_info.pass_phrase_data;
-                    sendResponse(COMMON_RESPONSE_TYPE, currentRequestData);
+                    sendResponse(REQUEST_COMMANDS.COMMON_RESPONSE, currentRequestData);
                 } else if (state_machine.is(STATE_DISCONNECTED)) {
                     state_machine.connect('Connecting to websocket - ' + SERVER_URL);
                 } else {
@@ -389,10 +403,12 @@ chrome.runtime.onMessage.addListener(
 
 /**
  * Sends message to content script.
+ * @param {string} command
+ * @param {Object} response
  */
 function sendResponse(command, response) {
     chrome.tabs.sendRequest(session_info.tab_id, {command: command, data: response});
-    if (command == COMMON_RESPONSE_TYPE) {
+    if ([REQUEST_COMMANDS.COMMON_RESPONSE, REQUEST_COMMANDS.ERROR].indexOf(command) != -1) {
         currentRequestData = {};
     }
 }
@@ -403,6 +419,7 @@ function sendResponse(command, response) {
  */
 chrome.tabs.onRemoved.addListener(function (tabId) {
     if (tabId == session_info.tab_id) {
+        log(LOG_LEVEL.DEBUG, 'Gmail tab closed. Resetting connection info.');
         if (!state_machine.is(STATE_DISCONNECTED)) {
             state_machine.disconnect();
         }

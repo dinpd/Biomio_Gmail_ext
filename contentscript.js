@@ -36,14 +36,24 @@ window.onload = function () {
  */
 window.addEventListener("message", function (event) {
     var currData = event.data.data;
-    if (event.data.hasOwnProperty('type') && event.data.type == "encrypt_sign") {
-        prepareEncryptParameters(currData);
-        chrome.runtime.sendMessage({command: 'get_phrase_keys', data: currData});
-    } else if (event.data.hasOwnProperty('type') && event.data.type == "decryptMessage") {
-        prepareEncryptParameters(currData);
-        chrome.runtime.sendMessage({command: 'get_phrase', data: currData});
-    } else if (event.data.hasOwnProperty('type') && event.data.type == 'cancel_probe') {
-        chrome.runtime.sendMessage({command: event.data.type, data: currData});
+    try {
+        if (event.data.hasOwnProperty('type') && event.data.type == "encrypt_sign") {
+            prepareEncryptParameters(currData);
+            chrome.runtime.sendMessage({command: SOCKET_REQUEST_TYPES.GET_PUBLIC_KEYS, data: currData});
+        } else if (event.data.hasOwnProperty('type') && event.data.type == "decryptMessage") {
+            prepareEncryptParameters(currData);
+            chrome.runtime.sendMessage({command: SOCKET_REQUEST_TYPES.GET_PASS_PHRASE, data: currData});
+        } else if (event.data.hasOwnProperty('type') && event.data.type == 'cancel_probe') {
+            chrome.runtime.sendMessage({command: event.data.type, data: currData});
+        }
+    } catch (error) {
+        log(LOG_LEVEL.ERROR, error.message);
+        if (error.message.indexOf('Error connecting to extension') != -1) {
+            //page was loaded before extension, reload is required.
+            window.location.reload();
+        } else {
+            sendResponse({error: error.message});
+        }
     }
 }, false);
 
@@ -55,21 +65,20 @@ chrome.extension.onRequest.addListener(
         log(LOG_LEVEL.DEBUG, 'Received message from background script:');
         log(LOG_LEVEL.DEBUG, request);
         var data = request.data;
-        if (request.command == 'socket_response') {
-            if (data.hasOwnProperty('error')) {
-                sendResponse({'error': data['error']})
+        if (request.command == REQUEST_COMMANDS.COMMON_RESPONSE) {
+            var callback = function () {
+            };
+            if (data['action'] == 'encrypt_only') {
+                callback = encryptMessage;
             } else {
-                var callback = function () {
-                };
-                if (data['action'] == 'encrypt_only') {
-                    callback = encryptMessage;
-                } else {
-                    callback = decryptMessage;
-                }
-                _importKeys(data, callback);
+                callback = decryptMessage;
             }
-        } else if (request.command == 'show_timer') {
-            sendResponse({showTimer: data['showTimer']});
+            _importKeys(data, callback);
+        } else if (request.command == REQUEST_COMMANDS.SHOW_TIMER) {
+            var message = data.hasOwnProperty('message') ? data['message'] : '';
+            sendResponse({showTimer: data['showTimer'], message: message});
+        } else if (request.command == REQUEST_COMMANDS.ERROR) {
+            sendResponse({'error': data['error']})
         }
     }
 );
@@ -89,14 +98,18 @@ function encryptMessage(data) {
             $.extend(keys, pub_key.result_);
         }
     }
-    if (data.hasOwnProperty('encryptObject') && data.encryptObject == 'file') {
-        data.content = encryptFile(data, keys, sender_private_key);
-    } else {
-        data.content = _encryptMessage(data.content, keys, sender_private_key);
+    try {
+        if (data.hasOwnProperty('encryptObject') && data.encryptObject == 'file') {
+            data.content = encryptFile(data, keys, sender_private_key);
+        } else {
+            data.content = _encryptMessage(data.content, keys, sender_private_key);
+        }
+        data.completedAction = 'encrypt_only';
+        sendResponse(data);
+    } catch (error) {
+        sendResponse({error: error});
     }
-    data.completedAction = 'encrypt_only';
     _clearPublicKeys(data.recipients);
-    sendResponse(data);
 }
 
 /**
@@ -105,12 +118,20 @@ function encryptMessage(data) {
  * @param {Array} keys array of public key objects.
  * @param {Key} sender_key Private OpenPGP key.
  * @returns {string} encrypted content.
+ * @throws {(ERROR_MESSAGES.ENCRYPTION_DENIED_ERROR|ERROR_MESSAGES.ENCRYPTION_UNKNOWN_ERROR)}
  * @private
  */
 function _encryptMessage(content, keys, sender_key) {
     var encrypted_content = pgpContext.encryptSign(content, [], keys, [], sender_key);
     log(LOG_LEVEL.DEBUG, 'Encryption result:');
     log(LOG_LEVEL.DEBUG, encrypted_content);
+    if (encrypted_content.hadError_) {
+        log(LOG_LEVEL.ERROR, encrypted_content.result_.message);
+        if (encrypted_content.result_.message.indexOf('No public key nor passphrase') != -1) {
+            throw ERROR_MESSAGES.ENCRYPTION_DENIED_ERROR;
+        }
+        throw ERROR_MESSAGES.ENCRYPTION_UNKNOWN_ERROR;
+    }
     return encrypted_content.result_;
 }
 
@@ -122,21 +143,26 @@ function decryptMessage(data) {
     log(LOG_LEVEL.DEBUG, 'Data for decryption:');
     log(LOG_LEVEL.DEBUG, data);
     var emailParts = data.content.split(EMAIL_PARTS_SEPARATOR);
-    data.content = _decryptMessage(emailParts[0]);
-    if (emailParts.length > 1) {
-        data['decryptedFiles'] = [];
-        for (var i = 1; i < emailParts.length; i++) {
-            data.decryptedFiles.push(decryptFile(emailParts[i]));
+    try {
+        data.content = _decryptMessage(emailParts[0]);
+        if (emailParts.length > 1) {
+            data['decryptedFiles'] = [];
+            for (var i = 1; i < emailParts.length; i++) {
+                data.decryptedFiles.push(decryptFile(emailParts[i]));
+            }
         }
+        data.completedAction = 'decrypt_verify';
+        sendResponse(data);
+    } catch (error) {
+        sendResponse({error: error});
     }
-    data.completedAction = 'decrypt_verify';
-    sendResponse(data);
 }
 
 /**
  * Decrypts given content
  * @param {string} content to decrypt
  * @returns {string} decrypted content.
+ * @throws {(ERROR_MESSAGES.DECRYPTION_DENIED_ERROR|ERROR_MESSAGES.DECRYPTION_UNKNOWN_ERROR)}
  * @private
  */
 function _decryptMessage(content) {
@@ -144,6 +170,13 @@ function _decryptMessage(content) {
     }, content);
     log(LOG_LEVEL.DEBUG, 'Decryption result:');
     log(LOG_LEVEL.DEBUG, decryptedText);
+    if (decryptedText.hadError_) {
+        log(LOG_LEVEL.ERROR, decryptedText.result_.message);
+        if (decryptedText.result_.message.indexOf('No keys found') != -1) {
+            throw ERROR_MESSAGES.DECRYPTION_DENIED_ERROR;
+        }
+        throw ERROR_MESSAGES.DECRYPTION_UNKNOWN_ERROR;
+    }
     decryptedText = decryptedText.result_.decrypt;
     decryptedText = e2e.byteArrayToStringAsync(decryptedText.data, decryptedText.options.charset);
     return decryptedText.result_;
@@ -181,6 +214,7 @@ function prepareEncryptParameters(data) {
  * @param {Array} public_keys array of Key objects with recipients public keys.
  * @param {Key} sender_key object with sender's private key.
  * @returns {string} encrypted file.
+ * @throws {(ERROR_MESSAGES.ENCRYPTION_DENIED_ERROR|ERROR_MESSAGES.ENCRYPTION_UNKNOWN_ERROR)}
  */
 function encryptFile(data, public_keys, sender_key) {
     var fileContent = data.content;
@@ -207,6 +241,7 @@ function encryptFile(data, public_keys, sender_key) {
  * Decrypts given file.
  * @param {string} encryptedFile to decrypt.
  * @returns {{fileName: string, decryptedFile: string}}
+ * @throws {(ERROR_MESSAGES.DECRYPTION_DENIED_ERROR|ERROR_MESSAGES.DECRYPTION_UNKNOWN_ERROR)}
  */
 function decryptFile(encryptedFile) {
     var encryptedFileParts = encryptedFile.split(FILE_PARTS_SEPARATOR);
@@ -257,6 +292,7 @@ function makeFileDownloadable(fileName, decryptedFile) {
 function _importKeys(data, callback) {
     var pass_phrase = data.pass_phrase_data.pass_phrase;
     var current_acc = data.pass_phrase_data.current_acc;
+    log(LOG_LEVEL.DEBUG, 'Current account: ' + current_acc);
     try {
         pgpContext.setKeyRingPassphrase(pass_phrase, current_acc);
         if (data.hasOwnProperty('private_pgp_key')) {
@@ -274,12 +310,13 @@ function _importKeys(data, callback) {
                 }, public_pgp_keys[i], pass_phrase);
             }
         }
+        if (callback) {
+            callback(data);
+        }
     } catch (error) {
         log(LOG_LEVEL.SEVERE, 'Unable to setup KeyRing: ' + error.message);
-    }
-
-    if (callback) {
-        callback(data);
+        log(LOG_LEVEL.DEBUG, error);
+        sendResponse({error: ERROR_MESSAGES.KEYRING_IMPORT_ERROR});
     }
 }
 

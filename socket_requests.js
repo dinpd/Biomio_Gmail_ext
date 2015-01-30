@@ -21,8 +21,8 @@ var REQUEST_HEADER,
 
 /**
  * Generates handshake request.
- * @param {string} secret - user defined secret
- * @returns {String}
+ * @param {string=} secret - user defined secret
+ * @returns {string}
  */
 function getHandshakeRequest(secret) {
     var request = REGULAR_REQUEST;
@@ -37,7 +37,7 @@ function getHandshakeRequest(secret) {
  * Generates digest request.
  * @param {string} key - digest.
  * @param {string} token
- * @returns {String}
+ * @returns {string}
  */
 function getDigestRequest(key, token) {
     var request = REGULAR_DIGEST_REQUEST;
@@ -52,7 +52,7 @@ function getDigestRequest(key, token) {
  * Generates custom request based on request type.
  * @param {string} request type.
  * @param {string} token
- * @returns {String}
+ * @returns {string}
  */
 function getCustomRequest(request, token) {
     request.header.token = token;
