@@ -53,7 +53,7 @@
     font-size: 20px;
 }
 
-#biomio_ok_button {
+#biomio_ok_button, #biomio_yes_button, #biomio_no_button {
     display: none;
 }
 

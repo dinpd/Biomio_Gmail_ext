@@ -48,10 +48,29 @@ function setupDefaults() {
         showHideInfoPopup('', true);
     });
 
+    $('#biomio_yes_button').on('click', function(e){
+        e.preventDefault();
+        confirmationYes(e);
+    });
+
+    $('#biomio_no_button').on('click', function(e){
+        e.preventDefault();
+        confirmationNo(e);
+    });
+
     $(document).on('click', '#biomio_decrypt_button', function (e) {
         e.preventDefault();
         decryptMessage(e);
     });
+
+    $(document).on('click', '#biomio_send_button', function (e) {
+        e.preventDefault();
+        sendMessageClicked(e);
+    });
+    $(document).on('click', 'div #attach-button-id', function (e) {
+        attachClicked(e);
+    });
+
 }
 
 /**
@@ -63,9 +82,11 @@ var initializeGmailJSEvents = function () {
         var fileName = file.name;
         if (activeAttachBtn.length) {
             var composeId = activeAttachBtn.attr('data-composeId');
+            var isConfirmed = isEncryptionConfirmed(composeId);
             var compose = getComposeByID(composeId);
             var needToCheck = compose.find('#encrypt-body-' + compose.id());
-            if (encryptRequired(compose)) {
+            var encryptionRequired = encryptRequired(compose);
+            if (isConfirmed && encryptionRequired) {
                 var reader = new FileReader();
                 reader.onload = (function (compose, fileName) {
                     return function (e) {
@@ -93,9 +114,13 @@ var initializeGmailJSEvents = function () {
                 reader.readAsDataURL(file);
                 hideBodyErrorsShowMessage(FILE_ENCRYPT_WAIT_MESSAGE);
                 xhr.abort();
-            } else if (needToCheck.length && needToCheck.is(':checked')) {
+            } else if (isConfirmed && needToCheck.length && needToCheck.is(':checked')) {
                 hideBodyErrorsShowMessage("It is required to specify recipients to be able to encrypt the attachment. " +
                 "If you don't want to encrypt the files just uncheck 'BioMio encryption' checkbox");
+                xhr.abort();
+            } else if(!isConfirmed && encryptionRequired){
+                showConfirmationPopup("You are about to encrypt your attachments. Do you want to proceed?", composeId, '#' + activeAttachBtn.attr('id'));
+                hideBodyErrorsShowMessage("");
                 xhr.abort();
             }
 
@@ -118,8 +143,8 @@ var initializeGmailJSEvents = function () {
 
     gmail.observe.on('compose', function (compose, type) {
         var button = '<input type="checkbox" checked id="encrypt-body-' + compose.id() + '" title="BioMio encryption" class="aaA aWZ">';
-        var transparentDiv = $('<div class="transparent_area" data-composeId="' + compose.id() + '" onclick="sendMessageClicked(event)"></div>');
-        var attachmentDiv = $('<span class="transparent_area attach-button" data-composeId="' + compose.id() + '" onclick="attachClicked(event)"></span>');
+        var transparentDiv = $('<div class="transparent_area" id="biomio_send_button" data-composeId="' + compose.id() + '"></div>');
+        var attachmentDiv = $('<span class="transparent_area attach-button" id="attach-button-id" data-composeId="' + compose.id() + '" onclick="attachClicked(event)"></span>');
         compose.find('.aWQ').prepend(button);
         setTimeout(function () {
             var attachButton = compose.find('.J-Z-I[command="Files"]');
@@ -143,9 +168,7 @@ var initializeGmailJSEvents = function () {
 function hideBodyErrorsShowMessage(message) {
     setTimeout(function () {
         var gm_errors;
-        var i = 0;
         while (true) {
-            i++;
             gm_errors = $('.dL');
             if (gm_errors.length) {
                 gm_errors.remove();
@@ -166,17 +189,18 @@ function attachClicked(event) {
         existingActiveAttach.removeClass('active');
     }
     $(event.currentTarget).addClass('active');
-
 }
 
 /**
  * Show/Hides info popup with given message to user. Also blocks entire page till action is completed.
- * @param {string=} infoMessage to show inside the popup
- * @param {boolean} hide - false if is not specified.
+ * @param {string} infoMessage to show inside the popup
+ * @param {boolean=} hide - false if is not specified.
  */
 function showHideInfoPopup(infoMessage, hide) {
     $('#biomio_timer').hide();
     $('#biomio_ok_button').hide();
+    $('#biomio_yes_button').hide();
+    $('#biomio_no_button').hide();
     if (hide) {
         showLoading.hide();
         showPopup.fadeOut(500);
@@ -230,15 +254,15 @@ function decryptMessage(event) {
 /**
  * Sends content to contentscript for decryption.
  * @param emailBodyAttr
- * @param {jQuery.element=} emailBody of the current email.
+ * @param {jQuery.element} emailBody of the current email.
  */
 function sendDecryptMessage(emailBodyAttr, emailBody) {
     var bioMioAttr = 'biomio_' + emailBodyAttr;
-    emailBody.attr('data-biomio', bioMioAttr);
-    var emailBodyText = emailBody.html();
+    $(emailBody).attr('data-biomio', bioMioAttr);
+    var emailBodyText = $(emailBody).html();
     emailBodyText = $.trim(emailBodyText.replace(/<br>/g, '\n'));
-    emailBody.html(emailBodyText);
-    emailBodyText = emailBody.text();
+    $(emailBody).html(emailBodyText);
+    emailBodyText = $(emailBody).text();
     window.postMessage({
         "type": "decryptMessage",
         "data": {
@@ -255,11 +279,12 @@ function sendDecryptMessage(emailBodyAttr, emailBody) {
  * @param event
  */
 function sendMessageClicked(event) {
-    event.preventDefault();
     var currComposeID = $(event.currentTarget).attr('data-composeId');
     var compose = getComposeByID(currComposeID);
     if (compose) {
-        if (encryptRequired(compose)) {
+        var isConfirmed = isEncryptionConfirmed(currComposeID);
+        var encryptionRequired = encryptRequired(compose);
+        if (isConfirmed && encryptionRequired) {
             showHideInfoPopup(ENCRYPT_WAIT_MESSAGE);
             var recipients_arr = compose.to().concat(compose.cc()).concat(compose.bcc());
             $('#biomio-attachments-' + compose.id()).remove();
@@ -274,15 +299,67 @@ function sendMessageClicked(event) {
                     encryptObject: 'text'
                 }
             }, '*');
+        } else if(!isConfirmed && encryptionRequired){
+            showConfirmationPopup("You are about to encrypt your content, do you want to proceed?", currComposeID, '#' + $(event.currentTarget).attr('id'));
         } else {
             triggerSendButton(compose);
         }
     }
 }
 
+function isEncryptionConfirmed(composeID){
+    var encCheckBoxDisabled = $('#encrypt-body-' + composeID).attr('disabled');
+    return typeof encCheckBoxDisabled != "undefined" && encCheckBoxDisabled;
+}
+
+function showConfirmationPopup(message, currComposeID, elementToClick){
+    showHideInfoPopup(message);
+    var yesButton = $('#biomio_yes_button');
+    var noButton = $('#biomio_no_button');
+    yesButton.attr('data-click-element', elementToClick);
+    yesButton.attr('data-composeId', currComposeID);
+    yesButton.show();
+    noButton.attr('data-click-element', elementToClick);
+    noButton.attr('data-composeId', currComposeID);
+    noButton.show();
+}
+
+function confirmationYes(e){
+    var currComposeID = $(e.currentTarget).attr('data-composeId');
+    disableUncheckEncryption(currComposeID);
+    showHideInfoPopup('', true);
+    var elementToClick = $(e.currentTarget).attr('data-click-element');
+    elementToClick = $(elementToClick + '[data-composeid="' + currComposeID + '"]');
+    elementToClick.trigger('click');
+}
+
+function confirmationNo(e){
+    var currComposeID = $(e.currentTarget).attr('data-composeId');
+    disableUncheckEncryption(currComposeID, true);
+    showHideInfoPopup('', true);
+    var elementToClick = $(e.currentTarget).attr('data-click-element');
+    elementToClick = $(elementToClick + '[data-composeid="' + currComposeID + '"]');
+    elementToClick.trigger('click');
+
+}
+
+/**
+ * Disabled encryption checkbox and if required un-checks it.
+ * @param {string} composeID
+ * @param {boolean=} unCheck
+ */
+function disableUncheckEncryption(composeID, unCheck){
+    var encrCheckbox = $('#encrypt-body-' + composeID);
+    if(unCheck){
+        encrCheckbox.attr('checked', false);
+    }
+    encrCheckbox.attr('disabled', true);
+
+}
+
 /**
  * Checks whether encryption is required.
- * @param {gmail.dom.compose=} compose - current compose window opened by user.
+ * @param {gmail.dom.compose} compose - current compose window opened by user.
  * @returns {boolean}
  */
 function encryptRequired(compose) {
@@ -325,33 +402,33 @@ window.addEventListener("message", function (event) {
             clearInterval(showTimer);
             showHideInfoPopup(ENCRYPT_WAIT_MESSAGE);
         }
-    } else if (data.completedAction && (data.completedAction == "encrypt_only")) {
-        if (data.encryptObject && data.encryptObject.length) {
-            var compose = getComposeByID(data.composeId);
+    } else if (data.hasOwnProperty('completedAction') && (data['completedAction'] == "encrypt_only")) {
+        if (data.hasOwnProperty('encryptObject') && data['encryptObject'].length) {
+            var compose = getComposeByID(data['composeId']);
             if (compose) {
-                var content = $.trim(data.content).replace(/(?:\r\n|\r|\n)/g, '<br>');
+                var content = $.trim(data['content']).replace(/(?:\r\n|\r|\n)/g, '<br>');
                 var encryptedComposeFiles;
-                if (data.encryptObject == 'file') {
-                    if (data.composeId in encryptedFiles) {
-                        encryptedComposeFiles = encryptedFiles[data.composeId];
-                        encryptedComposeFiles.push(data.content);
+                if (data['encryptObject'] == 'file') {
+                    if (data['composeId'] in encryptedFiles) {
+                        encryptedComposeFiles = encryptedFiles[data['composeId']];
+                        encryptedComposeFiles.push(data['content']);
 
                     } else {
-                        encryptedComposeFiles = [data.content];
+                        encryptedComposeFiles = data['content'];
                     }
-                    encryptedFiles[data.composeId] = encryptedComposeFiles;
-                    updateEncryptedAttachmentsList(compose, data.fileName);
+                    encryptedFiles[data['composeId']] = encryptedComposeFiles;
+                    updateEncryptedAttachmentsList(compose, data['fileName']);
                     showHideInfoPopup(FILE_ENCRYPT_SUCCESS_MESSAGE, true);
                 } else {
-                    if (data.composeId in encryptedFiles) {
-                        encryptedComposeFiles = encryptedFiles[data.composeId];
+                    if (data['composeId'] in encryptedFiles) {
+                        encryptedComposeFiles = encryptedFiles[data['composeId']];
                         var contentToPush = NO_MESSAGE;
                         if (content.length) {
                             contentToPush = content;
                         }
                         encryptedComposeFiles.splice(0, 0, contentToPush);
                         content = encryptedComposeFiles.join(EMAIL_PARTS_SEPARATOR);
-                        delete encryptedFiles[data.composeId];
+                        delete encryptedFiles[data['composeId']];
                         confirm = confirmOff();
                         $('#biomio-attachments-' + compose.id()).remove();
                     }
@@ -362,12 +439,12 @@ window.addEventListener("message", function (event) {
                 }
             }
         }
-    } else if (data.hasOwnProperty('completedAction') && data.completedAction == "decrypt_verify") {
-        var emailBody = $('div[data-biomio="' + data.biomio_attr + '"]');
+    } else if (data.hasOwnProperty('completedAction') && data['completedAction'] == "decrypt_verify") {
+        var emailBody = $('div[data-biomio="' + data['biomio_attr'] + '"]');
         if (emailBody) {
-            emailBody.html(data.content);
+            emailBody.html(data['content']);
             if (data.hasOwnProperty('decryptedFiles')) {
-                var decryptedFiles = data.decryptedFiles;
+                var decryptedFiles = data['decryptedFiles'];
                 emailBody.html(emailBody.html() + '<br><p>Email Attachments</p>');
                 for (var i = 0; i < decryptedFiles.length; i++) {
                     updateDecryptedAttachmentsList(emailBody, emailBody.html(), decryptedFiles[i]);
