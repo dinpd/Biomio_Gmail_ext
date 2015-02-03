@@ -6,10 +6,12 @@ var STATE_DISCONNECTED = 'disconnected';
 var STATE_PASS_PHRASE = 'get_pass_phrase';
 var STATE_PUBLIC_KEYS = 'get_public_keys';
 var socket_connection;
-var SERVER_URL = "wss://gb.vakoms.com:8080/websocket";
-//var SERVER_URL = "wss://192.168.157.172:8081/websocket";
-//var SERVER_URL = "wss://localhost:8080/websocket";
+var state_machine;
+
 var STORAGE_RSA_KEY = 'biomio_private_key';
+var APP_ID_STORAGE_KEY = 'BIOMIO_APP_ID';
+var SERVER_URL;
+
 var session_info = {
     public_keys_required: false,
     pass_phrase_data: {
@@ -23,9 +25,6 @@ var session_info = {
     tab_id: ''
 };
 
-var APP_ID_STORAGE_KEY = 'BIOMIO_APP_ID';
-
-var state_machine;
 var session_alive_interval;
 var refresh_token_interval;
 
@@ -48,6 +47,28 @@ chrome.storage.local.get(APP_ID_STORAGE_KEY, function (data) {
     }
     log(LOG_LEVEL.DEBUG, appId);
     setAppID(appId);
+    chrome.storage.local.get('settings', function (data) {
+        var settings = data['settings'];
+        if (settings) {
+            SERVER_URL = settings['server_url'];
+        } else {
+            SERVER_URL = "wss://gb.vakoms.com:8080/websocket";
+        }
+        log(LOG_LEVEL.DEBUG, SERVER_URL);
+    })
+});
+
+/**
+ * Chrome storage listener which listens for changes in local storage.
+ */
+chrome.storage.onChanged.addListener(function (changes, areaName) {
+    if (areaName == 'local' && changes.hasOwnProperty('settings')
+        && changes['settings'].hasOwnProperty('newValue')
+        && changes['settings']['newValue'].hasOwnProperty('server_url')) {
+
+        SERVER_URL = changes['settings']['newValue']['server_url'];
+        state_machine.disconnect('Server URL changed: ' + SERVER_URL);
+    }
 });
 
 /**
@@ -107,11 +128,16 @@ var refresh_token = function () {
  * Handles WebSocket exceptions.
  */
 var socketOnError = function () {
-    if (state_machine.current == STATE_CONNECTED) {
-        sendResponse(REQUEST_COMMANDS.ERROR, {error: ERROR_MESSAGES.SERVER_CONNECTION_ERROR});
-    } else {
-        sendResponse(REQUEST_COMMANDS.ERROR, {error: ERROR_MESSAGES.SERVER_ERROR});
+    var errorResponse = {error: ''};
+    if (currentRequestData.hasOwnProperty('composeId')) {
+        errorResponse['composeId'] = currentRequestData.composeId;
     }
+    if (state_machine.current == STATE_CONNECTED) {
+        errorResponse.error = ERROR_MESSAGES.SERVER_CONNECTION_ERROR;
+    } else {
+        errorResponse.error = ERROR_MESSAGES.SERVER_ERROR;
+    }
+    sendResponse(REQUEST_COMMANDS.ERROR, errorResponse);
     state_machine.disconnect('WebSocket exception (URL - ' + socket_connection.url + ')');
 };
 

@@ -74,11 +74,8 @@ chrome.extension.onRequest.addListener(
                 callback = decryptMessage;
             }
             _importKeys(data, callback);
-        } else if (request.command == REQUEST_COMMANDS.SHOW_TIMER) {
-            var message = data.hasOwnProperty('message') ? data['message'] : '';
-            sendResponse({showTimer: data['showTimer'], message: message});
-        } else if (request.command == REQUEST_COMMANDS.ERROR) {
-            sendResponse({'error': data['error']})
+        } else if ([REQUEST_COMMANDS.SHOW_TIMER, REQUEST_COMMANDS.ERROR].indexOf(request.command)) {
+            sendResponse(data);
         }
     }
 );
@@ -107,9 +104,9 @@ function encryptMessage(data) {
         data.completedAction = 'encrypt_only';
         sendResponse(data);
     } catch (error) {
-        sendResponse({error: error});
+        sendResponse({error: error, composeId: data.composeId});
     }
-    _clearPublicKeys(data.recipients);
+    _clearPublicKeys();
 }
 
 /**
@@ -322,12 +319,15 @@ function _importKeys(data, callback) {
 
 /**
  * Deletes public keys from KeyRing for given array of emails.
- * @param {Array} emails that should be used to delete public pgp keys.
  * @private
  */
-function _clearPublicKeys(emails) {
-    for (var i = 0; i < emails.length; i++) {
-        pgpContext.deletePublicKey(emails[i]);
+function _clearPublicKeys() {
+    var pubKeys = pgpContext.getAllKeys(false);
+    pubKeys = pubKeys.result_;
+    for (var uid in pubKeys) {
+        if (pubKeys.hasOwnProperty(uid)) {
+            pgpContext.deletePublicKey(uid);
+        }
     }
     log(LOG_LEVEL.DEBUG, 'Deleted PUBLIC PGP KEYS from KeyRing');
 }
