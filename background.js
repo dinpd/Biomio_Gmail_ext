@@ -203,7 +203,6 @@ var socketOnMessage = function (event) {
             chrome.storage.local.set(rsa_private_key);
         }
         state_machine.ready('Handshake was successful!');
-        log(LOG_LEVEL.DEBUG, session_info);
     } else if ([STATE_READY, STATE_PASS_PHRASE, STATE_PUBLIC_KEYS].indexOf(state_machine.current) != -1) {
         if (data.msg.oid == 'nop' && session_info.token != data.header.token) {
             session_info.token = data.header.token;

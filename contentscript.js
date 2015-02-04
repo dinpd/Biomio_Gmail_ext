@@ -74,7 +74,7 @@ chrome.extension.onRequest.addListener(
                 callback = decryptMessage;
             }
             _importKeys(data, callback);
-        } else if ([REQUEST_COMMANDS.SHOW_TIMER, REQUEST_COMMANDS.ERROR].indexOf(request.command)) {
+        } else if ([REQUEST_COMMANDS.SHOW_TIMER, REQUEST_COMMANDS.ERROR].indexOf(request.command) != -1) {
             sendResponse(data);
         }
     }
