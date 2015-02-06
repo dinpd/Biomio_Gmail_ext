@@ -12,8 +12,11 @@ var STORAGE_RSA_KEY = 'biomio_private_key';
 var APP_ID_STORAGE_KEY = 'BIOMIO_APP_ID';
 var SERVER_URL;
 
+var export_key_result = null;
+
 var session_info = {
     public_keys_required: false,
+    export_key_required: false,
     pass_phrase_data: {
         pass_phrase: '',
         current_acc: ''
@@ -56,19 +59,6 @@ chrome.storage.local.get(APP_ID_STORAGE_KEY, function (data) {
         }
         log(LOG_LEVEL.DEBUG, SERVER_URL);
     })
-});
-
-/**
- * Chrome storage listener which listens for changes in local storage.
- */
-chrome.storage.onChanged.addListener(function (changes, areaName) {
-    if (areaName == 'local' && changes.hasOwnProperty('settings')
-        && changes['settings'].hasOwnProperty('newValue')
-        && changes['settings']['newValue'].hasOwnProperty('server_url')) {
-
-        SERVER_URL = changes['settings']['newValue']['server_url'];
-        state_machine.disconnect('Server URL changed: ' + SERVER_URL);
-    }
 });
 
 /**
@@ -219,20 +209,30 @@ var socketOnMessage = function (event) {
                     if (dataResp.keys[i] == 'pass_phrase') {
                         session_info.pass_phrase_data.pass_phrase = dataResp.values[i];
                         session_info.pass_phrase_data.current_acc = currentRequestData['currentUser'];
-                        sendResponse(REQUEST_COMMANDS.SHOW_TIMER, {showTimer: false});
+                        if(session_info.export_key_required){
+                            currentRequestData.pass_phrase_data = session_info.pass_phrase_data;
+                            sendResponse(REQUEST_COMMANDS.EXPORT_KEY, currentRequestData);
+                        }else{
+                            sendResponse(REQUEST_COMMANDS.SHOW_TIMER, {showTimer: false});
+                        }
                     } else {
                         currentRequestData[dataResp.keys[i]] = dataResp.values[i];
                     }
                 }
-                if (state_machine.is(STATE_PASS_PHRASE) && session_info.public_keys_required) {
-                    state_machine.public_keys('Getting public keys...');
-                } else {
-                    if (!currentRequestData.hasOwnProperty('pass_phrase_data')) {
-                        currentRequestData.pass_phrase_data = session_info.pass_phrase_data;
-                    }
-                    sendResponse(REQUEST_COMMANDS.COMMON_RESPONSE, currentRequestData);
+                if(session_info.export_key_required){
                     state_machine.ready('Ready state...', true);
+                }else{
+                    if (state_machine.is(STATE_PASS_PHRASE) && session_info.public_keys_required) {
+                        state_machine.public_keys('Getting public keys...');
+                    } else {
+                        if (!currentRequestData.hasOwnProperty('pass_phrase_data')) {
+                            currentRequestData.pass_phrase_data = session_info.pass_phrase_data;
+                        }
+                        sendResponse(REQUEST_COMMANDS.COMMON_RESPONSE, currentRequestData);
+                        state_machine.ready('Ready state...', true);
+                    }
                 }
+
             }
         }
     }
@@ -307,7 +307,7 @@ var onReady = function (event, from, to, msg, noActionRequired) {
         clearInterval(refresh_token_interval);
         keepAlive();
         refresh_token();
-        if (session_info.pass_phrase_data.pass_phrase == '' || session_info.pass_phrase_data.current_acc == '') {
+        if (session_info.pass_phrase_data.pass_phrase == '' || session_info.pass_phrase_data.current_acc == '' || session_info.export_key_required) {
             state_machine.pass_phrase('Getting pass phrase');
         } else if (session_info.public_keys_required) {
             state_machine.public_keys('Getting public keys...');
@@ -390,10 +390,18 @@ chrome.runtime.onMessage.addListener(
         log(LOG_LEVEL.DEBUG, 'Received request from content script:');
         log(LOG_LEVEL.DEBUG, request);
         session_info.tab_id = sender.tab.id;
-        if (request.command == 'cancel_probe') {
+        if (request.command == SOCKET_REQUEST_TYPES.CANCEL_PROBE) {
             state_machine.disconnect();
             resetAllData();
-        } else if ([SOCKET_REQUEST_TYPES.GET_PUBLIC_KEYS, SOCKET_REQUEST_TYPES.GET_PASS_PHRASE].indexOf(request.command) != -1) {
+        } else if (request.command == SOCKET_REQUEST_TYPES.PERSIST_GMAIL_USER) {
+            chrome.storage.local.set(request.data);
+        }
+        else if(request.command == REQUEST_COMMANDS.EXPORT_KEY){
+            export_key_result = request.data.exported_key;
+            log(LOG_LEVEL.DEBUG, export_key_result);
+            session_info.export_key_required = false;
+        }
+        else if ([SOCKET_REQUEST_TYPES.GET_PUBLIC_KEYS, SOCKET_REQUEST_TYPES.GET_PASS_PHRASE].indexOf(request.command) != -1) {
             currentRequestData = request.data;
             if (session_info.pass_phrase_data.pass_phrase == ''
                 || currentRequestData['currentUser'] != session_info.pass_phrase_data.current_acc) {
@@ -448,6 +456,7 @@ chrome.tabs.onRemoved.addListener(function (tabId) {
         if (!state_machine.is(STATE_DISCONNECTED)) {
             state_machine.disconnect();
         }
+        chrome.storage.local.set({current_gmail_user: ''});
         resetAllData();
     }
 });
@@ -457,8 +466,10 @@ chrome.tabs.onRemoved.addListener(function (tabId) {
  */
 function resetAllData() {
     currentRequestData = {};
+    export_key_result = null;
     session_info = {
         public_keys_required: false,
+        export_key_required: false,
         pass_phrase_data: {
             pass_phrase: '',
             current_acc: ''
@@ -471,6 +482,34 @@ function resetAllData() {
     };
     setupDefaults();
 }
+
+chrome.extension.onRequest.addListener(function(request, sender, sendOptionsResponse){
+    log(LOG_LEVEL.DEBUG, 'Received request from options page:');
+    log(LOG_LEVEL.DEBUG, request);
+    if(request.hasOwnProperty('changed_url')){
+        SERVER_URL = request['changed_url'];
+        state_machine.disconnect('Server URL changed: ' + SERVER_URL);
+    }else if(request.hasOwnProperty('export_key')){
+        currentRequestData.currentUser = request['export_key'];
+        session_info.pass_phrase_data = {};
+        session_info.export_key_required = true;
+        if(state_machine.is(STATE_DISCONNECTED)){
+            state_machine.connect('Connecting to websocket - ' + SERVER_URL);
+        }else{
+            state_machine.pass_phrase('Getting pass phrase for user: ' + request['export_key']);
+        }
+        var responseInterval = setInterval(function(){
+            console.log('running');
+            if(export_key_result != null){
+                console.log(export_key_result);
+                sendOptionsResponse({exported_key: export_key_result});
+                export_key_result = null;
+                clearInterval(responseInterval);
+            }
+        }, 1000);
+        responseInterval;
+    }
+});
 
 //chrome.storage.sync.remove('biomio_private_key', function(){
 //    console.log('done');

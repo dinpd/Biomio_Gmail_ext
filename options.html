@@ -6,9 +6,18 @@
     <script src="jquery-1.11.1.js"></script>
     <script src="options.js"></script>
 </head>
+<style>
+#biomio_ok_button {
+    display: none;
+}
+    #biomio_show_popup {
+        display: none;
+    }
+</style>
 <body>
-<div>
+<div id="actions_panel">
     <div>
+        Current Gmail user - <span id="current_gmail_user"></span>
         <input type="button" id="biomio_export_button" value="Export Private PGP Key">
     </div>
     <div>
@@ -18,6 +27,13 @@
         </label>
         <input type="button" value="Update" id="biomio_update_url_button">
     </div>
+</div>
+<div id="biomio_show_popup">
+    <p class="biomio_wait_message"></p>
+    <p id="biomio_timer"></p>
+    <p class="biomio_buttons">
+        <input type="button" value="OK" id="biomio_ok_button">
+    </p>
 </div>
 </body>
 </html>

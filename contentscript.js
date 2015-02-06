@@ -39,12 +39,14 @@ window.addEventListener("message", function (event) {
     try {
         if (event.data.hasOwnProperty('type') && event.data.type == "encrypt_sign") {
             prepareEncryptParameters(currData);
-            chrome.runtime.sendMessage({command: SOCKET_REQUEST_TYPES.GET_PUBLIC_KEYS, data: currData});
+            _sendBackgroundRequest(SOCKET_REQUEST_TYPES.GET_PUBLIC_KEYS, currData);
         } else if (event.data.hasOwnProperty('type') && event.data.type == "decryptMessage") {
             prepareEncryptParameters(currData);
-            chrome.runtime.sendMessage({command: SOCKET_REQUEST_TYPES.GET_PASS_PHRASE, data: currData});
-        } else if (event.data.hasOwnProperty('type') && event.data.type == 'cancel_probe') {
-            chrome.runtime.sendMessage({command: event.data.type, data: currData});
+            _sendBackgroundRequest(SOCKET_REQUEST_TYPES.GET_PASS_PHRASE, currData);
+        } else if (event.data.hasOwnProperty('type') && event.data.type == SOCKET_REQUEST_TYPES.CANCEL_PROBE) {
+            _sendBackgroundRequest(SOCKET_REQUEST_TYPES.CANCEL_PROBE, currData);
+        } else if (event.data.hasOwnProperty('type') && event.data.type == SOCKET_REQUEST_TYPES.PERSIST_GMAIL_USER) {
+            _sendBackgroundRequest(SOCKET_REQUEST_TYPES.PERSIST_GMAIL_USER, currData);
         }
     } catch (error) {
         log(LOG_LEVEL.ERROR, error.message);
@@ -74,7 +76,10 @@ chrome.extension.onRequest.addListener(
                 callback = decryptMessage;
             }
             _importKeys(data, callback);
-        } else if ([REQUEST_COMMANDS.SHOW_TIMER, REQUEST_COMMANDS.ERROR].indexOf(request.command) != -1) {
+        } else if(request.command == REQUEST_COMMANDS.EXPORT_KEY){
+            _exportKey(request.data.pass_phrase_data);
+        }
+        else if ([REQUEST_COMMANDS.SHOW_TIMER, REQUEST_COMMANDS.ERROR].indexOf(request.command) != -1) {
             sendResponse(data);
         }
     }
@@ -312,9 +317,31 @@ function _importKeys(data, callback) {
         }
     } catch (error) {
         log(LOG_LEVEL.SEVERE, 'Unable to setup KeyRing: ' + error.message);
-        log(LOG_LEVEL.DEBUG, error);
+        log(LOG_LEVEL.SEVERE, error);
         sendResponse({error: ERROR_MESSAGES.KEYRING_IMPORT_ERROR});
     }
+}
+
+function _exportKey(pass_phrase_data){
+    var passPhrase = pass_phrase_data.pass_phrase;
+    var currentAcc = pass_phrase_data.current_acc;
+    log(LOG_LEVEL.DEBUG, 'Exporting key for account - ' + currentAcc);
+    try{
+        pgpContext.setKeyRingPassphrase(passPhrase, currentAcc);
+        _clearPublicKeys();
+        var exportedKey = pgpContext.exportKeyring(true);
+        exportedKey = exportedKey.result_;
+        log(LOG_LEVEL.DEBUG, exportedKey);
+        _sendBackgroundRequest(REQUEST_COMMANDS.EXPORT_KEY, {exported_key: exportedKey});
+    }catch (error){
+        log(LOG_LEVEL.SEVERE, 'Unable to export key for user - ' + currentAcc);
+        log(LOG_LEVEL.SEVERE, error);
+        _sendBackgroundRequest(REQUEST_COMMANDS.EXPORT_KEY, {error: ERROR_MESSAGES.KEYRING_EXPORT_ERROR});
+    }
+}
+
+function _sendBackgroundRequest(command, message){
+    chrome.runtime.sendMessage({command: command, data: message});
 }
 
 /**

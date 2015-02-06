@@ -22,6 +22,7 @@ var gmail,
  */
 function setupDefaults() {
     gmail = Gmail($);
+    sendContentMessage('persist_gmail_user', {current_gmail_user: '<' + gmail.get.user_email() + '>'});
     encryptedFiles = {};
     confirmOn = confirm;
     confirmOff = function () {
@@ -94,18 +95,15 @@ var initializeGmailJSEvents = function () {
                         showPopup.fadeIn(200, function () {
                             var dataURL = reader.result;
                             var recipients_arr = compose.to().concat(compose.cc()).concat(compose.bcc());
-                            window.postMessage({
-                                "type": "encrypt_sign",
-                                "data": {
-                                    action: "encrypt_only",
-                                    content: dataURL,
-                                    currentUser: gmail.get.user_email(),
-                                    recipients: recipients_arr,
-                                    composeId: compose.id(),
-                                    encryptObject: 'file',
-                                    fileName: fileName
-                                }
-                            }, '*');
+                            sendContentMessage("encrypt_sign", {
+                                action: "encrypt_only",
+                                content: dataURL,
+                                currentUser: gmail.get.user_email(),
+                                recipients: recipients_arr,
+                                composeId: compose.id(),
+                                encryptObject: 'file',
+                                fileName: fileName
+                            });
                         });
                     };
                 })(compose, fileName);
@@ -161,7 +159,7 @@ var initializeGmailJSEvents = function () {
 
 /**
  * Hides gmail error messages and shows given message inside gmail info box.
- * @param {string=} message to show.
+ * @param {string} message to show.
  */
 function hideBodyErrorsShowMessage(message) {
     setTimeout(function () {
@@ -261,15 +259,12 @@ function sendDecryptMessage(emailBodyAttr, emailBody) {
     emailBodyText = $.trim(emailBodyText.replace(/<br>/g, '\n'));
     $(emailBody).html(emailBodyText);
     emailBodyText = $(emailBody).text();
-    window.postMessage({
-        "type": "decryptMessage",
-        "data": {
-            action: "decrypt_verify",
-            content: emailBodyText,
-            biomio_attr: bioMioAttr,
-            currentUser: gmail.get.user_email()
-        }
-    }, '*');
+    sendContentMessage("decryptMessage", {
+        action: "decrypt_verify",
+        content: emailBodyText,
+        biomio_attr: bioMioAttr,
+        currentUser: gmail.get.user_email()
+    });
 }
 
 /**
@@ -286,17 +281,14 @@ function sendMessageClicked(event) {
             showHideInfoPopup(ENCRYPT_WAIT_MESSAGE);
             var recipients_arr = compose.to().concat(compose.cc()).concat(compose.bcc());
             $('#biomio-attachments-' + compose.id()).remove();
-            window.postMessage({
-                "type": "encrypt_sign",
-                "data": {
-                    action: "encrypt_only",
-                    content: compose.body(),
-                    currentUser: gmail.get.user_email(),
-                    recipients: recipients_arr,
-                    composeId: compose.id(),
-                    encryptObject: 'text'
-                }
-            }, '*');
+            sendContentMessage("encrypt_sign", {
+                action: "encrypt_only",
+                content: compose.body(),
+                currentUser: gmail.get.user_email(),
+                recipients: recipients_arr,
+                composeId: compose.id(),
+                encryptObject: 'text'
+            });
         } else if (!isConfirmed && encryptionRequired) {
             showConfirmationPopup("You are about to encrypt your content, do you want to proceed?", currComposeID, '#' + $(event.currentTarget).attr('id'));
         } else {
@@ -379,7 +371,7 @@ function encryptRequired(compose) {
 
 /**
  * Returns Opened compose window by given compose ID.
- * @param {string=} composeId of the required compose window.
+ * @param {string} composeId of the required compose window.
  * @returns {gmail.dom.compose} or {null} if not found.
  */
 function getComposeByID(composeId) {
@@ -469,9 +461,9 @@ window.addEventListener("message", function (event) {
 
 /**
  * Generates/Updates decrypted attachments list.
- * @param {jQuery.elem=} emailBody of the current email
- * @param {string=} emailBodyContent html of the current email.
- * @param {Object=} fileObject with attached file data.
+ * @param {jQuery.elem} emailBody of the current email
+ * @param {string} emailBodyContent html of the current email.
+ * @param {Object} fileObject with attached file data.
  */
 function updateDecryptedAttachmentsList(emailBody, emailBodyContent, fileObject) {
     var linkId = fileObject.fileName.split(/\s|\./).join('-');
@@ -481,17 +473,18 @@ function updateDecryptedAttachmentsList(emailBody, emailBodyContent, fileObject)
 
 /**
  * Generates/Updates encrypted attachments list.
- * @param {gmail.dom.compose=} compose object of the current compose window.
- * @param {string=} fileName of the attached encrypted file.
+ * @param {gmail.dom.compose} compose object of the current compose window.
+ * @param {string} fileName of the attached encrypted file.
  */
 function updateEncryptedAttachmentsList(compose, fileName) {
     var attachmentListId = 'biomio-attachments-' + compose.id();
-    var attachmentList = $('#' + attachmentListId);
+    var attachmentListIdSelector = '#' + attachmentListId;
+    var attachmentList = $(attachmentListIdSelector);
     if (!attachmentList.length) {
         var attachmentsListEl = '<br><br><div id="' + attachmentListId + '"><p>Attached and encrypted files:</p><ul></ul></div>';
         compose.body(compose.body() + attachmentsListEl);
     }
-    attachmentList = $('#' + attachmentListId);
+    attachmentList = $(attachmentListIdSelector);
     var fileNameId = fileName.split(/\s|\.|\(|\)/).join('-');
     if (!attachmentList.find('#' + fileNameId).length) {
         $(attachmentList.find('ul')).append('<li id="' + fileNameId + '">' + fileName + '</li>');
@@ -501,7 +494,7 @@ function updateEncryptedAttachmentsList(compose, fileName) {
 
 /**
  * Sends the email by clicking 'Send' button.
- * @param {gmail.dom.compose=} compose object of the current compose window.
+ * @param {gmail.dom.compose} compose object of the current compose window.
  */
 function triggerSendButton(compose) {
     compose.find('.T-I.J-J5-Ji[role="button"]').trigger('click');
@@ -532,8 +525,8 @@ function calculateTime() {
 
 /**
  * Sends window message to content script.
- * @param {String=} type of the message
- * @param {Object=} message data object.
+ * @param {string} type of the message
+ * @param {Object} message data object.
  */
 function sendContentMessage(type, message) {
     window.postMessage({type: type, data: message}, '*');

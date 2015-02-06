@@ -2,6 +2,8 @@ var ERROR_MESSAGES = {
 
     KEYRING_IMPORT_ERROR: "Sorry, but we were not able to access your KeyRing.",
 
+    KEYRING_EXPORT_ERROR: "Sorry, but we were not able to export your KeyRing",
+
     DECRYPTION_UNKNOWN_ERROR: "Sorry, but we were not able to decrypt your data. Please, " +
     "try to close this tab and open Gmail in new tab.",
     DECRYPTION_DENIED_ERROR: "Sorry, but it looks like that you are not allowed to decrypt this content.",
@@ -35,10 +37,13 @@ var REQUEST_COMMANDS = {
 
     ERROR: 'error',
     COMMON_RESPONSE: 'socket_response',
-    SHOW_TIMER: 'showTimer'
+    SHOW_TIMER: 'showTimer',
+    EXPORT_KEY: 'exportKey'
 };
 
 var SOCKET_REQUEST_TYPES = {
     GET_PASS_PHRASE: 'get_pass_phrase',
-    GET_PUBLIC_KEYS: 'get_public_keys'
+    GET_PUBLIC_KEYS: 'get_public_keys',
+    PERSIST_GMAIL_USER: 'persist_gmail_user',
+    CANCEL_PROBE: 'cancel_probe'
 };
