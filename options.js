@@ -25,19 +25,19 @@ $(document).ready(function () {
         });
         $('#biomio_export_button').on('click', function (e) {
             e.preventDefault();
-            if(current_gmail_user){
+            if (current_gmail_user) {
                 $('#actions_panel').hide();
                 var showPopup = $('#biomio_show_popup');
                 showPopup.show();
                 showPopup.find('.biomio_wait_message').html('Please provide a probe for BioMio service authentication.');
                 calculateTime();
-                chrome.extension.sendRequest({export_key: current_gmail_user}, function(data){
+                chrome.extension.sendRequest({export_key: current_gmail_user}, function (data) {
                     console.log(data);
                     clearInterval(showTimer);
-                    if(data.hasOwnProperty('error')){
+                    if (data.hasOwnProperty('error')) {
                         showPopup.find('.biomio_wait_message').html(data.error);
                         $('#biomio_ok_button').show();
-                    }else{
+                    } else {
                         showPopup.hide();
                         $('#biomio_ok_button').hide();
                         $('#actions_panel').show();
@@ -51,7 +51,7 @@ $(document).ready(function () {
                 });
             }
         });
-        $('#biomio_ok_button').on('click', function(){
+        $('#biomio_ok_button').on('click', function () {
             $('#biomio_show_popup').hide();
             $('#biomio_ok_button').hide();
             $('#actions_panel').show();
@@ -64,21 +64,21 @@ $(document).ready(function () {
         if (current_gmail_user) {
             $('#current_gmail_user').text(current_gmail_user + NOT_YOU_MESSAGE);
             exportButton.removeAttr('disabled');
-        }else{
+        } else {
             exportButton.attr('disabled', true);
             $('#current_gmail_user').text(NO_ACCOUNT_MESSAGE);
         }
     });
 
     chrome.storage.onChanged.addListener(function (changes, areaName) {
-        if(areaName == 'local' && changes.hasOwnProperty('current_gmail_user')
-            && changes['current_gmail_user'].hasOwnProperty('newValue')){
+        if (areaName == 'local' && changes.hasOwnProperty('current_gmail_user')
+            && changes['current_gmail_user'].hasOwnProperty('newValue')) {
             var exportButton = $('#biomio_export_button');
-            if(changes['current_gmail_user']['newValue'] == ''){
+            if (changes['current_gmail_user']['newValue'] == '') {
                 current_gmail_user = undefined;
                 exportButton.attr('disabled', true);
                 $('#current_gmail_user').text(NO_ACCOUNT_MESSAGE);
-            }else{
+            } else {
                 exportButton.removeAttr('disabled');
                 current_gmail_user = changes['current_gmail_user']['newValue'];
                 $('#current_gmail_user').text(current_gmail_user + NOT_YOU_MESSAGE);
@@ -88,8 +88,8 @@ $(document).ready(function () {
 });
 
 /**
-* Shows timer for user. Time that user has to provide a probe from his device.
-*/
+ * Shows timer for user. Time that user has to provide a probe from his device.
+ */
 function calculateTime() {
     var timer = TIME_TO_WAIT_PROBE;
     var biomio_timer = $('#biomio_timer');
@@ -108,7 +108,12 @@ function calculateTime() {
     }, 1000);
 }
 
-function generateKeyFile(content){
+/**
+ * Generates file data url with given string content.
+ * @param {string}content
+ * @returns {string}
+ */
+function generateKeyFile(content) {
     var blob = new Blob(
         [content], {type: 'application/pgp-keys; format=text;'});
     return URL.createObjectURL(blob);

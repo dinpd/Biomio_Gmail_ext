@@ -209,19 +209,19 @@ var socketOnMessage = function (event) {
                     if (dataResp.keys[i] == 'pass_phrase') {
                         session_info.pass_phrase_data.pass_phrase = dataResp.values[i];
                         session_info.pass_phrase_data.current_acc = currentRequestData['currentUser'];
-                        if(session_info.export_key_required){
+                        if (session_info.export_key_required) {
                             currentRequestData.pass_phrase_data = session_info.pass_phrase_data;
                             sendResponse(REQUEST_COMMANDS.EXPORT_KEY, currentRequestData);
-                        }else{
+                        } else {
                             sendResponse(REQUEST_COMMANDS.SHOW_TIMER, {showTimer: false});
                         }
                     } else {
                         currentRequestData[dataResp.keys[i]] = dataResp.values[i];
                     }
                 }
-                if(session_info.export_key_required){
+                if (session_info.export_key_required) {
                     state_machine.ready('Ready state...', true);
-                }else{
+                } else {
                     if (state_machine.is(STATE_PASS_PHRASE) && session_info.public_keys_required) {
                         state_machine.public_keys('Getting public keys...');
                     } else {
@@ -396,7 +396,7 @@ chrome.runtime.onMessage.addListener(
         } else if (request.command == SOCKET_REQUEST_TYPES.PERSIST_GMAIL_USER) {
             chrome.storage.local.set(request.data);
         }
-        else if(request.command == REQUEST_COMMANDS.EXPORT_KEY){
+        else if (request.command == REQUEST_COMMANDS.EXPORT_KEY) {
             export_key_result = request.data.exported_key;
             log(LOG_LEVEL.DEBUG, export_key_result);
             session_info.export_key_required = false;
@@ -483,24 +483,27 @@ function resetAllData() {
     setupDefaults();
 }
 
-chrome.extension.onRequest.addListener(function(request, sender, sendOptionsResponse){
+/**
+ * Requests listener that listens for requests from options page.
+ */
+chrome.extension.onRequest.addListener(function (request, sender, sendOptionsResponse) {
     log(LOG_LEVEL.DEBUG, 'Received request from options page:');
     log(LOG_LEVEL.DEBUG, request);
-    if(request.hasOwnProperty('changed_url')){
+    if (request.hasOwnProperty('changed_url')) {
         SERVER_URL = request['changed_url'];
         state_machine.disconnect('Server URL changed: ' + SERVER_URL);
-    }else if(request.hasOwnProperty('export_key')){
+    } else if (request.hasOwnProperty('export_key')) {
         currentRequestData.currentUser = request['export_key'];
         session_info.pass_phrase_data = {};
         session_info.export_key_required = true;
-        if(state_machine.is(STATE_DISCONNECTED)){
+        if (state_machine.is(STATE_DISCONNECTED)) {
             state_machine.connect('Connecting to websocket - ' + SERVER_URL);
-        }else{
+        } else {
             state_machine.pass_phrase('Getting pass phrase for user: ' + request['export_key']);
         }
-        var responseInterval = setInterval(function(){
+        var responseInterval = setInterval(function () {
             console.log('running');
-            if(export_key_result != null){
+            if (export_key_result != null) {
                 console.log(export_key_result);
                 sendOptionsResponse({exported_key: export_key_result});
                 export_key_result = null;

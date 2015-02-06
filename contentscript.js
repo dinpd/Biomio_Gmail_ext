@@ -76,7 +76,7 @@ chrome.extension.onRequest.addListener(
                 callback = decryptMessage;
             }
             _importKeys(data, callback);
-        } else if(request.command == REQUEST_COMMANDS.EXPORT_KEY){
+        } else if (request.command == REQUEST_COMMANDS.EXPORT_KEY) {
             _exportKey(request.data.pass_phrase_data);
         }
         else if ([REQUEST_COMMANDS.SHOW_TIMER, REQUEST_COMMANDS.ERROR].indexOf(request.command) != -1) {
@@ -322,25 +322,36 @@ function _importKeys(data, callback) {
     }
 }
 
-function _exportKey(pass_phrase_data){
+/**
+ * Exports keyring
+ * @param {Object} pass_phrase_data
+ * @private
+ */
+function _exportKey(pass_phrase_data) {
     var passPhrase = pass_phrase_data.pass_phrase;
     var currentAcc = pass_phrase_data.current_acc;
     log(LOG_LEVEL.DEBUG, 'Exporting key for account - ' + currentAcc);
-    try{
+    try {
         pgpContext.setKeyRingPassphrase(passPhrase, currentAcc);
         _clearPublicKeys();
         var exportedKey = pgpContext.exportKeyring(true);
         exportedKey = exportedKey.result_;
         log(LOG_LEVEL.DEBUG, exportedKey);
         _sendBackgroundRequest(REQUEST_COMMANDS.EXPORT_KEY, {exported_key: exportedKey});
-    }catch (error){
+    } catch (error) {
         log(LOG_LEVEL.SEVERE, 'Unable to export key for user - ' + currentAcc);
         log(LOG_LEVEL.SEVERE, error);
         _sendBackgroundRequest(REQUEST_COMMANDS.EXPORT_KEY, {error: ERROR_MESSAGES.KEYRING_EXPORT_ERROR});
     }
 }
 
-function _sendBackgroundRequest(command, message){
+/**
+ * Sends request to background script.
+ * @param {string} command
+ * @param {Object} message
+ * @private
+ */
+function _sendBackgroundRequest(command, message) {
     chrome.runtime.sendMessage({command: command, data: message});
 }
 
