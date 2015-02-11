@@ -200,10 +200,17 @@ var socketOnMessage = function (event) {
             refresh_token();
         } else if (data.msg.oid == 'rpcResp') {
             var dataResp = data.msg.data;
-            if (dataResp.keys.indexOf('error') > -1) {
+            var rspStatus = data.msg['rpcStatus'];
+            if (dataResp.keys.indexOf('error') != -1) {
                 log(LOG_LEVEL.ERROR, 'Error received from rpc method: ' + dataResp.values[0]);
                 currentRequestData['error'] = ERROR_MESSAGES.SERVER_RPC_ERROR + dataResp.values[0];
                 sendResponse(REQUEST_COMMANDS.ERROR, currentRequestData);
+            } else if (rspStatus == "inprogress" && dataResp.keys.indexOf('timeout') != -1) {
+                sendResponse(REQUEST_COMMANDS.SHOW_TIMER, {
+                    showTimer: true,
+                    msg: dataResp.values[0],
+                    timeout: dataResp.values[1]
+                });
             } else {
                 for (var i = 0; i < dataResp.keys.length; i++) {
                     if (dataResp.keys[i] == 'pass_phrase') {
@@ -406,22 +413,24 @@ chrome.runtime.onMessage.addListener(
             if (session_info.pass_phrase_data.pass_phrase == ''
                 || currentRequestData['currentUser'] != session_info.pass_phrase_data.current_acc) {
                 session_info.pass_phrase_data.current_acc = '';
-                sendResponse(REQUEST_COMMANDS.SHOW_TIMER, {
-                    showTimer: true,
-                    message: NOTIFICATION_MESSAGES.PROBE_WAIT_MESSAGE
-                });
+                if(state_machine.is(STATE_PASS_PHRASE)){
+                    state_machine.ready('Ready state...', true);
+                }
             }
             if (request.command == SOCKET_REQUEST_TYPES.GET_PUBLIC_KEYS) {
                 session_info.public_keys_required = true;
                 if (state_machine.is(STATE_DISCONNECTED)) {
                     state_machine.connect('Connecting to websocket - ' + SERVER_URL);
                 } else {
-                    state_machine.public_keys('Getting public keys...');
+                    if (session_info.pass_phrase_data.current_acc == '') {
+                        state_machine.pass_phrase('Getting pass phrase');
+                    } else {
+                        state_machine.public_keys('Getting public keys...');
+                    }
                 }
             } else if (request.command == SOCKET_REQUEST_TYPES.GET_PASS_PHRASE) {
                 session_info.public_keys_required = false;
-                if (session_info.pass_phrase_data.pass_phrase != ''
-                    && currentRequestData['currentUser'] == session_info.pass_phrase_data.current_acc) {
+                if (session_info.pass_phrase_data.current_acc != '') {
                     currentRequestData['pass_phrase_data'] = session_info.pass_phrase_data;
                     sendResponse(REQUEST_COMMANDS.COMMON_RESPONSE, currentRequestData);
                 } else if (state_machine.is(STATE_DISCONNECTED)) {

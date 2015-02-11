@@ -13,7 +13,6 @@ var gmail,
     EMAIL_PARTS_SEPARATOR,
     ENCRYPT_WAIT_MESSAGE,
     ENCRYPT_SUCCESS_MESSAGE,
-    TIME_TO_WAIT_PROBE, //seconds
     CANCEL_PROBE_MESSAGE_TYPE,
     PROBE_ERROR_MESSAGE;
 
@@ -40,7 +39,6 @@ function setupDefaults() {
     DECRYPT_SUCCESS_MESSAGE = 'Message successfully decrypted';
     NO_MESSAGE = '[NO_MESSAGE]';
     EMAIL_PARTS_SEPARATOR = '#-#-#';
-    TIME_TO_WAIT_PROBE = 300;
     CANCEL_PROBE_MESSAGE_TYPE = 'cancel_probe';
     PROBE_ERROR_MESSAGE = "Your message wasn't encrypted because we were not able to identify you in time.";
 
@@ -400,8 +398,8 @@ window.addEventListener("message", function (event) {
         biomioOkButton.show();
     } else if (data.hasOwnProperty('showTimer')) {
         if (data['showTimer']) {
-            showHideInfoPopup(data['message']);
-            calculateTime();
+            showHideInfoPopup(data['msg']);
+            calculateTime(data['timeout']);
         } else {
             clearInterval(showTimer);
             showHideInfoPopup(ENCRYPT_WAIT_MESSAGE);
@@ -503,13 +501,12 @@ function triggerSendButton(compose) {
 /**
  * Shows timer for user. Time that user has to provide a probe from his device.
  */
-function calculateTime() {
-    var timer = TIME_TO_WAIT_PROBE;
+function calculateTime(timeout) {
     var biomio_timer = $('#biomio_timer');
     biomio_timer.show();
     showTimer = setInterval(function () {
-        timer--;
-        if (timer <= 0) {
+        timeout--;
+        if (timeout <= 0) {
             sendContentMessage(CANCEL_PROBE_MESSAGE_TYPE, {});
             biomio_timer.text('');
             showHideInfoPopup(PROBE_ERROR_MESSAGE);
@@ -517,8 +514,8 @@ function calculateTime() {
             biomio_timer.show();
             clearInterval(showTimer);
         }
-        var minutes = Math.floor((timer %= 3600) / 60);
-        var seconds = timer % 60;
+        var minutes = Math.floor((timeout %= 3600) / 60);
+        var seconds = timeout % 60;
         biomio_timer.text((minutes < 10 ? '0' + minutes : minutes) + ' : ' + (seconds < 10 ? '0' + seconds : seconds));
     }, 1000);
 }
