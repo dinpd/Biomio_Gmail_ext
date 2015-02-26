@@ -2,6 +2,7 @@ var PROTO_VERSION = "1.0";
 var APP_ID = '';
 var OS_ID = 'os id';
 var ID = 'id';
+var ON_BEHALF_OF = 'id';
 var HEADER_OID = 'clientHeader';
 var DEV_ID = 'extension';
 var SOCKET_CONNECTION_TIMEOUT = 10000;
@@ -130,6 +131,7 @@ function setupDefaults() {
     RPC_REQUEST = {
         msg: {
             oid: 'rpcReq',
+            onBehalfOf: ON_BEHALF_OF,
             namespace: RPC_NAMESPACE,
             call: 'STRING_METHOD_NAME',
             data: {
