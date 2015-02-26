@@ -21,7 +21,7 @@ var gmail,
  */
 function setupDefaults() {
     gmail = Gmail($);
-    sendContentMessage('persist_gmail_user', {current_gmail_user: '<' + gmail.get.user_email() + '>'});
+    sendContentMessage('persist_gmail_user', {current_gmail_user_biomio: '<' + gmail.get.user_email() + '>'});
     encryptedFiles = {};
     confirmOn = confirm;
     confirmOff = function () {
@@ -526,7 +526,8 @@ function calculateTime(timeout) {
  * @param {Object} message data object.
  */
 function sendContentMessage(type, message) {
-    window.postMessage({type: type, data: message}, '*');
+    var typePrefix = 'BIOMIO_';
+    window.postMessage({type: typePrefix + type, data: message}, '*');
 }
 
 /**

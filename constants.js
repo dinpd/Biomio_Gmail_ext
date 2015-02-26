@@ -22,7 +22,7 @@ var ERROR_MESSAGES = {
 
 var NOTIFICATION_MESSAGES = {
 
-    ENCRYPTION_FILES_SUCCESSFUL: "YOur files were successfully encrypted.",
+    ENCRYPTION_FILES_SUCCESSFUL: "Your files were successfully encrypted.",
     ENCRYPTION_SUCCESSFUL: "Your data was successfully encrypted.",
     DECRYPTION_SUCCESSFUL: "Your data was successfully decrypted.",
 
@@ -33,17 +33,24 @@ var NOTIFICATION_MESSAGES = {
     NOT_VALID_ENCRYPTION_DATA: "Data provided for encryption is not valid."
 };
 
+var TYPE_PREFIX = 'BIOMIO_';
+
 var REQUEST_COMMANDS = {
 
-    ERROR: 'error',
-    COMMON_RESPONSE: 'socket_response',
-    SHOW_TIMER: 'showTimer',
-    EXPORT_KEY: 'exportKey'
+    ERROR: TYPE_PREFIX + 'error',
+    COMMON_RESPONSE: TYPE_PREFIX + 'socket_response',
+    SHOW_TIMER: TYPE_PREFIX + 'showTimer',
+    EXPORT_KEY: TYPE_PREFIX + 'exportKey'
 };
 
 var SOCKET_REQUEST_TYPES = {
-    GET_PASS_PHRASE: 'get_pass_phrase',
-    GET_PUBLIC_KEYS: 'get_public_keys',
-    PERSIST_GMAIL_USER: 'persist_gmail_user',
-    CANCEL_PROBE: 'cancel_probe'
+    GET_PASS_PHRASE: TYPE_PREFIX + 'get_pass_phrase',
+    GET_PUBLIC_KEYS: TYPE_PREFIX + 'get_public_keys',
+    PERSIST_GMAIL_USER: TYPE_PREFIX + 'persist_gmail_user',
+    CANCEL_PROBE: TYPE_PREFIX + 'cancel_probe'
+};
+
+var WINDOW_REQUESTS = {
+    ENCRYPT: TYPE_PREFIX + 'encrypt_sign',
+    DECRYPT: TYPE_PREFIX + 'decryptMessage'
 };

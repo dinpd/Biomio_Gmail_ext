@@ -7,10 +7,10 @@ var showTimer;
 var current_gmail_user;
 var TIME_TO_WAIT_PROBE = 300;
 $(document).ready(function () {
-    chrome.storage.local.get('settings', function (data) {
-        var settings = data['settings'];
+    chrome.storage.local.get('biomio_settings', function (data) {
+        var settings = data['biomio_settings'];
         if (!settings) {
-            chrome.storage.local.set({settings: defaultSettings});
+            chrome.storage.local.set({biomio_settings: defaultSettings});
             settings = defaultSettings;
         }
         var biomioServerUrl = $('#biomio_server_url');
@@ -19,7 +19,7 @@ $(document).ready(function () {
             e.preventDefault();
             if (biomioServerUrl.val() != '' && biomioServerUrl != settings['server_url']) {
                 settings['server_url'] = biomioServerUrl.val();
-                chrome.storage.local.set({settings: settings});
+                chrome.storage.local.set({biomio_settings: settings});
                 chrome.extension.sendRequest({changed_url: settings['server_url']});
             }
         });
@@ -58,8 +58,8 @@ $(document).ready(function () {
         });
     });
 
-    chrome.storage.local.get('current_gmail_user', function (data) {
-        current_gmail_user = data['current_gmail_user'];
+    chrome.storage.local.get('current_gmail_user_biomio', function (data) {
+        current_gmail_user = data['current_gmail_user_biomio'];
         var exportButton = $('#biomio_export_button');
         if (current_gmail_user) {
             $('#current_gmail_user').text(current_gmail_user + NOT_YOU_MESSAGE);
@@ -71,16 +71,16 @@ $(document).ready(function () {
     });
 
     chrome.storage.onChanged.addListener(function (changes, areaName) {
-        if (areaName == 'local' && changes.hasOwnProperty('current_gmail_user')
-            && changes['current_gmail_user'].hasOwnProperty('newValue')) {
+        if (areaName == 'local' && changes.hasOwnProperty('current_gmail_user_biomio')
+            && changes['current_gmail_user_biomio'].hasOwnProperty('newValue')) {
             var exportButton = $('#biomio_export_button');
-            if (changes['current_gmail_user']['newValue'] == '') {
+            if (changes['current_gmail_user_biomio']['newValue'] == '') {
                 current_gmail_user = undefined;
                 exportButton.attr('disabled', true);
                 $('#current_gmail_user').text(NO_ACCOUNT_MESSAGE);
             } else {
                 exportButton.removeAttr('disabled');
-                current_gmail_user = changes['current_gmail_user']['newValue'];
+                current_gmail_user = changes['current_gmail_user_biomio']['newValue'];
                 $('#current_gmail_user').text(current_gmail_user + NOT_YOU_MESSAGE);
             }
         }

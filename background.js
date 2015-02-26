@@ -50,8 +50,8 @@ chrome.storage.local.get(APP_ID_STORAGE_KEY, function (data) {
     }
     log(LOG_LEVEL.DEBUG, appId);
     setAppID(appId);
-    chrome.storage.local.get('settings', function (data) {
-        var settings = data['settings'];
+    chrome.storage.local.get('biomio_settings', function (data) {
+        var settings = data['biomio_settings'];
         if (settings) {
             SERVER_URL = settings['server_url'];
         } else {
@@ -179,6 +179,16 @@ var socketOnMessage = function (event) {
     if (data.msg.oid == 'bye') {
         if (data.hasOwnProperty('status')) {
             log(LOG_LEVEL.DEBUG, data.status);
+        }
+        if (!state_machine.is(STATE_READY) && !state_machine.is(STATE_DISCONNECTED)) {
+            var errorResponse = {error: ''};
+
+            if (currentRequestData.hasOwnProperty('composeId')) {
+                errorResponse['composeId'] = currentRequestData.composeId;
+            }
+            errorResponse.error = 'Server closed connection with status: ' + data.status;
+            sendResponse(REQUEST_COMMANDS.ERROR, errorResponse);
+            resetAllData();
         }
         return;
     }
@@ -394,6 +404,13 @@ state_machine = StateMachine.create({
  */
 chrome.runtime.onMessage.addListener(
     function (request, sender) {
+        if (request.command == 'biomio_reset_server_connection') {
+            log(LOG_LEVEL.DEBUG, 'Received request from popup script:');
+            log(LOG_LEVEL.DEBUG, request);
+            state_machine.disconnect('Server connection reset.');
+            resetAllData();
+            return;
+        }
         log(LOG_LEVEL.DEBUG, 'Received request from content script:');
         log(LOG_LEVEL.DEBUG, request);
         session_info.tab_id = sender.tab.id;
@@ -413,7 +430,7 @@ chrome.runtime.onMessage.addListener(
             if (session_info.pass_phrase_data.pass_phrase == ''
                 || currentRequestData['currentUser'] != session_info.pass_phrase_data.current_acc) {
                 session_info.pass_phrase_data.current_acc = '';
-                if(state_machine.is(STATE_PASS_PHRASE)){
+                if (state_machine.is(STATE_PASS_PHRASE)) {
                     state_machine.ready('Ready state...', true);
                 }
             }
@@ -465,7 +482,7 @@ chrome.tabs.onRemoved.addListener(function (tabId) {
         if (!state_machine.is(STATE_DISCONNECTED)) {
             state_machine.disconnect();
         }
-        chrome.storage.local.set({current_gmail_user: ''});
+        chrome.storage.local.set({current_gmail_user_biomio: ''});
         resetAllData();
     }
 });

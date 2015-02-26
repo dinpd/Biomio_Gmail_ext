@@ -27,8 +27,8 @@ window.onload = function () {
         for (i = 0; i < gmail_scripts_urls.length; i++) {
             biomio_elems.append('<script src="' + gmail_scripts_urls[i] + '"></script>');
         }
+        log(LOG_LEVEL.DEBUG, 'Scripts were injected.');
     });
-    log(LOG_LEVEL.DEBUG, 'Scripts were injected.');
 };
 
 /**
@@ -37,10 +37,10 @@ window.onload = function () {
 window.addEventListener("message", function (event) {
     var currData = event.data.data;
     try {
-        if (event.data.hasOwnProperty('type') && event.data.type == "encrypt_sign") {
+        if (event.data.hasOwnProperty('type') && event.data.type == WINDOW_REQUESTS.ENCRYPT) {
             prepareEncryptParameters(currData);
             _sendBackgroundRequest(SOCKET_REQUEST_TYPES.GET_PUBLIC_KEYS, currData);
-        } else if (event.data.hasOwnProperty('type') && event.data.type == "decryptMessage") {
+        } else if (event.data.hasOwnProperty('type') && event.data.type == WINDOW_REQUESTS.DECRYPT) {
             prepareEncryptParameters(currData);
             _sendBackgroundRequest(SOCKET_REQUEST_TYPES.GET_PASS_PHRASE, currData);
         } else if (event.data.hasOwnProperty('type') && event.data.type == SOCKET_REQUEST_TYPES.CANCEL_PROBE) {
@@ -80,6 +80,9 @@ chrome.extension.onRequest.addListener(
             _exportKey(request.data.pass_phrase_data);
         }
         else if ([REQUEST_COMMANDS.SHOW_TIMER, REQUEST_COMMANDS.ERROR].indexOf(request.command) != -1) {
+            if(request.command == REQUEST_COMMANDS.ERROR){
+                log(LOG_LEVEL.ERROR, data);
+            }
             sendResponse(data);
         }
     }
@@ -296,6 +299,9 @@ function _importKeys(data, callback) {
     var current_acc = data.pass_phrase_data.current_acc;
     log(LOG_LEVEL.DEBUG, 'Current account: ' + current_acc);
     try {
+        if (data.hasOwnProperty('private_pgp_key')) {
+            _resetKeyRing(current_acc);
+        }
         pgpContext.setKeyRingPassphrase(pass_phrase, current_acc);
         if (data.hasOwnProperty('private_pgp_key')) {
             log(LOG_LEVEL.DEBUG, 'Importing PRIVATE PGP KEYS');
@@ -368,4 +374,13 @@ function _clearPublicKeys() {
         }
     }
     log(LOG_LEVEL.DEBUG, 'Deleted PUBLIC PGP KEYS from KeyRing');
+}
+
+/**
+ * Resets user's keyring, use with care cos it deletes all user's keys.
+ * @param currAcc
+ * @private
+ */
+function _resetKeyRing(currAcc){
+    pgpContext.resetKeyring(currAcc);
 }

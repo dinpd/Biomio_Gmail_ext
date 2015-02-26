@@ -36,7 +36,8 @@
   },
   "browser_action": {
     "default_title": "BioMio",
-    "default_icon": "images/smallLogo.png"
+    "default_icon": "images/smallLogo.png",
+    "default_popup": "popup.html"
   },
   "icons": {
     "16": "images/smallLogo.png",
