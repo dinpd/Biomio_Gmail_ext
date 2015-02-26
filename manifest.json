@@ -54,7 +54,7 @@
       "matches": ["*://mail.google.com/*"],
       "js": [
         "constants.js",
-        "jquery-1.11.1.js",
+        "jquery-1.11.2.min.js",
         "e2e_library/end-to-end.compiled.js",
         "logger.js",
         "contentscript.js"

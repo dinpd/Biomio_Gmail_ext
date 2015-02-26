@@ -2,7 +2,7 @@ var MAX_FILE_SIZE = 150000;
 var EMAIL_PARTS_SEPARATOR = '#-#-#';
 var FILE_PARTS_SEPARATOR = '#--#';
 var FILE_NAME_SEPARATOR = '##-##';
-var gmail_scripts = ['gmail.js', 'gmail_executor.js'];
+var gmail_scripts = ['jquery-1.11.2.min.js', 'gmail.js', 'gmail_executor.js'];
 var gmail_scripts_urls = [];
 var KEY_PREFIX = 'BioMio ';
 
@@ -24,6 +24,7 @@ window.onload = function () {
     $('body').append('<div id="biomio_elements"></div>');
     var biomio_elems = $('#biomio_elements');
     biomio_elems.load(chrome.extension.getURL('additional_html.html'), function () {
+        $('#biomio_show_loading').show();
         for (i = 0; i < gmail_scripts_urls.length; i++) {
             biomio_elems.append('<script src="' + gmail_scripts_urls[i] + '"></script>');
         }
@@ -80,7 +81,7 @@ chrome.extension.onRequest.addListener(
             _exportKey(request.data.pass_phrase_data);
         }
         else if ([REQUEST_COMMANDS.SHOW_TIMER, REQUEST_COMMANDS.ERROR].indexOf(request.command) != -1) {
-            if(request.command == REQUEST_COMMANDS.ERROR){
+            if (request.command == REQUEST_COMMANDS.ERROR) {
                 log(LOG_LEVEL.ERROR, data);
             }
             sendResponse(data);
@@ -381,6 +382,6 @@ function _clearPublicKeys() {
  * @param currAcc
  * @private
  */
-function _resetKeyRing(currAcc){
+function _resetKeyRing(currAcc) {
     pgpContext.resetKeyring(currAcc);
 }

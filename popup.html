@@ -2,12 +2,13 @@
 <html>
 <head>
     <title>BIOMIO Extension</title>
-    <script src="jquery-1.11.1.js"></script>
+    <script src="jquery-1.11.2.min.js"></script>
     <script src="popup.js"></script>
     <style>
         body {
             width: 550px;
         }
+
         #errors {
             text-overflow: ellipsis;
             overflow: hidden;
@@ -17,7 +18,9 @@
 </head>
 <body>
 <p id="current_user">Current Gmail user: </p>
+
 <p id="info_message"></p>
+
 <div id="errors">
     <p>5 last errors:</p>
     <ul id="last_errors">
@@ -26,6 +29,7 @@
 </div>
 <div id="buttons">
     <input type="button" value="Reset socket connection" id="reset_connection_button">
+    <input type="button" value="Reset app registration" id="reset_app_registration">
 </div>
 </body>
 </html>
