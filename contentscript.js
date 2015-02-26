@@ -50,11 +50,11 @@ window.addEventListener("message", function (event) {
             _sendBackgroundRequest(SOCKET_REQUEST_TYPES.PERSIST_GMAIL_USER, currData);
         }
     } catch (error) {
-        log(LOG_LEVEL.ERROR, error.message);
         if (error.message.indexOf('Error connecting to extension') != -1) {
             //page was loaded before extension, reload is required.
             window.location.reload();
         } else {
+            log(LOG_LEVEL.ERROR, error.message);
             sendResponse({error: error.message});
         }
     }
