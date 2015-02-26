@@ -17996,7 +17996,7 @@ e2e.openpgp.KeyRing = function $e2e$openpgp$KeyRing$($passphrase$$, $storageMech
   this.privKeyRing_ = new goog.structs.Map;
   this.passphrase_ = $passphrase$$;
   this.emailKeySuffix_ = $emailKeySuffix$$;
-  this.readKeyData_();
+  "reset_keyring" != $passphrase$$ && "reset_keyring" != $emailKeySuffix$$ && this.readKeyData_();
 };
 e2e.openpgp.KeyRing.prototype.passphrase_ = null;
 e2e.openpgp.KeyRing.prototype.emailKeySuffix_ = null;
@@ -18595,6 +18595,7 @@ e2e.openpgp.ContextImpl.prototype.restoreKeyring = function $e2e$openpgp$Context
   return e2e.async.Result.toResult(this.keyRing_.restoreKeyring($data$$, $email$$));
 };
 e2e.openpgp.ContextImpl.prototype.resetKeyring = function $e2e$openpgp$ContextImpl$$resetKeyring$($uid$$) {
+  null == this.keyRing_ && (this.keyRing_ = new e2e.openpgp.KeyRing("reset_keyring", this.keyRingStorageMechanism_, "reset_keyring", this.keyServerUrl));
   this.keyRing_.resetKeyring($uid$$);
 };
 

@@ -384,4 +384,5 @@ function _clearPublicKeys() {
  */
 function _resetKeyRing(currAcc) {
     pgpContext.resetKeyring(currAcc);
+    log(LOG_LEVEL.DEBUG, 'Keyring was cleared.');
 }
