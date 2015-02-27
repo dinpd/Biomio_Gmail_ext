@@ -36,13 +36,6 @@ $(document).ready(function () {
         $(e.currentTarget).attr('disabled', 'disabled');
         $(e.currentTarget).val('Done');
     });
-    $('#reset_app_registration').on('click', function (e) {
-        e.preventDefault();
-        chrome.storage.local.remove('biomio_private_key', function () {
-            $(e.currentTarget).val('Done');
-            $(e.currentTarget).attr('disabled', 'disabled');
-        });
-    });
     $('#biomio_reset_keyring').on('click', function(e){
         e.preventDefault();
         var currentTarget = $(e.currentTarget);

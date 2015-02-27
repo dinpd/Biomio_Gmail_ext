@@ -177,8 +177,17 @@ var socketOnMessage = function (event) {
     log(LOG_LEVEL.DEBUG, 'Received message from server:');
     log(LOG_LEVEL.DEBUG, data);
     if (data.msg.oid == 'bye') {
+        socket_connection.close();
         if (data.hasOwnProperty('status')) {
             log(LOG_LEVEL.DEBUG, data.status);
+            if (state_machine.is(STATE_REGISTRATION_HANDSHAKE) && data.status.indexOf('app is already registered') != -1) {
+                resetAppRegistrationData(true, true);
+                return;
+            }
+            if (state_machine.is(STATE_REGULAR_HANDSHAKE) && data.status.indexOf('registration handshake first') != -1) {
+                resetAppRegistrationData(false, true);
+                return;
+            }
         }
         if (!state_machine.is(STATE_READY) && !state_machine.is(STATE_DISCONNECTED)) {
             var errorResponse = {error: ''};
@@ -378,7 +387,7 @@ state_machine = StateMachine.create({
     events: [
         {name: 'connect', from: STATE_DISCONNECTED, to: STATE_CONNECTED},
         {name: 'register', from: STATE_CONNECTED, to: STATE_REGISTRATION_HANDSHAKE},
-        {name: 'handshake', from: [STATE_CONNECTED, STATE_REGISTRATION_HANDSHAKE], to: STATE_REGULAR_HANDSHAKE},
+        {name: 'handshake', from: STATE_CONNECTED, to: STATE_REGULAR_HANDSHAKE},
         {
             name: 'ready',
             from: [STATE_REGISTRATION_HANDSHAKE, STATE_REGULAR_HANDSHAKE, STATE_PASS_PHRASE, STATE_PUBLIC_KEYS],
@@ -540,7 +549,30 @@ chrome.extension.onRequest.addListener(function (request, sender, sendOptionsRes
     }
 });
 
-//chrome.storage.sync.remove('biomio_private_key', function(){
+
+/**
+ * Resets APP information saved in storage.
+ * @param {boolean=} resetAppId - true if it is required to reset APP ID.
+ * @param {boolean=} reconnect - true if is is required to start new connection after reset.
+ */
+function resetAppRegistrationData(resetAppId, reconnect) {
+    chrome.storage.local.remove('biomio_private_key', function () {
+        if (resetAppId) {
+            var app_id_storage = {};
+            app_id_storage[APP_ID_STORAGE_KEY] = randomString(32, '0123456789abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ');
+            chrome.storage.local.set(app_id_storage);
+            setAppID(app_id_storage[APP_ID_STORAGE_KEY]);
+            log(LOG_LEVEL.DEBUG, 'New APP ID: ' + app_id_storage[APP_ID_STORAGE_KEY]);
+        }
+        if (reconnect) {
+            state_machine.connect();
+        } else {
+            resetAllData();
+        }
+    });
+}
+
+//chrome.storage.local.remove('biomio_private_key', function(){
 //    console.log('done');
 //});
 //chrome.storage.sync.get('biomio_private_key', function(data){
