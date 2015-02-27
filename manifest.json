@@ -6,7 +6,8 @@
   "permissions": [
     "activeTab",
     "notifications",
-    "storage"
+    "storage",
+    "http://*/"
   ],
   "optional_permissions": [],
   "background": {
