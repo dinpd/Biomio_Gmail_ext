@@ -1,12 +1,11 @@
 var PROTO_VERSION = "1.0";
 var APP_ID = '';
 var OS_ID = 'os id';
-var ID = 'id';
-var ON_BEHALF_OF = 'id';
+var APP_TYPE = 'extension';
 var HEADER_OID = 'clientHeader';
-var DEV_ID = 'extension';
 var SOCKET_CONNECTION_TIMEOUT = 10000;
-var RPC_NAMESPACE = 'extension_test_plugin';
+var DEV_ID = 'extension';
+var RPC_NAMESPACE = 'extension_plugin';
 
 var RPC_GET_PASS_PHRASE_METHOD = 'get_pass_phrase';
 var RPC_GET_PUBLIC_KEY_METHOD = 'get_users_public_pgp_keys';
@@ -76,7 +75,7 @@ function getHeaderString(token) {
     var header = REQUEST_HEADER;
     header.token = token;
     header = '{"oid":"' + header.oid + '","seq":' + header.seq + ',"protoVer":"'
-    + header.protoVer + '","id":"' + header.id + '","appId":"' + header.appId
+    + header.protoVer + '","appType":"' + header.appType + '","appId":"' + header.appId
     + '","osId":"' + header.osId + '","devId":"' + header.devId + '","token":"' + header.token + '"}';
     return header;
 }
@@ -85,13 +84,15 @@ function getHeaderString(token) {
  * Generates RPC request with given data dictionary.
  * @param {string} token
  * @param {string} method - RPC method type (name).
+ * @param {string} onBehalfOf - current user email.
  * @param {Object} keyValueDict - RPC method input values
  * @returns {string}
  */
-function getRpcRequest(token, method, keyValueDict) {
+function getRpcRequest(token, method, onBehalfOf, keyValueDict) {
     var request = RPC_REQUEST;
     request.header.token = token;
     request.msg.call = method;
+    request.msg.onBehalfOf = onBehalfOf;
     request.msg.data = {
         keys: [],
         values: []
@@ -122,16 +123,16 @@ function setupDefaults() {
         protoVer: PROTO_VERSION,
         seq: 0,
         oid: HEADER_OID,
-        appId: APP_ID,
+        appType: APP_TYPE,
         osId: OS_ID,
-        id: ID,
+        appId: APP_ID,
         devId: DEV_ID
     };
 
     RPC_REQUEST = {
         msg: {
             oid: 'rpcReq',
-            onBehalfOf: ON_BEHALF_OF,
+            onBehalfOf: 'STRING_USER_EMAIL',
             namespace: RPC_NAMESPACE,
             call: 'STRING_METHOD_NAME',
             data: {

@@ -15,6 +15,23 @@ var SERVER_URL;
 
 var export_key_result = null;
 
+var TEST_APP_ID = '3a9d3f79ecc2c42b9114b4300a248777';
+var TEST_PRIVATE_RSA_KEY = '-----BEGIN RSA PRIVATE KEY-----\n' +
+    'MIICXQIBAAKBgQCrD2qbaFzrq5QNwpucqS3+zECbM5tBnG40GkYPPZvgykHeYmtd\n' +
+    'gkzZH3gJISd8eNfGR4yRMVoP5apuDKeJSnH4lwTFz3IJNFglD95VpleIk8ldRWx0\n' +
+    '8K2EpBi+WodZ5B9CBVpmeSGvrCeaxAICmrh9WcLL4HDeKR4r6M6mGB+SrwIDAQAB\n' +
+    'AoGBAKrQmzEStu8zB4XyFfgLTH3KMp2Im/mZnsZykhE4AUcoUTwjZXkb22dZMEFV\n' +
+    'lRuLhFRgMDLwaDHFsjlwc3/6EfF70eqRelVv1IyCbEwBZceiCFdL/ZRujP00xq35\n' +
+    'm0wiL655U52ZJDrwDIxW/ItwnTwCRcr+tNCA5vEfcQT7O53RAkEAz5qsggneeyMX\n' +
+    'gkWdlusAhuLvzsJeSPLLH4c0uHEB1lT4mPa4y3xrbLu1oV4X15w//REerYah8dbt\n' +
+    'VA1+csvp6QJBANLv4oQcIzBOVWW5bYOl9+K3IPOJk2vsk98gjNX26uWm4+eAUCfp\n' +
+    '2xXwVtxrhdlKn5bfAmZeHhqfY5PPq375INcCQBf2xcT4+KqEIXmTKZ67H8NyPLZE\n' +
+    'L3gCNro79DT6LnkcM9oMWMZ8ZTYW8N9gqiXkTmqa6EylhtoQsjKKoDcGHMkCQDLU\n' +
+    'zgBKC4zLg7bEzYhJCYhf2xf1EkqSszu0y1uQaiC3a/pQqIBF0Z7i0PvDCXlIi1a/\n' +
+    'HQPwME74E/X9uHUbsfcCQQCwkp2dGkN6+qOWZL9h5YbrfX5VctcQ8hTIwP/Yymzt\n' +
+    'tZ5VZ2XehrLoTY6DAi2lH4ToZDMkzwDBGsHzs057tH4O\n' +
+    '-----END RSA PRIVATE KEY-----';
+
 var session_info = {
     last_state: '',
     connection_retried: false,
@@ -52,7 +69,8 @@ chrome.storage.local.get(APP_ID_STORAGE_KEY, function (data) {
         log(LOG_LEVEL.DEBUG, 'APP_ID created');
     }
     log(LOG_LEVEL.DEBUG, appId);
-    setAppID(appId);
+    //setAppID(appId);
+    setAppID(TEST_APP_ID);
     chrome.storage.local.get('biomio_settings', function (data) {
         var settings = data['biomio_settings'];
         if (settings) {
@@ -93,11 +111,12 @@ var keepAlive = function () {
 /**
  * Sends RPC request.
  * @param {string} method RPC method type.
+ * @param {string} onBehalfOf current User email.
  * @param {Object} keyValueDict - rpc method input values.
  */
-function sendRpcRequest(method, keyValueDict) {
+function sendRpcRequest(method, onBehalfOf, keyValueDict) {
     if (state_machine.is(STATE_PASS_PHRASE) || state_machine.is(STATE_PUBLIC_KEYS)) {
-        socket_connection.send(getRpcRequest(session_info.token, method, keyValueDict));
+        socket_connection.send(getRpcRequest(session_info.token, method, onBehalfOf, keyValueDict));
     } else {
         log(LOG_LEVEL.WARNING, "Message cannot be sent, because state machine is currently in state: " + state_machine.current);
     }
@@ -143,16 +162,18 @@ var socketOnOpen = function () {
         log(LOG_LEVEL.DEBUG, 'State to restore: ' + session_info.last_state);
         socket_connection.send(getCustomRequest(NOP_REQUEST, session_info.refresh_token));
     }else{
-        chrome.storage.local.get(STORAGE_RSA_KEY, function (data) {
-            log(LOG_LEVEL.DEBUG, 'STORAGE_RSA_KEY:');
-            log(LOG_LEVEL.DEBUG, data);
-            if (STORAGE_RSA_KEY in data) {
-                session_info.rsa_private_key = data[STORAGE_RSA_KEY];
-                state_machine.handshake('WebSocket connection opened: Url - ' + socket_connection.url);
-            } else {
-                state_machine.register('WebSocket connection opened: Url - ' + socket_connection.url);
-            }
-        });
+        session_info.rsa_private_key = TEST_PRIVATE_RSA_KEY;
+        state_machine.handshake('WebSocket connection opened: Url - ' + socket_connection.url);
+        //chrome.storage.local.get(STORAGE_RSA_KEY, function (data) {
+        //    log(LOG_LEVEL.DEBUG, 'STORAGE_RSA_KEY:');
+        //    log(LOG_LEVEL.DEBUG, data);
+        //    if (STORAGE_RSA_KEY in data) {
+        //        session_info.rsa_private_key = data[STORAGE_RSA_KEY];
+        //        state_machine.handshake('WebSocket connection opened: Url - ' + socket_connection.url);
+        //    } else {
+        //        state_machine.register('WebSocket connection opened: Url - ' + socket_connection.url);
+        //    }
+        //});
     }
 };
 
@@ -379,7 +400,7 @@ var onDisconnect = function (event, from, to, msg) {
  */
 var onPassPhrase = function (event, from, to, msg) {
     log(LOG_LEVEL.DEBUG, msg);
-    sendRpcRequest(RPC_GET_PASS_PHRASE_METHOD, {'email': currentRequestData.currentUser});
+    sendRpcRequest(RPC_GET_PASS_PHRASE_METHOD, currentRequestData.currentUser, {'email': currentRequestData.currentUser});
 };
 
 /**
@@ -391,7 +412,8 @@ var onPassPhrase = function (event, from, to, msg) {
  */
 var onPublicKeys = function (event, from, to, msg) {
     log(LOG_LEVEL.DEBUG, msg);
-    sendRpcRequest(RPC_GET_PUBLIC_KEY_METHOD, {'emails': currentRequestData.recipients.join(',')});
+    sendRpcRequest(RPC_GET_PUBLIC_KEY_METHOD, currentRequestData.currentUser,
+        {'emails': currentRequestData.recipients.join(',')});
 };
 
 /**
@@ -576,7 +598,8 @@ function resetAppRegistrationData() {
         var app_id_storage = {};
         app_id_storage[APP_ID_STORAGE_KEY] = APP_ID_SUFFIX + randomString(32, '0123456789abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ');
         chrome.storage.local.set(app_id_storage);
-        setAppID(app_id_storage[APP_ID_STORAGE_KEY]);
+        //setAppID(app_id_storage[APP_ID_STORAGE_KEY]);
+        setAppID(TEST_APP_ID);
         log(LOG_LEVEL.DEBUG, 'New APP ID: ' + app_id_storage[APP_ID_STORAGE_KEY]);
         state_machine.connect();
     });
