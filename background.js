@@ -157,24 +157,25 @@ var socketOnError = function () {
  * Handles WebSocket open event
  */
 var socketOnOpen = function () {
-    if(session_info.last_state != ''){
-        log(LOG_LEVEL.DEBUG, 'Connection restore');
-        log(LOG_LEVEL.DEBUG, 'State to restore: ' + session_info.last_state);
-        socket_connection.send(getCustomRequest(NOP_REQUEST, session_info.refresh_token));
-    }else{
-        session_info.rsa_private_key = TEST_PRIVATE_RSA_KEY;
-        state_machine.handshake('WebSocket connection opened: Url - ' + socket_connection.url);
-        //chrome.storage.local.get(STORAGE_RSA_KEY, function (data) {
-        //    log(LOG_LEVEL.DEBUG, 'STORAGE_RSA_KEY:');
-        //    log(LOG_LEVEL.DEBUG, data);
-        //    if (STORAGE_RSA_KEY in data) {
-        //        session_info.rsa_private_key = data[STORAGE_RSA_KEY];
-        //        state_machine.handshake('WebSocket connection opened: Url - ' + socket_connection.url);
-        //    } else {
-        //        state_machine.register('WebSocket connection opened: Url - ' + socket_connection.url);
-        //    }
-        //});
-    }
+    session_info.rsa_private_key = TEST_PRIVATE_RSA_KEY;
+    state_machine.handshake('WebSocket connection opened: Url - ' + socket_connection.url);
+    //if(session_info.last_state != ''){
+    //    log(LOG_LEVEL.DEBUG, 'Connection restore');
+    //    log(LOG_LEVEL.DEBUG, 'State to restore: ' + session_info.last_state);
+    //    socket_connection.send(getCustomRequest(NOP_REQUEST, session_info.refresh_token));
+    //}else{
+    //
+    //    //chrome.storage.local.get(STORAGE_RSA_KEY, function (data) {
+    //    //    log(LOG_LEVEL.DEBUG, 'STORAGE_RSA_KEY:');
+    //    //    log(LOG_LEVEL.DEBUG, data);
+    //    //    if (STORAGE_RSA_KEY in data) {
+    //    //        session_info.rsa_private_key = data[STORAGE_RSA_KEY];
+    //    //        state_machine.handshake('WebSocket connection opened: Url - ' + socket_connection.url);
+    //    //    } else {
+    //    //        state_machine.register('WebSocket connection opened: Url - ' + socket_connection.url);
+    //    //    }
+    //    //});
+    //}
 };
 
 /**
@@ -218,6 +219,7 @@ var socketOnMessage = function (event) {
             log(LOG_LEVEL.DEBUG, data.status);
             if ((state_machine.is(STATE_REGISTRATION_HANDSHAKE) && data.status.indexOf('app is already registered') != -1)
                 || (state_machine.is(STATE_REGULAR_HANDSHAKE) && data.status.indexOf('registration handshake first') != -1)) {
+                resetAllData();
                 resetAppRegistrationData();
                 return;
             }
@@ -230,8 +232,8 @@ var socketOnMessage = function (event) {
             }
             errorResponse.error = 'Server closed connection with status: ' + data.status;
             sendResponse(REQUEST_COMMANDS.ERROR, errorResponse);
-            resetAllData();
         }
+        resetAllData();
         return;
     }
     if (state_machine.is(STATE_REGISTRATION_HANDSHAKE) || state_machine.is(STATE_REGULAR_HANDSHAKE)) {
@@ -366,10 +368,11 @@ var onReady = function (event, from, to, msg, noActionRequired) {
         clearInterval(refresh_token_interval);
         keepAlive();
         refresh_token();
-        if (session_info.pass_phrase_data.pass_phrase == '' || session_info.pass_phrase_data.current_acc == '' || session_info.export_key_required) {
-            state_machine.pass_phrase('Getting pass phrase');
-        } else if (session_info.public_keys_required) {
+        if (session_info.public_keys_required) {
             state_machine.public_keys('Getting public keys...');
+        }
+        else if (session_info.pass_phrase_data.pass_phrase == '' || session_info.pass_phrase_data.current_acc == '' || session_info.export_key_required) {
+            state_machine.pass_phrase('Getting pass phrase');
         }
     }
 };
@@ -486,11 +489,12 @@ chrome.runtime.onMessage.addListener(
                 if (state_machine.is(STATE_DISCONNECTED)) {
                     state_machine.connect('Connecting to websocket - ' + SERVER_URL);
                 } else {
-                    if (session_info.pass_phrase_data.current_acc == '') {
-                        state_machine.pass_phrase('Getting pass phrase');
-                    } else {
-                        state_machine.public_keys('Getting public keys...');
-                    }
+                    state_machine.public_keys('Getting public keys...');
+                    //if (session_info.pass_phrase_data.current_acc == '') {
+                    //    state_machine.pass_phrase('Getting pass phrase');
+                    //} else {
+                    //
+                    //}
                 }
             } else if (request.command == SOCKET_REQUEST_TYPES.GET_PASS_PHRASE) {
                 session_info.public_keys_required = false;

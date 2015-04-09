@@ -5,6 +5,7 @@ var FILE_NAME_SEPARATOR = '##-##';
 var gmail_scripts = ['jquery-1.11.2.min.js', 'gmail.js', 'gmail_executor.js'];
 var gmail_scripts_urls = [];
 var KEY_PREFIX = 'BioMio ';
+var TEMP_PUB_KEYRING = 'TEMP_PUB_KEYRING';
 
 //Get urls for each extension script that must be injected into page.
 for (var i = 0; i < gmail_scripts.length; i++) {
@@ -97,7 +98,7 @@ function encryptMessage(data) {
     log(LOG_LEVEL.DEBUG, 'Data for encryption:');
     log(LOG_LEVEL.DEBUG, data);
     var keys = [];
-    var sender_private_key = pgpContext.searchPrivateKey(KEY_PREFIX + data.currentUser).result_[0];
+    //var sender_private_key = pgpContext.searchPrivateKey(KEY_PREFIX + data.currentUser).result_[0];
     for (var i = 0; i < data.recipients.length; i++) {
         var pub_key = pgpContext.searchPublicKey(KEY_PREFIX + data.recipients[i]);
         if (pub_key.result_) {
@@ -106,16 +107,16 @@ function encryptMessage(data) {
     }
     try {
         if (data.hasOwnProperty('encryptObject') && data.encryptObject == 'file') {
-            data.content = encryptFile(data, keys, sender_private_key);
+            data.content = encryptFile(data, keys);
         } else {
-            data.content = _encryptMessage(data.content, keys, sender_private_key);
+            data.content = _encryptMessage(data.content, keys);
         }
         data.completedAction = 'encrypt_only';
         sendResponse(data);
     } catch (error) {
         sendResponse({error: error, composeId: data.composeId});
     }
-    _clearPublicKeys();
+    _resetKeyRing(TEMP_PUB_KEYRING);
 }
 
 /**
@@ -127,8 +128,8 @@ function encryptMessage(data) {
  * @throws {(ERROR_MESSAGES.ENCRYPTION_DENIED_ERROR|ERROR_MESSAGES.ENCRYPTION_UNKNOWN_ERROR)}
  * @private
  */
-function _encryptMessage(content, keys, sender_key) {
-    var encrypted_content = pgpContext.encryptSign(content, [], keys, [], sender_key);
+function _encryptMessage(content, keys) {
+    var encrypted_content = pgpContext.encryptSign(content, [], keys, []);
     log(LOG_LEVEL.DEBUG, 'Encryption result:');
     log(LOG_LEVEL.DEBUG, encrypted_content);
     if (encrypted_content.hadError_) {
@@ -222,7 +223,7 @@ function prepareEncryptParameters(data) {
  * @returns {string} encrypted file.
  * @throws {(ERROR_MESSAGES.ENCRYPTION_DENIED_ERROR|ERROR_MESSAGES.ENCRYPTION_UNKNOWN_ERROR)}
  */
-function encryptFile(data, public_keys, sender_key) {
+function encryptFile(data, public_keys) {
     var fileContent = data.content;
     var fileParts = [];
     var encryptedFileParts = [];
@@ -238,7 +239,7 @@ function encryptFile(data, public_keys, sender_key) {
         fileParts = [data.fileName + FILE_NAME_SEPARATOR + fileContent];
     }
     for (var k = 0; k < fileParts.length; k++) {
-        encryptedFileParts.push(_encryptMessage(fileParts[k], public_keys, sender_key));
+        encryptedFileParts.push(_encryptMessage(fileParts[k], public_keys));
     }
     return encryptedFileParts.join(FILE_PARTS_SEPARATOR);
 }
@@ -300,29 +301,34 @@ function _importKeys(data, callback) {
     var current_acc = data.pass_phrase_data.current_acc;
     log(LOG_LEVEL.DEBUG, 'Current account: ' + current_acc);
     try {
-        if (data.hasOwnProperty('private_pgp_key')) {
-            _resetKeyRing(current_acc);
-        }
-        pgpContext.setKeyRingPassphrase(pass_phrase, current_acc);
-        if (data.hasOwnProperty('private_pgp_key')) {
-            log(LOG_LEVEL.DEBUG, 'Importing PRIVATE PGP KEYS');
-            pgpContext.importKey(function () {
-                return null
-            }, data['private_pgp_key'], pass_phrase);
-        }
         if (data.hasOwnProperty('public_pgp_keys')) {
+            _resetKeyRing(TEMP_PUB_KEYRING);
             log(LOG_LEVEL.DEBUG, 'Importing PUBLIC PGP KEYS');
+            pgpContext.setKeyRingPassphrase('', TEMP_PUB_KEYRING);
             var public_pgp_keys = data['public_pgp_keys'].split(',');
             for (var i = 0; i < public_pgp_keys.length; i++) {
                 pgpContext.importKey(function () {
                     return null
                 }, public_pgp_keys[i], pass_phrase);
             }
+        } else {
+            if (data.hasOwnProperty('private_pgp_key')) {
+                _resetKeyRing(current_acc);
+            }
+            pgpContext.setKeyRingPassphrase(pass_phrase, current_acc);
+            if (data.hasOwnProperty('private_pgp_key')) {
+                log(LOG_LEVEL.DEBUG, 'Importing PRIVATE PGP KEYS');
+                pgpContext.importKey(function () {
+                    return null
+                }, data['private_pgp_key'], pass_phrase);
+            }
+            if (callback) {
+                callback(data);
+            }
         }
-        if (callback) {
-            callback(data);
-        }
-    } catch (error) {
+    }
+    catch
+        (error) {
         log(LOG_LEVEL.SEVERE, 'Unable to setup KeyRing: ' + error.message);
         log(LOG_LEVEL.SEVERE, error);
         sendResponse({error: ERROR_MESSAGES.KEYRING_IMPORT_ERROR});
@@ -384,5 +390,5 @@ function _clearPublicKeys() {
  */
 function _resetKeyRing(currAcc) {
     pgpContext.resetKeyring(currAcc);
-    log(LOG_LEVEL.DEBUG, 'Keyring was cleared.');
+    log(LOG_LEVEL.DEBUG, 'Keyring ' + currAcc + ' was cleared.');
 }
