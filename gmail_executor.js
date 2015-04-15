@@ -14,7 +14,10 @@ var gmail,
     ENCRYPT_WAIT_MESSAGE,
     ENCRYPT_SUCCESS_MESSAGE,
     CANCEL_PROBE_MESSAGE_TYPE,
-    PROBE_ERROR_MESSAGE;
+    PROBE_ERROR_MESSAGE,
+    BIOMIO_INFO_MESSAGE,
+    CONFIRMATION_SEND_MESSAGE,
+    CONFIRMATION_ATTACH_MESSAGE;
 
 /**
  * Initializes variables with default values.
@@ -41,8 +44,13 @@ function setupDefaults() {
     EMAIL_PARTS_SEPARATOR = '#-#-#';
     CANCEL_PROBE_MESSAGE_TYPE = 'cancel_probe';
     PROBE_ERROR_MESSAGE = "Your message wasn't encrypted because we were not able to identify you in time.";
+    BIOMIO_INFO_MESSAGE = "This message is encrypted with BIOMIO biometric authentication. If you don’t have a BIOMIO" +
+    " account yet, get it <a href='' target='_blank'>here</a>";
+    CONFIRMATION_ATTACH_MESSAGE = "You are about to encrypt your attachment, if you proceed all next attachments " +
+    "will be encrypted. Do you want to proceed?";
+    CONFIRMATION_SEND_MESSAGE = "You're sending an encrypted message. Do you want to proceed?";
 
-    $('#biomio_ok_button').on('click', function (e) {
+    $('#biomio_ok_button, #close_popup').on('click', function (e) {
         e.preventDefault();
         if ($(e.currentTarget).attr('data-composeId')) {
             manageEncryptionCheckbox($(e.currentTarget).attr('data-composeId'), true);
@@ -54,6 +62,7 @@ function setupDefaults() {
         e.preventDefault();
         confirmationClicked(e);
     });
+
 
     $(document).on('click', '#biomio_decrypt_button', function (e) {
         e.preventDefault();
@@ -67,6 +76,8 @@ function setupDefaults() {
     $(document).on('click', 'div #attach-button-id', function (e) {
         attachClicked(e);
     });
+
+
 
 }
 
@@ -113,7 +124,9 @@ var initializeGmailJSEvents = function () {
                 "If you don't want to encrypt the files just uncheck 'BioMio encryption' checkbox");
                 xhr.abort();
             } else if (!isConfirmed && encryptionRequired) {
-                showConfirmationPopup("You are about to encrypt your attachments. Do you want to proceed?", composeId, '#' + activeAttachBtn.attr('id'));
+
+                showConfirmationPopup(CONFIRMATION_ATTACH_MESSAGE, composeId, '#' + activeAttachBtn.attr('id'),
+                    "Disable Encryption");
                 hideBodyErrorsShowMessage("");
                 xhr.abort();
             }
@@ -131,7 +144,7 @@ var initializeGmailJSEvents = function () {
             var bioMioAttr = emailBody.attr('class').split(' ');
             $('#biomio_decrypt_button').remove();
             emailBody.find('div[dir="ltr"]').prepend('<div id="biomio_decrypt_element"><input type="button" value="Decrypt" id="biomio_decrypt_button" data-biomio-bodyattr="'
-            + bioMioAttr.join('_') + '"><br><br></div>');
+            + bioMioAttr.join('_') + '"><br><p>' + BIOMIO_INFO_MESSAGE + '</p><br><br></div>');
         }
     });
 
@@ -195,6 +208,7 @@ function showHideInfoPopup(infoMessage, hide) {
     $('#biomio_ok_button').hide();
     $('#biomio_yes_button').hide();
     $('#biomio_no_button').hide();
+    $('#close_popup').hide();
     if (hide) {
         showLoading.hide();
         showPopup.fadeOut(500);
@@ -213,10 +227,11 @@ function showHideInfoPopup(infoMessage, hide) {
 function decryptMessage(event) {
     event.preventDefault();
     showHideInfoPopup(DECRYPT_WAIT_MESSAGE);
-    var currentTarget = $(event.currentTarget);
-    var emailBodyAttr = currentTarget.attr('data-biomio-bodyattr');
-    currentTarget.parent().remove();
+    var emailBodyAttr = $(event.currentTarget).attr('data-biomio-bodyattr');
     var emailBody = $('.' + emailBodyAttr.split('_').join('.'));
+    emailBody.attr('data-biomio', 'biomio_' + emailBodyAttr);
+    emailBody = emailBody.clone();
+    emailBody.find('#biomio_decrypt_element').remove();
     var viewEntireEmailLink = emailBody.find('a[href*="?ui"]');
     if (viewEntireEmailLink.length) {
         $.ajax(
@@ -234,32 +249,30 @@ function decryptMessage(event) {
                 success: function (data) {
                     var emailBodyHtml = $(data).find('div[dir="ltr"]').html().replace(/BioMio v1.0<br>/g, 'BioMio v1.0').split('BioMio v1.0').join('BioMio v1.0<br>');
                     emailBody.html(emailBodyHtml);
-                    sendDecryptMessage(emailBodyAttr, emailBody);
+                    sendDecryptMessage(emailBody);
                 }
             }
         );
     } else {
-        sendDecryptMessage(emailBodyAttr, emailBody);
+        sendDecryptMessage(emailBody);
     }
 
 }
 
 /**
  * Sends content to contentscript for decryption.
- * @param emailBodyAttr
- * @param {jQuery.element} emailBody of the current email.
+ * @param {jQuery} emailBody of the current email.
  */
-function sendDecryptMessage(emailBodyAttr, emailBody) {
-    var bioMioAttr = 'biomio_' + emailBodyAttr;
-    $(emailBody).attr('data-biomio', bioMioAttr);
+function sendDecryptMessage(emailBody) {
     var emailBodyText = $(emailBody).html();
     emailBodyText = $.trim(emailBodyText.replace(/<br>/g, '\n'));
-    $(emailBody).html(emailBodyText);
+    emailBody.html(emailBodyText);
     emailBodyText = $(emailBody).text();
+    $(emailBody).remove();
     sendContentMessage("decryptMessage", {
         action: "decrypt_verify",
         content: emailBodyText,
-        biomio_attr: bioMioAttr,
+        biomio_attr: $(emailBody).attr('data-biomio'),
         currentUser: gmail.get.user_email()
     });
 }
@@ -287,9 +300,12 @@ function sendMessageClicked(event) {
                 encryptObject: 'text'
             });
         } else if (!isConfirmed && encryptionRequired) {
-            showConfirmationPopup("You are about to encrypt your content, do you want to proceed?", currComposeID, '#' + $(event.currentTarget).attr('id'));
+            showConfirmationPopup(CONFIRMATION_SEND_MESSAGE, currComposeID, '#' + $(event.currentTarget).attr('id'),
+                'Send Unencrypted');
         } else {
+            confirm = confirmOff();
             triggerSendButton(compose);
+            confirm = confirmOn;
         }
     }
 }
@@ -309,11 +325,14 @@ function isEncryptionConfirmed(composeID) {
  * @param {string} message to show to user.
  * @param {string} currComposeID
  * @param {string} elementToClick - element that should be clicked after Yes/No buttons clicked.
+ * @param {string} noButtonValue - value to set as "No" button caption.
  */
-function showConfirmationPopup(message, currComposeID, elementToClick) {
+function showConfirmationPopup(message, currComposeID, elementToClick, noButtonValue) {
     showHideInfoPopup(message);
+    $('#close_popup').show();
     var yesButton = $('#biomio_yes_button');
     var noButton = $('#biomio_no_button');
+    noButton.attr('value', noButtonValue);
     yesButton.attr('data-click-element', elementToClick);
     yesButton.attr('data-composeId', currComposeID);
     yesButton.show();
@@ -415,7 +434,7 @@ window.addEventListener("message", function (event) {
                         encryptedComposeFiles.push(data['content']);
 
                     } else {
-                        encryptedComposeFiles = data['content'];
+                        encryptedComposeFiles = [data['content']];
                     }
                     encryptedFiles[data['composeId']] = encryptedComposeFiles;
                     updateEncryptedAttachmentsList(compose, data['fileName']);

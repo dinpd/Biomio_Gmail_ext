@@ -322,9 +322,9 @@ function _importKeys(data, callback) {
                     return null
                 }, data['private_pgp_key'], pass_phrase);
             }
-            if (callback) {
-                callback(data);
-            }
+        }
+        if (callback) {
+            callback(data);
         }
     }
     catch

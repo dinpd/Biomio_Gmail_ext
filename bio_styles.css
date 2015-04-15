@@ -60,3 +60,11 @@
 .biomio_buttons {
     text-align: center;
 }
+
+#close_popup {
+    margin-bottom: -16px;
+    margin-top: -14px;
+    float: right;
+    margin-right: -8px;
+    cursor: pointer;
+}
