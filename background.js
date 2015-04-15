@@ -389,7 +389,7 @@ var onDisconnect = function (event, from, to, msg) {
     if (socket_connection && socket_connection.readyState != 3) {
         socket_connection.send(getCustomRequest(BYE_REQUEST, session_info.token));
     }
-    if(session_info.connection_retried && session_info.last_state != ''){
+    if (session_info.connection_retried && session_info.last_state != '') {
         restoreConnection();
     }
 };
@@ -609,7 +609,7 @@ function resetAppRegistrationData() {
     });
 }
 
-function restoreConnection(){
+function restoreConnection() {
     setupDefaults();
     state_machine.connect();
 }
