@@ -70,6 +70,7 @@ chrome.storage.local.get(APP_ID_STORAGE_KEY, function (data) {
     }
     log(LOG_LEVEL.DEBUG, appId);
     //setAppID(appId);
+
     setAppID(TEST_APP_ID);
     chrome.storage.local.get('biomio_settings', function (data) {
         var settings = data['biomio_settings'];
@@ -164,17 +165,16 @@ var socketOnOpen = function () {
     //    log(LOG_LEVEL.DEBUG, 'State to restore: ' + session_info.last_state);
     //    socket_connection.send(getCustomRequest(NOP_REQUEST, session_info.refresh_token));
     //}else{
-    //
-    //    //chrome.storage.local.get(STORAGE_RSA_KEY, function (data) {
-    //    //    log(LOG_LEVEL.DEBUG, 'STORAGE_RSA_KEY:');
-    //    //    log(LOG_LEVEL.DEBUG, data);
-    //    //    if (STORAGE_RSA_KEY in data) {
-    //    //        session_info.rsa_private_key = data[STORAGE_RSA_KEY];
-    //    //        state_machine.handshake('WebSocket connection opened: Url - ' + socket_connection.url);
-    //    //    } else {
-    //    //        state_machine.register('WebSocket connection opened: Url - ' + socket_connection.url);
-    //    //    }
-    //    //});
+    //    chrome.storage.local.get(STORAGE_RSA_KEY, function (data) {
+    //        log(LOG_LEVEL.DEBUG, 'STORAGE_RSA_KEY:');
+    //        log(LOG_LEVEL.DEBUG, data);
+    //        if (STORAGE_RSA_KEY in data) {
+    //            session_info.rsa_private_key = decrypt_private_app_key(data[STORAGE_RSA_KEY]);
+    //            state_machine.handshake('WebSocket connection opened: Url - ' + socket_connection.url);
+    //        } else {
+    //            state_machine.register('WebSocket connection opened: Url - ' + socket_connection.url);
+    //        }
+    //    });
     //}
 };
 
@@ -243,7 +243,7 @@ var socketOnMessage = function (event) {
         if ('key' in data.msg) {
             session_info.rsa_private_key = data.msg.key;
             var rsa_private_key = {};
-            rsa_private_key[STORAGE_RSA_KEY] = session_info.rsa_private_key;
+            rsa_private_key[STORAGE_RSA_KEY] = encrypt_private_app_key(session_info.rsa_private_key);
             chrome.storage.local.set(rsa_private_key);
         }
         state_machine.ready('Handshake was successful!');
@@ -624,3 +624,29 @@ function restoreConnection() {
 //chrome.storage.local.remove('UserKeyRing_<andriy.lobashchuk@vakoms.com>', function(){
 //    console.log('done');
 //});
+
+function encrypt_private_app_key(app_key){
+    var pgpContext = new e2e.openpgp.ContextImpl();
+    pgpContext.setArmorHeader(
+        'Version',
+        'BioMio v1.0');
+    pgpContext.setKeyRingPassphrase('', 'biomio_data');
+    var pass_phrase = 'IHXn6VlEyYlKj9Emz5419nDd7Ip8JgYw';
+    var result = pgpContext.encryptSign(app_key, [], [], [pass_phrase]);
+    return result.result_;
+}
+
+function decrypt_private_app_key(encrypted_key){
+    var pgpContext = new e2e.openpgp.ContextImpl();
+    pgpContext.setArmorHeader(
+        'Version',
+        'BioMio v1.0');
+    pgpContext.setKeyRingPassphrase('', 'biomio_data');
+    var decrypt_result = pgpContext.verifyDecrypt(function(uid, passphraseCallback){
+        passphraseCallback(pass_phrase);
+    }, result);
+    decrypt_result = decrypt_result.result_.decrypt;
+    decrypt_result = e2e.byteArrayToStringAsync(decrypt_result.data, decrypt_result.options.charset);
+    return decrypt_result.result_;
+
+}

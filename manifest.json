@@ -28,6 +28,7 @@
       "rsa_sign_library/x509-1.1.js",
       "rsa_sign_library/jsrsasign-latest-all-min.js",
       "logger.js",
+      "e2e_library/end-to-end.debug.js",
       "background.js"
     ]
   },
