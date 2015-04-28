@@ -120,7 +120,7 @@ var initializeGmailJSEvents = function () {
                 xhr.abort();
             } else if (isConfirmed && needToCheck.length && needToCheck.is(':checked')) {
                 hideBodyErrorsShowMessage("It is required to specify recipients to be able to encrypt the attachment. " +
-                "If you don't want to encrypt the files just uncheck 'BioMio encryption' checkbox");
+                "If you don't want to encrypt the files just uncheck 'Encrypt' checkbox");
                 xhr.abort();
             } else if (!isConfirmed && encryptionRequired) {
 
@@ -148,7 +148,7 @@ var initializeGmailJSEvents = function () {
     });
 
     gmail.observe.on('compose', function (compose, type) {
-        var button = '<input type="checkbox" checked id="encrypt-body-' + compose.id() + '" title="BioMio encryption" class="aaA aWZ">';
+        var button = '<input type="checkbox" checked id="encrypt-body-' + compose.id() + '" title="Encrypt" class="aaA aWZ">';
         var transparentDiv = $('<div class="transparent_area" id="biomio_send_button" data-composeId="' + compose.id() + '"></div>');
         var attachmentDiv = $('<span class="transparent_area attach-button" id="attach-button-id" data-composeId="' + compose.id() + '" onclick="attachClicked(event)"></span>');
         compose.find('.aWQ').prepend(button);
@@ -419,7 +419,11 @@ window.addEventListener("message", function (event) {
             calculateTime(data['timeout']);
         } else {
             clearInterval(showTimer);
-            showHideInfoPopup(ENCRYPT_WAIT_MESSAGE);
+            if (data.hasOwnProperty('msg')) {
+                showHideInfoPopup(data['msg']);
+            } else {
+                showHideInfoPopup(ENCRYPT_WAIT_MESSAGE);
+            }
         }
     } else if (data.hasOwnProperty('completedAction') && (data['completedAction'] == "encrypt_only")) {
         if (data.hasOwnProperty('encryptObject') && data['encryptObject'].length) {

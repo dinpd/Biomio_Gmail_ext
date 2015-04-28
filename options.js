@@ -57,7 +57,25 @@ $(document).ready(function () {
             $('#actions_panel').show();
         });
     });
+    chrome.extension.sendRequest({message: 'is_registered'}, function (response) {
+        if (!response.is_registered) {
+            $('#user_info').hide();
+            $('#secret_input').show();
+            $('#register_app_button').on('click', function (e) {
+                e.preventDefault();
+                $(e.currentTarget).attr('disabled', 'disabled');
+                var secret_code = $('#secret_code').val();
+                chrome.extension.sendRequest({secret_code: secret_code}, function (responseData) {
+                    console.log(responseData);
+                    if (responseData.result) {
+                        $('#secret_input').hide();
+                        $('#user_info').show();
+                    }
+                });
+            });
+        }
 
+    });
     chrome.storage.local.get('current_gmail_user_biomio', function (data) {
         current_gmail_user = data['current_gmail_user_biomio'];
         var exportButton = $('#biomio_export_button');

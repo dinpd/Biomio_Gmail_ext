@@ -17,14 +17,24 @@
 </head>
 <body>
 <div id="actions_panel">
-    <div>
-        Current Gmail user - <span id="current_gmail_user"></span>
+    <div id="user_info">
+        Current Gmail user - <span id="current_gmail_user"></span><br><br>
         <input type="button" id="biomio_export_button" value="Export Private PGP Key">
     </div>
+    <div id="secret_input" hidden>
+        <label>
+            Your secret code:
+            <input type="text" placeholder="Secret Code" id="secret_code">
+        </label>
+        <br>
+        <input type="button" value="Register App" id="register_app_button">
+    </div>
+    <br><br>
+
     <div>
         <label>
             Server URL
-            <input id="biomio_server_url" type="text" size="100">
+            <input id="biomio_server_url" type="text" size="50">
         </label>
         <input type="button" value="Update" id="biomio_update_url_button">
     </div>

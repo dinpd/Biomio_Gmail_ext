@@ -54,3 +54,8 @@ var WINDOW_REQUESTS = {
     ENCRYPT: TYPE_PREFIX + 'encrypt_sign',
     DECRYPT: TYPE_PREFIX + 'decryptMessage'
 };
+
+var STORAGE_KEYS = {
+    STORAGE_RSA_KEY: 'biomio_private_key',
+    STORAGE_APP_ID_KEY: 'BIOMIO_APP_ID'
+};

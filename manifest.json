@@ -28,14 +28,12 @@
       "rsa_sign_library/x509-1.1.js",
       "rsa_sign_library/jsrsasign-latest-all-min.js",
       "logger.js",
-      "e2e_library/end-to-end.debug.js",
+      "e2e_library/end-to-end.compiled.js",
+      "shared_methods.js",
       "background.js"
     ]
   },
-  "options_ui": {
-    "page": "options.html",
-    "chrome_style": true
-  },
+  "options_page": "options.html",
   "browser_action": {
     "default_title": "BioMio",
     "default_icon": "images/smallLogo.png",

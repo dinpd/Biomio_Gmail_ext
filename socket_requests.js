@@ -3,7 +3,6 @@ var APP_ID = '';
 var OS_ID = 'os id';
 var APP_TYPE = 'extension';
 var HEADER_OID = 'clientHeader';
-var SOCKET_CONNECTION_TIMEOUT = 10000;
 var DEV_ID = 'extension';
 var RPC_NAMESPACE = 'extension_plugin';
 
