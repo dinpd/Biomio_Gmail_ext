@@ -13,82 +13,91 @@ for (var i = 0; i < gmail_scripts.length; i++) {
 }
 
 //OpenPGP instance.
-var pgpContext = new e2e.openpgp.ContextImpl();
-pgpContext.setArmorHeader(
-    'Version',
-    'BioMio v1.0');
+var pgpContext;
 
 /**
  * Injects required scripts and elements into gmail page.
  */
 window.onload = function () {
-    $('body').append('<div id="biomio_elements"></div>');
-    var biomio_elems = $('#biomio_elements');
-    biomio_elems.load(chrome.extension.getURL('additional_html.html'), function () {
-        $('#biomio_show_loading').show();
-        for (i = 0; i < gmail_scripts_urls.length; i++) {
-            biomio_elems.append('<script src="' + gmail_scripts_urls[i] + '"></script>');
+    chrome.extension.sendRequest({message: 'is_registered'}, function (response) {
+        if (response.is_registered) {
+            $('body').append('<div id="biomio_elements"></div>');
+            var biomio_elems = $('#biomio_elements');
+            biomio_elems.load(chrome.extension.getURL('additional_html.html'), function () {
+                $('#biomio_show_loading').show();
+                for (i = 0; i < gmail_scripts_urls.length; i++) {
+                    biomio_elems.append('<script src="' + gmail_scripts_urls[i] + '"></script>');
+                }
+                log(LOG_LEVEL.DEBUG, 'Scripts were injected.');
+            });
+            initializeDefaults();
         }
-        log(LOG_LEVEL.DEBUG, 'Scripts were injected.');
     });
 };
 
-/**
- * Window listener which listens for messages from gmail_executor script.
- */
-window.addEventListener("message", function (event) {
-    var currData = event.data.data;
-    try {
-        if (event.data.hasOwnProperty('type') && event.data.type == WINDOW_REQUESTS.ENCRYPT) {
-            prepareEncryptParameters(currData);
-            _sendBackgroundRequest(SOCKET_REQUEST_TYPES.GET_PUBLIC_KEYS, currData);
-        } else if (event.data.hasOwnProperty('type') && event.data.type == WINDOW_REQUESTS.DECRYPT) {
-            prepareEncryptParameters(currData);
-            _sendBackgroundRequest(SOCKET_REQUEST_TYPES.GET_PASS_PHRASE, currData);
-        } else if (event.data.hasOwnProperty('type') && event.data.type == SOCKET_REQUEST_TYPES.CANCEL_PROBE) {
-            _sendBackgroundRequest(SOCKET_REQUEST_TYPES.CANCEL_PROBE, currData);
-        } else if (event.data.hasOwnProperty('type') && event.data.type == SOCKET_REQUEST_TYPES.PERSIST_GMAIL_USER) {
-            _sendBackgroundRequest(SOCKET_REQUEST_TYPES.PERSIST_GMAIL_USER, currData);
-        }
-    } catch (error) {
-        if (error.message.indexOf('Error connecting to extension') != -1) {
-            //page was loaded before extension, reload is required.
-            window.location.reload();
-        } else {
-            log(LOG_LEVEL.ERROR, error.message);
-            sendResponse({error: error.message});
-        }
-    }
-}, false);
 
-/**
- * Chrome requests listener which listens for messages from background script.
- */
-chrome.extension.onRequest.addListener(
-    function (request) {
-        log(LOG_LEVEL.DEBUG, 'Received message from background script:');
-        log(LOG_LEVEL.DEBUG, request);
-        var data = request.data;
-        if (request.command == REQUEST_COMMANDS.COMMON_RESPONSE) {
-            var callback = function () {
-            };
-            if (data['action'] == 'encrypt_only') {
-                callback = encryptMessage;
+function initializeDefaults() {
+    pgpContext = new e2e.openpgp.ContextImpl();
+    pgpContext.setArmorHeader(
+        'Version',
+        'BioMio v1.0');
+    /**
+     * Window listener which listens for messages from gmail_executor script.
+     */
+    window.addEventListener("message", function (event) {
+        var currData = event.data.data;
+        try {
+            if (event.data.hasOwnProperty('type') && event.data.type == WINDOW_REQUESTS.ENCRYPT) {
+                prepareEncryptParameters(currData);
+                _sendBackgroundRequest(SOCKET_REQUEST_TYPES.GET_PUBLIC_KEYS, currData);
+            } else if (event.data.hasOwnProperty('type') && event.data.type == WINDOW_REQUESTS.DECRYPT) {
+                prepareEncryptParameters(currData);
+                _sendBackgroundRequest(SOCKET_REQUEST_TYPES.GET_PASS_PHRASE, currData);
+            } else if (event.data.hasOwnProperty('type') && event.data.type == SOCKET_REQUEST_TYPES.CANCEL_PROBE) {
+                _sendBackgroundRequest(SOCKET_REQUEST_TYPES.CANCEL_PROBE, currData);
+            } else if (event.data.hasOwnProperty('type') && event.data.type == SOCKET_REQUEST_TYPES.PERSIST_GMAIL_USER) {
+                _sendBackgroundRequest(SOCKET_REQUEST_TYPES.PERSIST_GMAIL_USER, currData);
+            }
+        } catch (error) {
+            if (error.message.indexOf('Error connecting to extension') != -1) {
+                //page was loaded before extension, reload is required.
+                window.location.reload();
             } else {
-                callback = decryptMessage;
+                log(LOG_LEVEL.ERROR, error.message);
+                sendResponse({error: error.message});
             }
-            _importKeys(data, callback);
-        } else if (request.command == REQUEST_COMMANDS.EXPORT_KEY) {
-            _exportKey(request.data.pass_phrase_data);
         }
-        else if ([REQUEST_COMMANDS.SHOW_TIMER, REQUEST_COMMANDS.ERROR].indexOf(request.command) != -1) {
-            if (request.command == REQUEST_COMMANDS.ERROR) {
-                log(LOG_LEVEL.ERROR, data);
+    }, false);
+
+    /**
+     * Chrome requests listener which listens for messages from background script.
+     */
+    chrome.extension.onRequest.addListener(
+        function (request) {
+            log(LOG_LEVEL.DEBUG, 'Received message from background script:');
+            log(LOG_LEVEL.DEBUG, request);
+            var data = request.data;
+            if (request.command == REQUEST_COMMANDS.COMMON_RESPONSE) {
+                var callback = function () {
+                };
+                if (data['action'] == 'encrypt_only') {
+                    callback = encryptMessage;
+                } else {
+                    callback = decryptMessage;
+                }
+                _importKeys(data, callback);
+            } else if (request.command == REQUEST_COMMANDS.EXPORT_KEY) {
+                _exportKey(request.data.pass_phrase_data);
             }
-            sendResponse(data);
+            else if ([REQUEST_COMMANDS.SHOW_TIMER, REQUEST_COMMANDS.ERROR].indexOf(request.command) != -1) {
+                if (request.command == REQUEST_COMMANDS.ERROR) {
+                    log(LOG_LEVEL.ERROR, data);
+                }
+                sendResponse(data);
+            }
         }
-    }
-);
+    );
+}
 
 /**
  * Parses required data from data object and encrypts it.
@@ -304,12 +313,22 @@ function _importKeys(data, callback) {
         if (data.hasOwnProperty('public_pgp_keys')) {
             _resetKeyRing(TEMP_PUB_KEYRING);
             log(LOG_LEVEL.DEBUG, 'Importing PUBLIC PGP KEYS');
-            pgpContext.setKeyRingPassphrase('', TEMP_PUB_KEYRING);
-            var public_pgp_keys = data['public_pgp_keys'].split(',');
-            for (var i = 0; i < public_pgp_keys.length; i++) {
-                pgpContext.importKey(function () {
-                    return null
-                }, public_pgp_keys[i], pass_phrase);
+            if(data.hasOwnProperty('emails_with_errors')){
+                sendResponse({show_email_errors: data['emails_with_errors']});
+            }
+            if(data['public_pgp_keys'].length == 0){
+                if(!data.hasOwnProperty('emails_with_errors')){
+                    sendResponse({error: ERROR_MESSAGES.NO_PUBLIC_KEYS_ERROR});
+                }
+                return;
+            }else{
+                pgpContext.setKeyRingPassphrase('', TEMP_PUB_KEYRING);
+                var public_pgp_keys = data['public_pgp_keys'].split(',');
+                for (var i = 0; i < public_pgp_keys.length; i++) {
+                    pgpContext.importKey(function () {
+                        return null
+                    }, public_pgp_keys[i], pass_phrase);
+                }
             }
         } else {
             if (data.hasOwnProperty('private_pgp_key')) {

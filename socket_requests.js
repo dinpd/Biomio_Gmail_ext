@@ -124,9 +124,12 @@ function setupDefaults() {
         oid: HEADER_OID,
         appType: APP_TYPE,
         osId: OS_ID,
-        appId: APP_ID,
         devId: DEV_ID
     };
+
+    if(APP_ID != null && APP_ID.length){
+        REQUEST_HEADER.appId = APP_ID;
+    }
 
     RPC_REQUEST = {
         msg: {

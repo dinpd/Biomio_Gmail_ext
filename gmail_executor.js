@@ -23,7 +23,22 @@ var gmail,
  * Initializes variables with default values.
  */
 function setupDefaults() {
-    gmail = Gmail($);
+    showLoading = $('#biomio_show_loading');
+    try{
+        gmail = Gmail($);
+    }catch (e){
+        if(e.message.indexOf('GLOBALS') != -1){
+            console.log(e.message);
+            showLoading.hide();
+            return;
+        }else if(e.message == 'Gmail is not defined'){
+
+            window.location.reload();
+        }
+        console.error(e);
+        showLoading.hide();
+        return;
+    }
     sendContentMessage('persist_gmail_user', {current_gmail_user_biomio: '<' + gmail.get.user_email() + '>'});
     encryptedFiles = {};
     confirmOn = confirm;
@@ -32,7 +47,6 @@ function setupDefaults() {
             return true;
         }
     };
-    showLoading = $('#biomio_show_loading');
     showPopup = $('#biomio_show_popup');
     DECRYPT_WAIT_MESSAGE = 'Please wait, we are getting the content of your email to decrypt it....';
     ENCRYPT_WAIT_MESSAGE = 'Please wait, we are encrypting your message...';
@@ -77,6 +91,8 @@ function setupDefaults() {
         attachClicked(e);
     });
 
+    initializeGmailJSEvents();
+    showLoading.hide();
 
 }
 
@@ -208,6 +224,7 @@ function showHideInfoPopup(infoMessage, hide) {
     $('#biomio_yes_button').hide();
     $('#biomio_no_button').hide();
     $('#close_popup').hide();
+    $('#biomio_error_emails_list').hide();
     if (hide) {
         showLoading.hide();
         showPopup.fadeOut(500);
@@ -405,15 +422,19 @@ function getComposeByID(composeId) {
  */
 window.addEventListener("message", function (event) {
     var data = event.data;
+    var biomioOkButton = $('#biomio_ok_button');
     if (data.hasOwnProperty('error')) {
         showHideInfoPopup(data['error'], false);
         clearInterval(showTimer);
-        var biomioOkButton = $('#biomio_ok_button');
         if (data.hasOwnProperty('composeId')) {
             biomioOkButton.attr('data-composeId', data['composeId']);
         }
         biomioOkButton.show();
-    } else if (data.hasOwnProperty('showTimer')) {
+    } else if (data.hasOwnProperty('show_email_errors')){
+        show_email_errors(data['show_email_errors']);
+        biomioOkButton.show();
+    }
+    else if (data.hasOwnProperty('showTimer')) {
         if (data['showTimer']) {
             showHideInfoPopup(data['msg']);
             calculateTime(data['timeout']);
@@ -551,11 +572,25 @@ function sendContentMessage(type, message) {
     window.postMessage({type: typePrefix + type, data: message}, '*');
 }
 
+
+function show_email_errors(email_errors){
+    showHideInfoPopup('Unfortunately we were not able to send encrypted emails to following addresses:', false);
+    var error_emails_list_ul = $('#biomio_error_emails_list');
+    email_errors = email_errors.split(',,,');
+    for(var i = 0; i < email_errors.length; i++){
+        var email_errors_json = email_errors[i].replace(/'/g, '"');
+        email_errors_json = JSON.parse(email_errors_json);
+        error_emails_list_ul.append('<li>' + email_errors_json.email + ' - ' + email_errors_json.error + '</li>');
+    }
+    error_emails_list_ul.show();
+}
+
+
 /**
  * Checks when jQuery is loaded and starts script initialization.
  */
 var checkLoaded = function () {
-    if (window.jQuery) {
+    if (window.jQuery && window.Gmail) {
         $.fn.onAvailable = function (e) {
             var t = this.selector;
             var n = this;
@@ -571,8 +606,6 @@ var checkLoaded = function () {
         };
 
         setupDefaults();
-        initializeGmailJSEvents();
-        $('#biomio_show_loading').hide();
     } else {
         setTimeout(checkLoaded, 100);
     }

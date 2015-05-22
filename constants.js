@@ -16,7 +16,10 @@ var ERROR_MESSAGES = {
     SERVER_RPC_ERROR: "RPC exception: ",
     SERVER_ERROR: "Error on server.",
 
-    PROBE_ERROR: "We were not able to proceed your probe, please try again."
+    PROBE_ERROR: "We were not able to proceed your probe, please try again.",
+
+    NO_PUBLIC_KEYS_ERROR: "No keys for encryption were received from server."
+
 
 };
 
@@ -56,6 +59,6 @@ var WINDOW_REQUESTS = {
 };
 
 var STORAGE_KEYS = {
-    STORAGE_RSA_KEY: 'biomio_private_key',
-    STORAGE_APP_ID_KEY: 'BIOMIO_APP_ID'
+    STORAGE_RSA_KEY: 'biomio_private_rsa_key',
+    STORAGE_APP_ID_KEY: 'BIOMIO_APP_ID_KEY'
 };

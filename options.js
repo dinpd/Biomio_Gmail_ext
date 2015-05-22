@@ -70,6 +70,9 @@ $(document).ready(function () {
                     if (responseData.result) {
                         $('#secret_input').hide();
                         $('#user_info').show();
+                    }else{
+                        alert(responseData.error);
+                        $(e.currentTarget).removeAttr('disabled');
                     }
                 });
             });

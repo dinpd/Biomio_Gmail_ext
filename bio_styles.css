@@ -68,3 +68,9 @@
     margin-right: -8px;
     cursor: pointer;
 }
+
+#biomio_mark {
+    float: left;
+    margin-top: -10px;
+    margin-left: -5px;
+}

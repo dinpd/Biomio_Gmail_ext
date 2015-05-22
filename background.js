@@ -72,12 +72,14 @@ var currentRequestData = {};
  */
 
 function initializeApp() {
+    setupDefaults();
     session_info.rsa_private_key = getFromStorage(STORAGE_KEYS.STORAGE_RSA_KEY);
-    if (session_info.rsa_private_key != null) {
+    var app_id = getFromStorage(STORAGE_KEYS.STORAGE_APP_ID_KEY);
+    if (session_info.rsa_private_key != null && app_id != null) {
         is_registered = true;
         session_info.rsa_private_key = decrypt_private_app_key(session_info.rsa_private_key);
+        setAppID(app_id);
     }
-    is_registered = true;
     chrome.storage.local.get('biomio_settings', function (data) {
         var settings = data['biomio_settings'];
         if (settings) {
@@ -87,39 +89,10 @@ function initializeApp() {
         }
         log(LOG_LEVEL.DEBUG, SERVER_URL);
     });
-
-    var app_id = getFromStorage(STORAGE_KEYS.STORAGE_APP_ID_KEY);
-    if (app_id == null) {
-        app_id = APP_ID_SUFFIX + randomString(32, '0123456789abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ');
-        setToStorage(STORAGE_KEYS.STORAGE_APP_ID_KEY, app_id);
-        log(LOG_LEVEL.DEBUG, 'APP_ID created');
-    }
     log(LOG_LEVEL.DEBUG, app_id);
-    //setAppID(app_id);
-    setAppID(TEST_APP_ID);
 }
 
 initializeApp();
-
-//chrome.storage.local.get(APP_ID_STORAGE_KEY, function (data) {
-//    var appId;
-//    if (APP_ID_STORAGE_KEY in data) {
-//        appId = data[APP_ID_STORAGE_KEY];
-//        log(LOG_LEVEL.DEBUG, 'APP_ID exists');
-//    } else {
-//        appId = APP_ID_SUFFIX + randomString(32, '0123456789abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ');
-//        var app_id_storage = {};
-//        app_id_storage[APP_ID_STORAGE_KEY] = appId;
-//        chrome.storage.local.set(app_id_storage);
-//        log(LOG_LEVEL.DEBUG, 'APP_ID created');
-//    }
-//    log(LOG_LEVEL.DEBUG, appId);
-//    //setAppID(appId);
-//
-//    setAppID(TEST_APP_ID);
-//
-//});
-
 
 /**
  * Generates random string for app_id
@@ -156,6 +129,7 @@ var keepAlive = function () {
  * @param {Object} keyValueDict - rpc method input values.
  */
 function sendRpcRequest(method, onBehalfOf, keyValueDict) {
+    onBehalfOf = prepare_email(onBehalfOf);
     if (state_machine.is(STATE_PASS_PHRASE) || state_machine.is(STATE_PUBLIC_KEYS)) {
         socket_connection.send(getRpcRequest(session_info.token, method, onBehalfOf, keyValueDict));
     } else {
@@ -200,27 +174,28 @@ var socketOnError = function () {
  * Handles WebSocket open event
  */
 var socketOnOpen = function () {
-    session_info.rsa_private_key = TEST_PRIVATE_RSA_KEY;
-    state_machine.handshake('WebSocket connection opened: Url - ' + socket_connection.url);
+    //session_info.rsa_private_key = TEST_PRIVATE_RSA_KEY;
+    //state_machine.handshake('WebSocket connection opened: Url - ' + socket_connection.url);
+    if (!is_registered) {
+        state_machine.register('WebSocket connection opened: Url - ' + socket_connection.url);
+    } else {
+        state_machine.handshake('WebSocket connection opened: Url - ' + socket_connection.url);
+    }
+    //chrome.storage.local.get(STORAGE_RSA_KEY, function (data) {
+    //    log(LOG_LEVEL.DEBUG, 'STORAGE_RSA_KEY:');
+    //    log(LOG_LEVEL.DEBUG, data);
+    //    if (STORAGE_RSA_KEY in data) {
+    //        session_info.rsa_private_key = decrypt_private_app_key(data[STORAGE_RSA_KEY]);
+    //    } else {
+    //
+    //    }
+    //});
     //if(session_info.last_state != ''){
     //    log(LOG_LEVEL.DEBUG, 'Connection restore');
     //    log(LOG_LEVEL.DEBUG, 'State to restore: ' + session_info.last_state);
     //    socket_connection.send(getCustomRequest(NOP_REQUEST, session_info.refresh_token));
     //}else{
-    //    if(session_info.rsa_private_key == null){
-    //        state_machine.register('WebSocket connection opened: Url - ' + socket_connection.url);
-    //    }else{
-    //        state_machine.handshake('WebSocket connection opened: Url - ' + socket_connection.url);
-    //    }
-    //    //chrome.storage.local.get(STORAGE_RSA_KEY, function (data) {
-    //    //    log(LOG_LEVEL.DEBUG, 'STORAGE_RSA_KEY:');
-    //    //    log(LOG_LEVEL.DEBUG, data);
-    //    //    if (STORAGE_RSA_KEY in data) {
-    //    //        session_info.rsa_private_key = decrypt_private_app_key(data[STORAGE_RSA_KEY]);
-    //    //    } else {
-    //    //
-    //    //    }
-    //    //});
+    //
     //}
 };
 
@@ -277,7 +252,11 @@ var socketOnMessage = function (event) {
                 errorResponse['composeId'] = currentRequestData.composeId;
             }
             errorResponse.error = 'Server closed connection with status: ' + data.status;
-            sendResponse(REQUEST_COMMANDS.ERROR, errorResponse);
+            try {
+                sendResponse(REQUEST_COMMANDS.ERROR, errorResponse);
+            } catch (err) {
+                log(LOG_LEVEL.ERROR, err.message);
+            }
         }
         resetAllData();
         return;
@@ -290,10 +269,14 @@ var socketOnMessage = function (event) {
         if ('key' in data.msg) {
             session_info.rsa_private_key = data.msg.key;
             setToStorage(STORAGE_KEYS.STORAGE_RSA_KEY, encrypt_private_app_key(session_info.rsa_private_key));
-            //var rsa_private_key = {};
-            //rsa_private_key[STORAGE_RSA_KEY] = ;
-            //chrome.storage.local.set(rsa_private_key);
         }
+        if ('fingerprint' in data.msg) {
+            var app_id = data.msg.fingerprint;
+            setToStorage(STORAGE_KEYS.STORAGE_APP_ID_KEY, app_id);
+            setAppID(app_id);
+            log(LOG_LEVEL.DEBUG, app_id);
+        }
+        is_registered = true;
         state_machine.ready('Handshake was successful!');
     } else if ([STATE_READY, STATE_PASS_PHRASE, STATE_PUBLIC_KEYS].indexOf(state_machine.current) != -1) {
         if (data.msg.oid == 'nop' && session_info.token != data.header.token) {
@@ -305,7 +288,7 @@ var socketOnMessage = function (event) {
             var rspStatus = data.msg['rpcStatus'];
             if (dataResp.keys.indexOf('error') != -1) {
                 log(LOG_LEVEL.ERROR, 'Error received from rpc method: ' + dataResp.values[0]);
-                currentRequestData['error'] = ERROR_MESSAGES.SERVER_RPC_ERROR + dataResp.values[0];
+                currentRequestData['error'] = dataResp.values[0];
                 sendResponse(REQUEST_COMMANDS.ERROR, currentRequestData);
             } else if (rspStatus == "inprogress") {
                 if (dataResp.keys.indexOf('timeout') != -1) {
@@ -621,6 +604,7 @@ function resetAllData() {
         tab_id: ''
     };
     setupDefaults();
+    initializeApp();
 }
 
 /**
@@ -658,6 +642,12 @@ chrome.extension.onRequest.addListener(function (request, sender, sendOptionsRes
         state_machine.connect();
         var registrationResponseInterval = setInterval(function () {
             console.log('registration is running...');
+            if (state_machine.is(STATE_DISCONNECTED) && registration_result == null) {
+                registration_result = {
+                    result: false,
+                    error: 'Registration was unsuccessful'
+                }
+            }
             if (registration_result != null) {
                 log(LOG_LEVEL.DEBUG, registration_result);
                 sendOptionsResponse(registration_result);
@@ -718,4 +708,10 @@ function decrypt_private_app_key(encrypted_key) {
     decrypt_result = decrypt_result.result_.decrypt;
     decrypt_result = e2e.byteArrayToStringAsync(decrypt_result.data, decrypt_result.options.charset);
     return decrypt_result.result_;
+}
+
+function prepare_email(email){
+    email = email.replace(/</g, '');
+    email = email.replace(/>/g, '');
+    return email;
 }
