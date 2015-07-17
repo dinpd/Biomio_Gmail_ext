@@ -12,33 +12,15 @@ var SERVER_URL;
 
 var export_key_result = null;
 var registration_result = null;
-
-var APP_ID_SUFFIX = "extension_";
+var registration_error_msg = '';
 
 var registration_secret = null;
 
 var is_registered = false;
 
-var TEST_APP_ID = '3a9d3f79ecc2c42b9114b4300a248777';
-var TEST_PRIVATE_RSA_KEY = '-----BEGIN RSA PRIVATE KEY-----\n' +
-    'MIICXQIBAAKBgQCrD2qbaFzrq5QNwpucqS3+zECbM5tBnG40GkYPPZvgykHeYmtd\n' +
-    'gkzZH3gJISd8eNfGR4yRMVoP5apuDKeJSnH4lwTFz3IJNFglD95VpleIk8ldRWx0\n' +
-    '8K2EpBi+WodZ5B9CBVpmeSGvrCeaxAICmrh9WcLL4HDeKR4r6M6mGB+SrwIDAQAB\n' +
-    'AoGBAKrQmzEStu8zB4XyFfgLTH3KMp2Im/mZnsZykhE4AUcoUTwjZXkb22dZMEFV\n' +
-    'lRuLhFRgMDLwaDHFsjlwc3/6EfF70eqRelVv1IyCbEwBZceiCFdL/ZRujP00xq35\n' +
-    'm0wiL655U52ZJDrwDIxW/ItwnTwCRcr+tNCA5vEfcQT7O53RAkEAz5qsggneeyMX\n' +
-    'gkWdlusAhuLvzsJeSPLLH4c0uHEB1lT4mPa4y3xrbLu1oV4X15w//REerYah8dbt\n' +
-    'VA1+csvp6QJBANLv4oQcIzBOVWW5bYOl9+K3IPOJk2vsk98gjNX26uWm4+eAUCfp\n' +
-    '2xXwVtxrhdlKn5bfAmZeHhqfY5PPq375INcCQBf2xcT4+KqEIXmTKZ67H8NyPLZE\n' +
-    'L3gCNro79DT6LnkcM9oMWMZ8ZTYW8N9gqiXkTmqa6EylhtoQsjKKoDcGHMkCQDLU\n' +
-    'zgBKC4zLg7bEzYhJCYhf2xf1EkqSszu0y1uQaiC3a/pQqIBF0Z7i0PvDCXlIi1a/\n' +
-    'HQPwME74E/X9uHUbsfcCQQCwkp2dGkN6+qOWZL9h5YbrfX5VctcQ8hTIwP/Yymzt\n' +
-    'tZ5VZ2XehrLoTY6DAi2lH4ToZDMkzwDBGsHzs057tH4O\n' +
-    '-----END RSA PRIVATE KEY-----';
-
 var session_info = {
     last_state: '',
-    connection_retried: false,
+    reconnect: false,
     public_keys_required: false,
     export_key_required: false,
     pass_phrase_data: {
@@ -58,19 +40,10 @@ var refresh_token_interval;
 
 var currentRequestData = {};
 
-//
-///**
-// * Checks whether APP is registered
-// */
-//chrome.storage.local.get(STORAGE_RSA_KEY, function(data){
-//    is_registered = STORAGE_RSA_KEY in data
-//});
-
 
 /**
- * Gets or creates applications APP_ID
+ * Initializes APP
  */
-
 function initializeApp() {
     setupDefaults();
     session_info.rsa_private_key = getFromStorage(STORAGE_KEYS.STORAGE_RSA_KEY);
@@ -80,12 +53,15 @@ function initializeApp() {
         session_info.rsa_private_key = decrypt_private_app_key(session_info.rsa_private_key);
         setAppID(app_id);
     }
+    if(!is_registered){
+        chrome.browserAction.setBadgeText({text: "!"});
+    }
     chrome.storage.local.get('biomio_settings', function (data) {
         var settings = data['biomio_settings'];
         if (settings) {
             SERVER_URL = settings['server_url'];
         } else {
-            SERVER_URL = "wss://gb.vakoms.com:8080/websocket";
+            SERVER_URL = "wss://gate.biom.io:8080/websocket";
         }
         log(LOG_LEVEL.DEBUG, SERVER_URL);
     });
@@ -93,18 +69,6 @@ function initializeApp() {
 }
 
 initializeApp();
-
-/**
- * Generates random string for app_id
- * @param length of the string
- * @param chars that should be used for random selection
- * @returns {string}
- */
-function randomString(length, chars) {
-    var result = '';
-    for (var i = length; i > 0; --i) result += chars[Math.round(Math.random() * (chars.length - 1))];
-    return result;
-}
 
 /**
  * Keeps session alive. Runs each connection timeout value seconds.
@@ -174,29 +138,11 @@ var socketOnError = function () {
  * Handles WebSocket open event
  */
 var socketOnOpen = function () {
-    //session_info.rsa_private_key = TEST_PRIVATE_RSA_KEY;
-    //state_machine.handshake('WebSocket connection opened: Url - ' + socket_connection.url);
     if (!is_registered) {
         state_machine.register('WebSocket connection opened: Url - ' + socket_connection.url);
     } else {
         state_machine.handshake('WebSocket connection opened: Url - ' + socket_connection.url);
     }
-    //chrome.storage.local.get(STORAGE_RSA_KEY, function (data) {
-    //    log(LOG_LEVEL.DEBUG, 'STORAGE_RSA_KEY:');
-    //    log(LOG_LEVEL.DEBUG, data);
-    //    if (STORAGE_RSA_KEY in data) {
-    //        session_info.rsa_private_key = decrypt_private_app_key(data[STORAGE_RSA_KEY]);
-    //    } else {
-    //
-    //    }
-    //});
-    //if(session_info.last_state != ''){
-    //    log(LOG_LEVEL.DEBUG, 'Connection restore');
-    //    log(LOG_LEVEL.DEBUG, 'State to restore: ' + session_info.last_state);
-    //    socket_connection.send(getCustomRequest(NOP_REQUEST, session_info.refresh_token));
-    //}else{
-    //
-    //}
 };
 
 /**
@@ -238,11 +184,19 @@ var socketOnMessage = function (event) {
         socket_connection.close();
         if (data.hasOwnProperty('status')) {
             log(LOG_LEVEL.DEBUG, data.status);
+            if (data.status.indexOf('Invalid token') != -1){
+                session_info.reconnect = true;
+                return;
+            }
             if ((state_machine.is(STATE_REGISTRATION_HANDSHAKE) && data.status.indexOf('app is already registered') != -1)
                 || (state_machine.is(STATE_REGULAR_HANDSHAKE) && data.status.indexOf('registration handshake first') != -1)) {
+                currentRequestData['error'] = 'Your APP registration was canceled, it is required that you register it again.';
+                sendResponse(REQUEST_COMMANDS.ERROR, currentRequestData);
                 resetAllData();
                 resetAppRegistrationData();
                 return;
+            }else if(state_machine.is(STATE_REGISTRATION_HANDSHAKE)){
+                registration_error_msg = data.status;
             }
         }
         if (!state_machine.is(STATE_READY) && !state_machine.is(STATE_DISCONNECTED)) {
@@ -432,7 +386,10 @@ var onDisconnect = function (event, from, to, msg) {
     if (socket_connection && socket_connection.readyState != 3) {
         socket_connection.send(getCustomRequest(BYE_REQUEST, session_info.token));
     }
-    if (session_info.connection_retried && session_info.last_state != '') {
+    if (session_info.reconnect) {
+        clearInterval(session_alive_interval);
+        clearInterval(refresh_token_interval);
+        session_info.reconnect = false;
         restoreConnection();
     }
 };
@@ -589,7 +546,7 @@ function resetAllData() {
     export_key_result = null;
     session_info = {
         last_state: '',
-        connection_retried: false,
+        reconnect: false,
         public_keys_required: false,
         export_key_required: false,
         pass_phrase_data: {
@@ -638,25 +595,44 @@ chrome.extension.onRequest.addListener(function (request, sender, sendOptionsRes
     } else if (request.hasOwnProperty('message') && request.message == 'is_registered') {
         sendOptionsResponse({is_registered: is_registered});
     } else if (request.hasOwnProperty('secret_code')) {
-        registration_secret = request.secret_code;
-        state_machine.connect();
-        var registrationResponseInterval = setInterval(function () {
-            console.log('registration is running...');
-            if (state_machine.is(STATE_DISCONNECTED) && registration_result == null) {
-                registration_result = {
-                    result: false,
-                    error: 'Registration was unsuccessful'
-                }
+        register_extension(request.secret_code, sendOptionsResponse)
+    }
+});
+
+function register_extension(secret_code, registerResponse){
+    registration_secret = secret_code;
+    state_machine.connect();
+    var registrationResponseInterval = setInterval(function () {
+        console.log('registration is running...');
+        if (state_machine.is(STATE_DISCONNECTED) && registration_result == null) {
+            registration_result = {
+                result: false,
+                error: 'Registration was unsuccessful'
+            };
+            if(registration_error_msg.length){
+                registration_result.error = registration_result.error + ': ' + registration_error_msg;
+                registration_error_msg = '';
             }
-            if (registration_result != null) {
-                log(LOG_LEVEL.DEBUG, registration_result);
-                sendOptionsResponse(registration_result);
-                registration_result = null;
-                registration_secret = null;
-                clearInterval(registrationResponseInterval);
+
+        }
+        if (registration_result != null) {
+            log(LOG_LEVEL.DEBUG, registration_result);
+            if(registration_result.result){
+                chrome.browserAction.setBadgeText({text: ""});
             }
-        }, 1000);
-        registrationResponseInterval;
+            registerResponse(registration_result);
+            registration_result = null;
+            registration_secret = null;
+            clearInterval(registrationResponseInterval);
+        }
+    }, 1000);
+    registrationResponseInterval;
+}
+
+
+chrome.runtime.onMessageExternal.addListener(function(request, sender, sendExternalResponse){
+    if(request.hasOwnProperty('command') && request.command == 'register_biomio_extension' && !is_registered){
+        register_extension(request.data.secret_code, sendExternalResponse);
     }
 });
 
@@ -665,21 +641,15 @@ chrome.extension.onRequest.addListener(function (request, sender, sendOptionsRes
  * Resets APP information saved in storage.
  */
 function resetAppRegistrationData() {
+    is_registered = false;
     removeFromStorage(STORAGE_KEYS.STORAGE_APP_ID_KEY);
+    setAppID(null);
     initializeApp();
-    state_machine.connect();
-    //chrome.storage.local.remove('biomio_private_key', function () {
-    //    var app_id_storage = {};
-    //    app_id_storage[APP_ID_STORAGE_KEY] = APP_ID_SUFFIX + randomString(32, '0123456789abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ');
-    //    chrome.storage.local.set(app_id_storage);
-    //    //setAppID(app_id_storage[APP_ID_STORAGE_KEY]);
-    //    setAppID(TEST_APP_ID);
-    //    log(LOG_LEVEL.DEBUG, 'New APP ID: ' + app_id_storage[APP_ID_STORAGE_KEY]);
-    //    state_machine.connect();
-    //});
 }
 
 function restoreConnection() {
+    session_info.token = '';
+    session_info.refresh_token = '';
     setupDefaults();
     state_machine.connect();
 }

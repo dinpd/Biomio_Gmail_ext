@@ -2,8 +2,6 @@ var NOT_YOU_MESSAGE = 'If it is not you, please close all opened gmail tabs and 
 var NO_ACCOUNT_MESSAGE = 'Please close all opened gmail tabs and login into your Gmail account in a new tab.';
 var current_gmail_user;
 
-var REST_RESET_URL = 'http://gb.vakoms.com:8880/redis?email=';
-
 $(document).ready(function () {
     chrome.extension.sendRequest({message: 'is_registered'}, function (response) {
         if (response.is_registered) {
@@ -16,7 +14,6 @@ $(document).ready(function () {
                     currUserElement.text(currUserElement.text() + current_gmail_user);
                     infoMessage.text(NOT_YOU_MESSAGE);
                 } else {
-                    $('#biomio_reset_keyring').attr('disabled', 'disabled');
                     currUserElement.text(currUserElement.text() + 'None');
                     infoMessage.text(NO_ACCOUNT_MESSAGE);
                 }
@@ -32,30 +29,28 @@ $(document).ready(function () {
                     list_errors.append('<li>No errors</li>');
                 }
             });
-            $('#biomio_reset_keyring').on('click', function (e) {
+        } else {
+            $('#current_user').hide();
+            $('#info_message').text("In order to use this extension it is required that you register it by " +
+            "entering the secret code generated on http://biom.io");
+            $('#errors').hide();
+            $('#secret_input').show();
+            var register_app_btn = $('#register_app_button');
+            register_app_btn.show();
+            register_app_btn.on('click', function (e) {
                 e.preventDefault();
-                var currentTarget = $(e.currentTarget);
-                currentTarget.attr('disabled', 'disabled');
-                currentTarget.val('Working....');
-                $.ajax({
-                    url: REST_RESET_URL + current_gmail_user,
-                    type: 'post',
-                    success: function () {
-                        chrome.runtime.sendMessage({command: 'biomio_reset_server_connection', data: {}});
-                        currentTarget.val('Done!');
-                    },
-                    error: function (error) {
-                        console.log(error);
-                        currentTarget.val('Failed.');
+                $(e.currentTarget).attr('disabled', 'disabled');
+                var secret_code = $('#secret_code').val();
+                chrome.extension.sendRequest({secret_code: secret_code}, function (responseData) {
+                    console.log(responseData);
+                    if (responseData.result) {
+                        window.location.reload();
+                    }else{
+                        alert(responseData.error);
+                        $(e.currentTarget).removeAttr('disabled');
                     }
                 });
             });
-        } else {
-            $('#current_user').hide();
-            $('#info_message').text("In order to use this extension it is required that you register it by inserting " +
-            "the verification code on our options page.");
-            $('#errors').hide();
-            $('#biomio_reset_keyring').hide();
         }
     });
     $('#reset_connection_button').on('click', function (e) {

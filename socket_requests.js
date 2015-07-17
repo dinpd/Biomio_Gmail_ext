@@ -4,7 +4,7 @@ var OS_ID = 'os id';
 var APP_TYPE = 'extension';
 var HEADER_OID = 'clientHeader';
 var DEV_ID = 'extension';
-var RPC_NAMESPACE = 'extension_plugin';
+var RPC_NAMESPACE = 'pgp_extension_plugin';
 
 var RPC_GET_PASS_PHRASE_METHOD = 'get_pass_phrase';
 var RPC_GET_PUBLIC_KEY_METHOD = 'get_users_public_pgp_keys';

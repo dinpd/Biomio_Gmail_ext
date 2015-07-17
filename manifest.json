@@ -4,6 +4,7 @@
   "description": "This extension will allow you to encrypt/decrypt your emails",
   "version": "1.0",
   "permissions": [
+    "management",
     "activeTab",
     "notifications",
     "storage",
@@ -63,5 +64,8 @@
       "css": ["bio_styles.css"]
     }
   ],
-  "content_security_policy": "script-src 'self' 'unsafe-eval'; object-src 'self'"
+  "content_security_policy": "script-src 'self' 'unsafe-eval'; object-src 'self'",
+  "externally_connectable": {
+    "matches": ["*://*.biom.io/*"]
+  }
 }

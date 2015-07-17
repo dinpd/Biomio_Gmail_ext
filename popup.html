@@ -19,7 +19,12 @@
 <p id="current_user">Current Gmail user: </p>
 
 <p id="info_message"></p>
-
+<div id="secret_input" hidden>
+    <label>
+        Your secret code:
+        <input type="text" placeholder="Secret Code" id="secret_code">
+    </label>
+</div>
 <div id="errors">
     <p>5 last errors:</p>
     <ul id="last_errors">
@@ -27,8 +32,8 @@
     <p>You can also look for errors in the browser developers console (Messages in red.).</p>
 </div>
 <div id="buttons">
+    <input type="button" value="Register App" id="register_app_button" hidden>
     <input type="button" value="Reset socket connection" id="reset_connection_button">
-    <input type="button" value="Reset my keyring" id="biomio_reset_keyring">
 </div>
 </body>
 </html>

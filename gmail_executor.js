@@ -59,7 +59,7 @@ function setupDefaults() {
     CANCEL_PROBE_MESSAGE_TYPE = 'cancel_probe';
     PROBE_ERROR_MESSAGE = "Your message wasn't encrypted because we were not able to identify you in time.";
     BIOMIO_INFO_MESSAGE = "This message is encrypted with BIOMIO biometric authentication. If you don’t have a BIOMIO" +
-    " account yet, get it <a href='' target='_blank'>here</a>";
+    " account yet, get it here - <a href='http://biom.io' target='_blank'>BIOMIO</a>";
     CONFIRMATION_ATTACH_MESSAGE = "You are about to encrypt your attachment, if you proceed all next attachments " +
     "will be encrypted. Do you want to proceed?";
     CONFIRMATION_SEND_MESSAGE = "You're sending an encrypted message. Do you want to proceed?";
@@ -167,8 +167,8 @@ var initializeGmailJSEvents = function () {
         var button = '<input type="checkbox" checked id="encrypt-body-' + compose.id() + '" title="Encrypt" class="aaA aWZ">';
         var transparentDiv = $('<div class="transparent_area" id="biomio_send_button" data-composeId="' + compose.id() + '"></div>');
         var attachmentDiv = $('<span class="transparent_area attach-button" id="attach-button-id" data-composeId="' + compose.id() + '" onclick="attachClicked(event)"></span>');
-        compose.find('.aWQ').prepend(button);
         setTimeout(function () {
+            compose.find('.a8X.gU > div:first-child').append(button);
             var attachButton = compose.find('.J-Z-I[command="Files"]');
             if (attachButton.length) {
                 $(attachButton).append(attachmentDiv);
@@ -254,14 +254,6 @@ function decryptMessage(event) {
             {
                 type: 'GET',
                 url: viewEntireEmailLink.attr('href'),
-                //xhr: function () {
-                //    var xhr = new window.XMLHttpRequest();
-                //    xhr.addEventListener("progress", function (evt) {
-                //        var total_value = xhr.getResponseHeader('content-length') * 1.5;
-                //        $('#biomio_progressbar').progressbar("value", (evt.loaded / total_value) * 100);
-                //    }, false);
-                //    return xhr;
-                //},
                 success: function (data) {
                     var emailBodyHtml = $(data).find('div[dir="ltr"]').html().replace(/BioMio v1.0<br>/g, 'BioMio v1.0').split('BioMio v1.0').join('BioMio v1.0<br>');
                     emailBody.html(emailBodyHtml);
