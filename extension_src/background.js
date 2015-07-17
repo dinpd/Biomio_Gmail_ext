@@ -616,6 +616,7 @@ function register_extension(secret_code, registerResponse){
 
         }
         if (registration_result != null) {
+            log(LOG_LEVEL.DEBUG, 'Registration Result:');
             log(LOG_LEVEL.DEBUG, registration_result);
             if(registration_result.result){
                 chrome.browserAction.setBadgeText({text: ""});
@@ -631,8 +632,13 @@ function register_extension(secret_code, registerResponse){
 
 
 chrome.runtime.onMessageExternal.addListener(function(request, sender, sendExternalResponse){
+    log(LOG_LEVEL.DEBUG, 'Received request from external source:');
+    log(LOG_LEVEL.DEBUG, request);
+    log(LOG_LEVEL.DEBUG, sender);
     if(request.hasOwnProperty('command') && request.command == 'register_biomio_extension' && !is_registered){
+        log(LOG_LEVEL.DEBUG, 'Started extension registration.');
         register_extension(request.data.secret_code, sendExternalResponse);
+        log(LOG_LEVEL.DEBUG, 'Finished extension registration.');
     }
 });
 
