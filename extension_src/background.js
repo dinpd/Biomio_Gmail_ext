@@ -477,6 +477,7 @@ chrome.runtime.onMessage.addListener(
         }
         else if ([SOCKET_REQUEST_TYPES.GET_PUBLIC_KEYS, SOCKET_REQUEST_TYPES.GET_PASS_PHRASE].indexOf(request.command) != -1) {
             currentRequestData = request.data;
+            session_info.pass_phrase_data.current_acc = '';
             if (session_info.pass_phrase_data.pass_phrase == ''
                 || currentRequestData['currentUser'] != session_info.pass_phrase_data.current_acc) {
                 session_info.pass_phrase_data.current_acc = '';
@@ -498,6 +499,7 @@ chrome.runtime.onMessage.addListener(
                 }
             } else if (request.command == SOCKET_REQUEST_TYPES.GET_PASS_PHRASE) {
                 session_info.public_keys_required = false;
+                session_info.pass_phrase_data.current_acc = '';
                 if (session_info.pass_phrase_data.current_acc != '') {
                     currentRequestData['pass_phrase_data'] = session_info.pass_phrase_data;
                     sendResponse(REQUEST_COMMANDS.COMMON_RESPONSE, currentRequestData);

@@ -32,7 +32,7 @@ $(document).ready(function () {
         } else {
             $('#current_user').hide();
             $('#info_message').html("In order to use this extension it is required that you register it by " +
-            'entering the secret code generated on <a href="http://biom.io/#signup">http://biom.io/#signup</a>');
+            'entering the secret code generated on <a target="_blank" href="http://biom.io/#signup">http://biom.io/#signup</a>');
             $('#errors').hide();
             $('#secret_input').show();
             var register_app_btn = $('#register_app_button');
