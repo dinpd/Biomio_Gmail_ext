@@ -37,13 +37,13 @@
   "options_page": "options.html",
   "browser_action": {
     "default_title": "BioMio",
-    "default_icon": "images/smallLogo.png",
+    "default_icon": "images/Logo-48x48.png",
     "default_popup": "popup.html"
   },
   "icons": {
-    "16": "images/smallLogo.png",
-    "48": "images/smallLogo.png",
-    "128": "images/smallLogo.png"
+    "16": "images/Logo-16x16.png",
+    "48": "images/Logo-48x48.png",
+    "128": "images/Logo-128x128.png"
   },
   "web_accessible_resources": [
     "additional_html.html",
