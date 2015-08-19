@@ -1,8 +1,9 @@
 {
   "manifest_version": 2,
-  "name": "BioMio",
-  "description": "This extension will allow you to encrypt/decrypt your emails",
-  "version": "1.0",
+  "name": "BIOMIO Email Protector for Gmail",
+  "short_name": "BIOMIO",
+  "description": "This extension will allow you to encrypt / decrypt your emails using BIOMIO Multi-factor Auth Platform",
+  "version": "2.1.3",
   "permissions": [
     "management",
     "activeTab",
@@ -49,7 +50,6 @@
     "additional_html.html",
     "*.js"
   ],
-  "key": "MIIBIjANBgkqhkiG9w0BAQEFAAOCAQ8AMIIBCgKCAQEAgRnXfhAUW+nb3IcT4Z8UZ4W10qN/3lB65lwDxHLNT4hc3Y0WTwgG81NFWCR8l/O79AMrn028v1x7O6yu1YZ3NmWl2QXo0GKHYmcuQQfHiAZwOLMq7ZBEDJzGlB6IkyFrDdIhaeLK8X9zYDJHRGZ2qruExD1JWVT9oRyXCyy5R+UAwDnNP8xa7X/65ojdZT4RcrBgwfwUhY5SBtBF9vlX4FpoROTVDtlAj2wNXX1Pi74tDL/ZsvERX7Y8E1w/Z2JOYlmZpsHaD9FZuUxB62tbJ7PC2xcSgxy7XNOeWJvi5BlGoG3lUwsLFAfLnXbd9D0txcCEMS2xr7hl4dh+V6+UbwIDAQAB",
   "content_scripts": [
     {
       "matches": ["*://mail.google.com/*"],
