@@ -5,6 +5,7 @@ var STATE_READY = 'connection_ready';
 var STATE_DISCONNECTED = 'disconnected';
 var STATE_PASS_PHRASE = 'get_pass_phrase';
 var STATE_PUBLIC_KEYS = 'get_public_keys';
+var STATE_REMOTE_AUTH = 'remote_auth';
 var socket_connection;
 var state_machine;
 
@@ -15,6 +16,9 @@ var registration_result = null;
 var registration_error_msg = '';
 
 var registration_secret = null;
+
+var client_auth_email = null;
+var client_auth_result = null;
 
 var is_registered = false;
 
@@ -53,7 +57,7 @@ function initializeApp() {
         session_info.rsa_private_key = decrypt_private_app_key(session_info.rsa_private_key);
         setAppID(app_id);
     }
-    if(!is_registered){
+    if (!is_registered) {
         chrome.browserAction.setBadgeText({text: "!"});
     }
     chrome.storage.local.get('biomio_settings', function (data) {
@@ -184,7 +188,7 @@ var socketOnMessage = function (event) {
         socket_connection.close();
         if (data.hasOwnProperty('status')) {
             log(LOG_LEVEL.DEBUG, data.status);
-            if (data.status.indexOf('Invalid token') != -1){
+            if (data.status.indexOf('Invalid token') != -1) {
                 session_info.reconnect = true;
                 return;
             }
@@ -195,7 +199,7 @@ var socketOnMessage = function (event) {
                 resetAllData();
                 resetAppRegistrationData();
                 return;
-            }else if(state_machine.is(STATE_REGISTRATION_HANDSHAKE)){
+            } else if (state_machine.is(STATE_REGISTRATION_HANDSHAKE)) {
                 registration_error_msg = data.status;
             }
         }
@@ -232,7 +236,7 @@ var socketOnMessage = function (event) {
         }
         is_registered = true;
         state_machine.ready('Handshake was successful!');
-    } else if ([STATE_READY, STATE_PASS_PHRASE, STATE_PUBLIC_KEYS].indexOf(state_machine.current) != -1) {
+    } else if ([STATE_READY, STATE_PASS_PHRASE, STATE_PUBLIC_KEYS, STATE_REMOTE_AUTH].indexOf(state_machine.current) != -1) {
         if (data.msg.oid == 'nop' && session_info.token != data.header.token) {
             session_info.token = data.header.token;
             clearInterval(refresh_token_interval);
@@ -242,50 +246,79 @@ var socketOnMessage = function (event) {
             var rspStatus = data.msg['rpcStatus'];
             if (dataResp.keys.indexOf('error') != -1) {
                 log(LOG_LEVEL.ERROR, 'Error received from rpc method: ' + dataResp.values[0]);
-                currentRequestData['error'] = dataResp.values[0];
-                sendResponse(REQUEST_COMMANDS.ERROR, currentRequestData);
+                if (state_machine.is(STATE_REMOTE_AUTH)) {
+                    client_auth_result = {
+                        result: false,
+                        error: dataResp.values[0],
+                        status: 'error'
+                    };
+                } else {
+                    currentRequestData['error'] = dataResp.values[0];
+                    sendResponse(REQUEST_COMMANDS.ERROR, currentRequestData);
+                }
             } else if (rspStatus == "inprogress") {
                 if (dataResp.keys.indexOf('timeout') != -1) {
-                    sendResponse(REQUEST_COMMANDS.SHOW_TIMER, {
-                        showTimer: true,
-                        msg: dataResp.values[0],
-                        timeout: dataResp.values[1]
-                    });
+                    if (state_machine.is(STATE_REMOTE_AUTH)) {
+                        client_auth_result = {
+                            message: dataResp.values[0],
+                            timeout: dataResp.values[1],
+                            status: 'in_progress'
+                        };
+                    } else {
+                        sendResponse(REQUEST_COMMANDS.SHOW_TIMER, {
+                            showTimer: true,
+                            msg: dataResp.values[0],
+                            timeout: dataResp.values[1]
+                        });
+                    }
                 } else {
-                    sendResponse(REQUEST_COMMANDS.SHOW_TIMER, {
-                        showTimer: false,
-                        msg: dataResp.values[0]
-                    });
+                    if (state_machine.is(STATE_REMOTE_AUTH)) {
+                        client_auth_result = {
+                            message: dataResp.values[0],
+                            status: 'in_progress'
+                        };
+                    } else {
+                        sendResponse(REQUEST_COMMANDS.SHOW_TIMER, {
+                            showTimer: false,
+                            msg: dataResp.values[0]
+                        });
+                    }
                 }
             } else {
-                for (var i = 0; i < dataResp.keys.length; i++) {
-                    if (dataResp.keys[i] == 'pass_phrase') {
-                        session_info.pass_phrase_data.pass_phrase = dataResp.values[i];
-                        session_info.pass_phrase_data.current_acc = currentRequestData['currentUser'];
-                        if (session_info.export_key_required) {
-                            currentRequestData.pass_phrase_data = session_info.pass_phrase_data;
-                            sendResponse(REQUEST_COMMANDS.EXPORT_KEY, currentRequestData);
-                        } else {
-                            sendResponse(REQUEST_COMMANDS.SHOW_TIMER, {showTimer: false});
-                        }
-                    } else {
-                        currentRequestData[dataResp.keys[i]] = dataResp.values[i];
-                    }
-                }
-                if (session_info.export_key_required) {
-                    state_machine.ready('Ready state...', true);
+                if (state_machine.is(STATE_REMOTE_AUTH)) {
+                    client_auth_result = {
+                        result: true,
+                        status: 'completed'
+                    };
                 } else {
-                    if (state_machine.is(STATE_PASS_PHRASE) && session_info.public_keys_required) {
-                        state_machine.public_keys('Getting public keys...');
-                    } else {
-                        if (!currentRequestData.hasOwnProperty('pass_phrase_data')) {
-                            currentRequestData.pass_phrase_data = session_info.pass_phrase_data;
+                    for (var i = 0; i < dataResp.keys.length; i++) {
+                        if (dataResp.keys[i] == 'pass_phrase') {
+                            session_info.pass_phrase_data.pass_phrase = dataResp.values[i];
+                            session_info.pass_phrase_data.current_acc = currentRequestData['currentUser'];
+                            if (session_info.export_key_required) {
+                                currentRequestData.pass_phrase_data = session_info.pass_phrase_data;
+                                sendResponse(REQUEST_COMMANDS.EXPORT_KEY, currentRequestData);
+                            } else {
+                                sendResponse(REQUEST_COMMANDS.SHOW_TIMER, {showTimer: false});
+                            }
+                        } else {
+                            currentRequestData[dataResp.keys[i]] = dataResp.values[i];
                         }
-                        sendResponse(REQUEST_COMMANDS.COMMON_RESPONSE, currentRequestData);
+                    }
+                    if (session_info.export_key_required) {
                         state_machine.ready('Ready state...', true);
+                    } else {
+                        if (state_machine.is(STATE_PASS_PHRASE) && session_info.public_keys_required) {
+                            state_machine.public_keys('Getting public keys...');
+                        } else {
+                            if (!currentRequestData.hasOwnProperty('pass_phrase_data')) {
+                                currentRequestData.pass_phrase_data = session_info.pass_phrase_data;
+                            }
+                            sendResponse(REQUEST_COMMANDS.COMMON_RESPONSE, currentRequestData);
+                            state_machine.ready('Ready state...', true);
+                        }
                     }
                 }
-
             }
         }
     }
@@ -300,6 +333,7 @@ var socketOnMessage = function (event) {
  */
 var onConnect = function (event, from, to, msg) {
     log(LOG_LEVEL.DEBUG, msg);
+    setupDefaults();
     socket_connection = new WebSocket(SERVER_URL);
     socket_connection.onerror = socketOnError;
     socket_connection.onopen = socketOnOpen;
@@ -365,7 +399,10 @@ var onReady = function (event, from, to, msg, noActionRequired) {
         clearInterval(refresh_token_interval);
         keepAlive();
         refresh_token();
-        if (session_info.public_keys_required) {
+        if (client_auth_email != null) {
+            state_machine.process_remote_auth('starting Client Authentication on behalf of - ' + client_auth_email, client_auth_email);
+        }
+        else if (session_info.public_keys_required) {
             state_machine.public_keys('Getting public keys...');
         }
         else if (session_info.pass_phrase_data.pass_phrase == '' || session_info.pass_phrase_data.current_acc == '' || session_info.export_key_required) {
@@ -419,6 +456,11 @@ var onPublicKeys = function (event, from, to, msg) {
         {'emails': currentRequestData.recipients.join(',')});
 };
 
+var onRemoteAuth = function (event, from, to, msg, email) {
+    log(LOG_LEVEL.DEBUG, msg);
+    socket_connection.send(getRpcAuthRequest(session_info.token, email))
+};
+
 /**
  * State machine initialization.
  */
@@ -435,6 +477,7 @@ state_machine = StateMachine.create({
         },
         {name: 'pass_phrase', from: STATE_READY, to: STATE_PASS_PHRASE},
         {name: 'public_keys', from: [STATE_READY, STATE_PASS_PHRASE], to: STATE_PUBLIC_KEYS},
+        {name: 'process_remote_auth', from: STATE_READY, to: STATE_REMOTE_AUTH},
         {name: 'disconnect', from: '*', to: STATE_DISCONNECTED}
     ],
     callbacks: {
@@ -444,6 +487,7 @@ state_machine = StateMachine.create({
         onready: onReady,
         onpass_phrase: onPassPhrase,
         onpublic_keys: onPublicKeys,
+        onprocess_remote_auth: onRemoteAuth,
         ondisconnect: onDisconnect
     }
 });
@@ -601,7 +645,7 @@ chrome.extension.onRequest.addListener(function (request, sender, sendOptionsRes
     }
 });
 
-function register_extension(secret_code, registerResponse){
+function register_extension(secret_code, registerResponse) {
     registration_secret = secret_code;
     state_machine.connect();
     var registrationResponseInterval = setInterval(function () {
@@ -611,7 +655,7 @@ function register_extension(secret_code, registerResponse){
                 result: false,
                 error: 'Registration was unsuccessful'
             };
-            if(registration_error_msg.length){
+            if (registration_error_msg.length) {
                 registration_result.error = registration_result.error + ': ' + registration_error_msg;
                 registration_error_msg = '';
             }
@@ -620,10 +664,15 @@ function register_extension(secret_code, registerResponse){
         if (registration_result != null) {
             log(LOG_LEVEL.DEBUG, 'Registration Result:');
             log(LOG_LEVEL.DEBUG, registration_result);
-            if(registration_result.result){
+            if (registration_result.result) {
                 chrome.browserAction.setBadgeText({text: ""});
             }
-            registerResponse(registration_result);
+            try {
+                registerResponse(registration_result);
+            }
+            catch (e) {
+                log(LOG_LEVEL.ERROR, e);
+            }
             registration_result = null;
             registration_secret = null;
             clearInterval(registrationResponseInterval);
@@ -633,15 +682,71 @@ function register_extension(secret_code, registerResponse){
 }
 
 
-chrome.runtime.onMessageExternal.addListener(function(request, sender, sendExternalResponse){
-    log(LOG_LEVEL.DEBUG, 'Received request from external source:');
-    log(LOG_LEVEL.DEBUG, request);
-    log(LOG_LEVEL.DEBUG, sender);
-    if(request.hasOwnProperty('command') && request.command == 'register_biomio_extension' && !is_registered){
-        log(LOG_LEVEL.DEBUG, 'Started extension registration.');
-        register_extension(request.data.secret_code, sendExternalResponse);
-        log(LOG_LEVEL.DEBUG, 'Finished extension registration.');
-    }
+//chrome.runtime.onMessageExternal.addListener(function (request, sender, sendExternalResponse) {
+//    log(LOG_LEVEL.DEBUG, 'Received request from external source:');
+//    log(LOG_LEVEL.DEBUG, request);
+//    log(LOG_LEVEL.DEBUG, sender);
+//    if (request.hasOwnProperty('command') && request.command == 'register_biomio_extension' && !is_registered) {
+//        log(LOG_LEVEL.DEBUG, 'Started extension registration.');
+//        register_extension(request.data.secret_code, sendExternalResponse);
+//        log(LOG_LEVEL.DEBUG, 'Finished extension registration.');
+//    }
+//});
+
+
+chrome.runtime.onConnectExternal.addListener(function (port) {
+    console.log(port);
+    port.onMessage.addListener(function (request) {
+        log(LOG_LEVEL.DEBUG, 'Received request from external source:');
+        log(LOG_LEVEL.DEBUG, request);
+        if (request.hasOwnProperty('command') && request.command == 'register_biomio_extension' && !is_registered) {
+            log(LOG_LEVEL.DEBUG, 'Started extension registration.');
+            register_extension(request.data.secret_code, function (result) {
+                port.postMessage(result)
+            });
+            log(LOG_LEVEL.DEBUG, 'Finished extension registration.');
+        } else if (request.hasOwnProperty('command') && request.command == 'run_auth') {
+            var client_email = '';
+            if (request.hasOwnProperty('email')) {
+                client_email = request.email;
+            }
+            if (!state_machine.is(STATE_READY)) {
+                session_info.reconnect = true;
+                client_auth_email = client_email;
+                state_machine.disconnect('Resetting connection');
+            } else {
+                state_machine.process_remote_auth('Running Client Authentication on behalf of - ' + client_email, client_email);
+            }
+            var auth_result_response_interval = setInterval(function () {
+                console.log('Client Authentication is running....');
+                if (state_machine.is(STATE_DISCONNECTED) && client_auth_result == null) {
+                    client_auth_result = {
+                        result: false,
+                        error: 'Authentication was unsuccessful',
+                        status: 'error'
+                    }
+                }
+                if (client_auth_result != null) {
+                    log(LOG_LEVEL.DEBUG, 'Authentication result:');
+                    log(LOG_LEVEL.DEBUG, client_auth_result);
+                    try {
+                        port.postMessage(client_auth_result);
+                    }
+                    catch (e) {
+                        log(LOG_LEVEL.ERROR, e);
+                    }
+                    var auth_status = client_auth_result.status;
+                    client_auth_result = null;
+                    client_email = null;
+                    if (auth_status == 'completed' || auth_status == 'error') {
+                        state_machine.disconnect('Client Authentication is finished with status - ' + auth_status);
+                        clearInterval(auth_result_response_interval);
+                    }
+                }
+            }, 1000);
+            auth_result_response_interval;
+        }
+    });
 });
 
 
@@ -688,7 +793,7 @@ function decrypt_private_app_key(encrypted_key) {
     return decrypt_result.result_;
 }
 
-function prepare_email(email){
+function prepare_email(email) {
     email = email.replace(/</g, '');
     email = email.replace(/>/g, '');
     return email;

@@ -4,10 +4,14 @@ var OS_ID = 'os id';
 var APP_TYPE = 'extension';
 var HEADER_OID = 'clientHeader';
 var DEV_ID = 'extension';
-var RPC_NAMESPACE = 'pgp_extension_plugin';
+
+var RPC_PGP_NAMESPACE = 'pgp_extension_plugin';
+var RPC_AUTH_CLIENT_NAMESPACE = 'auth_client_plugin';
+
 
 var RPC_GET_PASS_PHRASE_METHOD = 'get_pass_phrase';
 var RPC_GET_PUBLIC_KEY_METHOD = 'get_users_public_pgp_keys';
+var RPC_PROCESS_AUTH_METHOD = 'process_auth';
 
 var REQUEST_HEADER,
     RPC_REQUEST,
@@ -105,6 +109,20 @@ function getRpcRequest(token, method, onBehalfOf, keyValueDict) {
     return JSON.stringify(request);
 }
 
+function getRpcAuthRequest(token, onBehalfOf){
+    var request = RPC_REQUEST;
+    request.header.token = token;
+    request.msg.namespace = RPC_AUTH_CLIENT_NAMESPACE;
+    request.msg.call = RPC_PROCESS_AUTH_METHOD;
+    request.msg.onBehalfOf = onBehalfOf;
+    request.msg.data = {
+        keys: [],
+        values: []
+    };
+    return JSON.stringify(request);
+}
+
+
 /**
  * Sets application APP_ID and initializes defaults.
  * @param {string} appId
@@ -135,7 +153,7 @@ function setupDefaults() {
         msg: {
             oid: 'rpcReq',
             onBehalfOf: 'STRING_USER_EMAIL',
-            namespace: RPC_NAMESPACE,
+            namespace: RPC_PGP_NAMESPACE,
             call: 'STRING_METHOD_NAME',
             data: {
                 keys: [],

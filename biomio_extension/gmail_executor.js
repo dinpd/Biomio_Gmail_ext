@@ -24,14 +24,14 @@ var gmail,
  */
 function setupDefaults() {
     showLoading = $('#biomio_show_loading');
-    try{
+    try {
         gmail = Gmail($);
-    }catch (e){
-        if(e.message.indexOf('GLOBALS') != -1){
+    } catch (e) {
+        if (e.message.indexOf('GLOBALS') != -1) {
             console.log(e.message);
             showLoading.hide();
             return;
-        }else if(e.message == 'Gmail is not defined'){
+        } else if (e.message == 'Gmail is not defined') {
 
             window.location.reload();
         }
@@ -297,7 +297,10 @@ function sendMessageClicked(event) {
         var encryptionRequired = encryptRequired(compose);
         if (isConfirmed && encryptionRequired) {
             showHideInfoPopup(ENCRYPT_WAIT_MESSAGE);
-            var recipients_arr = compose.to().concat(compose.cc()).concat(compose.bcc());
+            var recipients_arr = compose.recipients({type: 'to', flat: true}).concat(compose.recipients({
+                type: 'cc',
+                flat: true
+            })).concat(compose.recipients({type: 'bcc', flat: true}));
             $('#biomio-attachments-' + compose.id()).remove();
             sendContentMessage("encrypt_sign", {
                 action: "encrypt_only",
@@ -422,7 +425,7 @@ window.addEventListener("message", function (event) {
             biomioOkButton.attr('data-composeId', data['composeId']);
         }
         biomioOkButton.show();
-    } else if (data.hasOwnProperty('show_email_errors')){
+    } else if (data.hasOwnProperty('show_email_errors')) {
         show_email_errors(data['show_email_errors']);
         biomioOkButton.show();
     }
@@ -565,11 +568,11 @@ function sendContentMessage(type, message) {
 }
 
 
-function show_email_errors(email_errors){
+function show_email_errors(email_errors) {
     showHideInfoPopup('Unfortunately we were not able to send encrypted emails to following addresses:', false);
     var error_emails_list_ul = $('#biomio_error_emails_list');
     email_errors = email_errors.split(',,,');
-    for(var i = 0; i < email_errors.length; i++){
+    for (var i = 0; i < email_errors.length; i++) {
         var email_errors_json = email_errors[i].replace(/'/g, '"');
         email_errors_json = JSON.parse(email_errors_json);
         error_emails_list_ul.append('<li>' + email_errors_json.email + ' - ' + email_errors_json.error + '</li>');
