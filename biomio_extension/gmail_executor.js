@@ -48,7 +48,7 @@ function setupDefaults() {
         }
     };
     showPopup = $('#biomio_show_popup');
-    DECRYPT_WAIT_MESSAGE = 'Please wait, we are getting the content of your email to decrypt it....';
+    DECRYPT_WAIT_MESSAGE = 'Please wait, we are decrypting your message...';
     ENCRYPT_WAIT_MESSAGE = 'Please wait, we are encrypting your message...';
     ENCRYPT_SUCCESS_MESSAGE = 'Your message was successfully decrypted.';
     FILE_ENCRYPT_WAIT_MESSAGE = 'Please wait, we are encrypting your attachments...';
@@ -77,10 +77,23 @@ function setupDefaults() {
         confirmationClicked(e);
     });
 
+    $('#biomio_cancel_button').on('click', function(e){
+        e.preventDefault();
+        clearInterval(showTimer);
+        sendContentMessage(CANCEL_PROBE_MESSAGE_TYPE, {});
+        $('#biomio_timer').text('');
+        showHideInfoPopup('', true);
+    });
+
 
     $(document).on('click', '#biomio_decrypt_button', function (e) {
         e.preventDefault();
         decryptMessage(e);
+    });
+
+    $(document).on('click', '.bio-enc-btn', function(e){
+        e.preventDefault();
+        $(e.currentTarget).toggleClass('down');
     });
 
     $(document).on('click', '#biomio_send_button', function (e) {
@@ -134,7 +147,7 @@ var initializeGmailJSEvents = function () {
                 reader.readAsDataURL(file);
                 hideBodyErrorsShowMessage(FILE_ENCRYPT_WAIT_MESSAGE);
                 xhr.abort();
-            } else if (isConfirmed && needToCheck.length && needToCheck.is(':checked')) {
+            } else if (isConfirmed && needToCheck.length && needToCheck.hasClass('down')) {
                 hideBodyErrorsShowMessage("It is required to specify recipients to be able to encrypt the attachment. " +
                 "If you don't want to encrypt the files just uncheck 'Encrypt' checkbox");
                 xhr.abort();
@@ -164,7 +177,7 @@ var initializeGmailJSEvents = function () {
     });
 
     gmail.observe.on('compose', function (compose, type) {
-        var button = '<input type="checkbox" checked id="encrypt-body-' + compose.id() + '" title="Encrypt" class="aaA aWZ">';
+        var button = '<div class="bio-enc-btn down" type="checkbox" id="encrypt-body-' + compose.id() + '" title="Encrypt" class="aaA aWZ"></div>';
         var transparentDiv = $('<div class="transparent_area" id="biomio_send_button" data-composeId="' + compose.id() + '"></div>');
         var attachmentDiv = $('<span class="transparent_area attach-button" id="attach-button-id" data-composeId="' + compose.id() + '" onclick="attachClicked(event)"></span>');
         setTimeout(function () {
@@ -223,6 +236,7 @@ function showHideInfoPopup(infoMessage, hide) {
     $('#biomio_ok_button').hide();
     $('#biomio_yes_button').hide();
     $('#biomio_no_button').hide();
+    $('#biomio_cancel_button').hide();
     $('#close_popup').hide();
     $('#biomio_error_emails_list').hide();
     if (hide) {
@@ -327,7 +341,7 @@ function sendMessageClicked(event) {
  * @returns {boolean}
  */
 function isEncryptionConfirmed(composeID) {
-    var encCheckBoxDisabled = $('#encrypt-body-' + composeID).attr('disabled');
+    var encCheckBoxDisabled = $('#encrypt-body-' + composeID).hasClass('disabled');
     return typeof encCheckBoxDisabled != "undefined" && encCheckBoxDisabled;
 }
 
@@ -375,12 +389,13 @@ function confirmationClicked(e) {
 function manageEncryptionCheckbox(composeID, unCheck, disabled) {
     var encryptionCheckbox = $('#encrypt-body-' + composeID);
     if (unCheck) {
-        encryptionCheckbox.attr('checked', false);
+        // encryptionCheckbox.attr('checked', false);
+        encryptionCheckbox.removeClass('down');
     }
     if (disabled) {
-        encryptionCheckbox.attr('disabled', true);
+        encryptionCheckbox.addClass('disabled');
     } else {
-        encryptionCheckbox.removeAttr('disabled');
+        encryptionCheckbox.removeClass('disabled');
     }
 
 }
@@ -393,7 +408,7 @@ function manageEncryptionCheckbox(composeID, unCheck, disabled) {
 function encryptRequired(compose) {
     var hasRecipients = compose.to().length || compose.cc().length || compose.bcc().length;
     var needToCheck = compose.find('#encrypt-body-' + compose.id());
-    return needToCheck.length && needToCheck.is(':checked') && hasRecipients;
+    return needToCheck.length && needToCheck.hasClass('down') && hasRecipients;
 }
 
 /**
@@ -438,7 +453,7 @@ window.addEventListener("message", function (event) {
             if (data.hasOwnProperty('msg')) {
                 showHideInfoPopup(data['msg']);
             } else {
-                showHideInfoPopup(ENCRYPT_WAIT_MESSAGE);
+                showHideInfoPopup(DECRYPT_WAIT_MESSAGE);
             }
         }
     } else if (data.hasOwnProperty('completedAction') && (data['completedAction'] == "encrypt_only")) {
@@ -541,6 +556,8 @@ function triggerSendButton(compose) {
 function calculateTime(timeout) {
     var biomio_timer = $('#biomio_timer');
     biomio_timer.show();
+    $('#biomio_cancel_button').show();
+
     showTimer = setInterval(function () {
         timeout--;
         if (timeout <= 0) {

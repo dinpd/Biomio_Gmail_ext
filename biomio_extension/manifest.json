@@ -48,7 +48,8 @@
   },
   "web_accessible_resources": [
     "additional_html.html",
-    "*.js"
+    "*.js",
+    "images/*.png"
   ],
   "content_scripts": [
     {

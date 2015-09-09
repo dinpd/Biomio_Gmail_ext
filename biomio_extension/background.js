@@ -706,45 +706,51 @@ chrome.runtime.onConnectExternal.addListener(function (port) {
             });
             log(LOG_LEVEL.DEBUG, 'Finished extension registration.');
         } else if (request.hasOwnProperty('command') && request.command == 'run_auth') {
-            var client_email = '';
-            if (request.hasOwnProperty('email')) {
-                client_email = request.email;
-            }
-            if (!state_machine.is(STATE_READY)) {
-                session_info.reconnect = true;
-                client_auth_email = client_email;
-                state_machine.disconnect('Resetting connection');
+            if (!is_registered) {
+                port.postMessage({error: 'Extension is not registered.', status: 'error'});
             } else {
-                state_machine.process_remote_auth('Running Client Authentication on behalf of - ' + client_email, client_email);
+                var client_email = '';
+                if (request.hasOwnProperty('email')) {
+                    client_email = request.email;
+                }
+                if (!state_machine.is(STATE_READY)) {
+                    session_info.reconnect = true;
+                    client_auth_email = client_email;
+                    state_machine.disconnect('Resetting connection');
+                } else {
+                    state_machine.process_remote_auth('Running Client Authentication on behalf of - ' + client_email, client_email);
+                }
+                var auth_result_response_interval = setInterval(function () {
+                    console.log('Client Authentication is running....');
+                    if (state_machine.is(STATE_DISCONNECTED) && client_auth_result == null) {
+                        client_auth_result = {
+                            result: false,
+                            error: 'Authentication was unsuccessful',
+                            status: 'error'
+                        }
+                    }
+                    if (client_auth_result != null) {
+                        log(LOG_LEVEL.DEBUG, 'Authentication result:');
+                        log(LOG_LEVEL.DEBUG, client_auth_result);
+                        try {
+                            port.postMessage(client_auth_result);
+                        }
+                        catch (e) {
+                            log(LOG_LEVEL.ERROR, e);
+                        }
+                        var auth_status = client_auth_result.status;
+                        client_auth_result = null;
+                        client_email = null;
+                        if (auth_status == 'completed' || auth_status == 'error') {
+                            state_machine.disconnect('Client Authentication is finished with status - ' + auth_status);
+                            clearInterval(auth_result_response_interval);
+                        }
+                    }
+                }, 1000);
+                auth_result_response_interval;
             }
-            var auth_result_response_interval = setInterval(function () {
-                console.log('Client Authentication is running....');
-                if (state_machine.is(STATE_DISCONNECTED) && client_auth_result == null) {
-                    client_auth_result = {
-                        result: false,
-                        error: 'Authentication was unsuccessful',
-                        status: 'error'
-                    }
-                }
-                if (client_auth_result != null) {
-                    log(LOG_LEVEL.DEBUG, 'Authentication result:');
-                    log(LOG_LEVEL.DEBUG, client_auth_result);
-                    try {
-                        port.postMessage(client_auth_result);
-                    }
-                    catch (e) {
-                        log(LOG_LEVEL.ERROR, e);
-                    }
-                    var auth_status = client_auth_result.status;
-                    client_auth_result = null;
-                    client_email = null;
-                    if (auth_status == 'completed' || auth_status == 'error') {
-                        state_machine.disconnect('Client Authentication is finished with status - ' + auth_status);
-                        clearInterval(auth_result_response_interval);
-                    }
-                }
-            }, 1000);
-            auth_result_response_interval;
+        } else if (request.hasOwnProperty('command') && request.command == 'is_registered') {
+            port.postMessage({is_registered: is_registered});
         }
     });
 });
