@@ -1,3 +1,4 @@
+@import url(http://fonts.googleapis.com/css?family=Roboto:500,300,700,400&subset=cyrillic,latin);
 .transparent_area {
     opacity: 0;
     filter: alpha(opacity=0);
@@ -25,55 +26,74 @@
     filter: alpha(opacity=80);
 }
 
-.biomio_white_content {
+.biomio_popup_gray {
     display: none;
+    font-family: 'Roboto', sans-serif;
+    background-color: #fff;
+    border: 4px solid #656a7f;
+    border-radius: 4px;
+    color: #656a7f;
     position: absolute;
     top: 25%;
-    left: 35%;
-    width: 30%;
-    height: 30%;
-    padding: 16px;
-    border: 1px solid blue;
-    background-color: #ffffff;
+    left: 30%;
+    width: 40%;
+    height: 45%;
     z-index: 1002;
     overflow: auto;
-    opacity: 0.8;
 }
 
 .biomio_wait_message {
+    display: none;
+    font-size: 24px;
+    font-weight: 300;
     text-align: center;
-    margin-top: 25px;
+    padding: 34px 0;
+}
+
+.popgrtextsmall {
+    display: none;
+    font-size: 21px;
+    font-weight: 300;
+    text-align: center;
+    padding: 0 15px 15px 15px;
+}
+
+.popgrheader {
+    background-color: #656a7f;
+    padding: 9px;
+    text-align: left;
+
 }
 
 #biomio_timer {
     display: none;
+    color: #fa8768;
+    padding: 15px;
     text-align: center;
-    color: red;
-    font-weight: bold;
-    font-size: 20px;
+    font-size: 64px;
 }
 
 #biomio_ok_button, #biomio_yes_button, #biomio_no_button, #biomio_cancel_button {
     display: none;
 }
 
-.biomio_buttons {
-    text-align: center;
-}
+/*.biomio_buttons {*/
+/*text-align: center;*/
+/*}*/
 
-#close_popup {
-    margin-bottom: -16px;
-    margin-top: -14px;
-    float: right;
-    margin-right: -8px;
-    cursor: pointer;
-}
+/*#close_popup {*/
+/*margin-bottom: -16px;*/
+/*margin-top: -14px;*/
+/*float: right;*/
+/*margin-right: -8px;*/
+/*cursor: pointer;*/
+/*}*/
 
-#biomio_mark {
-    float: left;
-    margin-top: -10px;
-    margin-left: -5px;
-}
+/*#biomio_mark {*/
+/*float: left;*/
+/*margin-top: -10px;*/
+/*margin-left: -5px;*/
+/*}*/
 
 .bio-enc-btn {
     display: inline-block;
@@ -96,7 +116,35 @@
     border-bottom: solid 2px #eaeaea;
     border-right: solid 2px #eaeaea;
 }
+
 .bio-enc-btn.disabled, .bio-enc-btn.down.disabled {
     pointer-events: none;
     opacity: 0.5;
+}
+
+a.proceed-button {
+    color: #fff;
+    background-color: #fa8768;
+    padding: 14px 14px 14px 50px;
+    background-image: url('chrome-extension://__MSG_@@extension_id__/images/lock.png');
+    background-repeat: no-repeat;
+    background-position: 11px center;
+    text-decoration: none;
+    font-size: 20px;
+    margin: 0 20px 20px 20px;
+}
+
+a.simple-button {
+    color: #fff;
+    background-color: #9ea2b3;
+    padding: 14px;
+    text-decoration: none;
+    font-size: 20px;
+    margin: 0 20px 20px 20px;
+    float: right;
+}
+
+.close-button {
+    float: right;
+    padding: 4px 9px;
 }

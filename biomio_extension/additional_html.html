@@ -1,20 +1,31 @@
 <div class="biomio_black_overlay" id="biomio_show_loading"></div>
-<div class="biomio_white_content" id="biomio_show_popup">
-    <!--<div id="biomio_progressbar"></div>-->
-    <span id="biomio_mark">BioMio</span>
-    <span id="close_popup">x</span>
+<div class="biomio_popup_gray" id="biomio_show_popup">
+    <div class='popgrheader'>
+        <img id="bio_logo_img" src='chrome-extension://__MSG_@@extension_id__/images/logo.png'>
+        <a href='#' class='close-button' id="close_popup"><img id="bio_close_img"
+                src='chrome-extension://__MSG_@@extension_id__/images/close.png'></a>
+    </div>
 
-    <p class="biomio_wait_message"></p>
+    <div class='biomio_wait_message'>
+    </div>
     <ul hidden id="biomio_error_emails_list">
 
     </ul>
 
-    <p id="biomio_timer"></p>
+    <div id='biomio_timer'></div>
 
-    <p class="biomio_buttons">
-        <input type="button" value="OK" id="biomio_ok_button">
-        <input type="button" value="Proceed" id="biomio_yes_button">
-        <input type="button" value="" id="biomio_no_button">
-        <input type="button" value="Cancel" id="biomio_cancel_button">
-    </p>
+    <div class='popgrtextsmall' id="bottom_message"></div>
+
+    <a href='#' class='proceed-button' id="biomio_ok_button">OK</a>
+    <a href='#' class='proceed-button' id="biomio_yes_button">Proceed</a>
+    <a href='#' id="biomio_no_button" class='simple-button'></a>
+    <a href='#' id="biomio_cancel_button" class='simple-button'>Cancel</a>
 </div>
+<script>
+    var url = chrome.extension.getURL('images/logo.png');
+    $('#bio_logo_img').attr('src', url);
+    url = chrome.extension.getURL('images/close.png');
+    $('#bio_close_img').attr('src', url);
+
+</script>
+
