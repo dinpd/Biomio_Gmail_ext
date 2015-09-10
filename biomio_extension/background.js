@@ -19,6 +19,7 @@ var registration_secret = null;
 
 var client_auth_email = null;
 var client_auth_result = null;
+var client_auth_code = null;
 
 var is_registered = false;
 
@@ -399,8 +400,8 @@ var onReady = function (event, from, to, msg, noActionRequired) {
         clearInterval(refresh_token_interval);
         keepAlive();
         refresh_token();
-        if (client_auth_email != null) {
-            state_machine.process_remote_auth('starting Client Authentication on behalf of - ' + client_auth_email, client_auth_email);
+        if (client_auth_email != null && client_auth_code != null) {
+            state_machine.process_remote_auth('starting Client Authentication on behalf of - ' + client_auth_email, client_auth_email, client_auth_code);
         }
         else if (session_info.public_keys_required) {
             state_machine.public_keys('Getting public keys...');
@@ -456,9 +457,11 @@ var onPublicKeys = function (event, from, to, msg) {
         {'emails': currentRequestData.recipients.join(',')});
 };
 
-var onRemoteAuth = function (event, from, to, msg, email) {
+var onRemoteAuth = function (event, from, to, msg, email, auth_code) {
     log(LOG_LEVEL.DEBUG, msg);
-    socket_connection.send(getRpcAuthRequest(session_info.token, email))
+    socket_connection.send(getRpcAuthRequest(session_info.token, email, auth_code));
+    client_auth_email = null;
+    client_auth_code = null;
 };
 
 /**
@@ -705,7 +708,7 @@ chrome.runtime.onConnectExternal.addListener(function (port) {
                 port.postMessage(result)
             });
             log(LOG_LEVEL.DEBUG, 'Finished extension registration.');
-        } else if (request.hasOwnProperty('command') && request.command == 'run_auth') {
+        } else if (request.hasOwnProperty('command') && request.command == 'run_auth' && request.hasOwnProperty('auth_code')) {
             if (!is_registered) {
                 port.postMessage({error: 'Extension is not registered.', status: 'error'});
             } else {
@@ -716,9 +719,10 @@ chrome.runtime.onConnectExternal.addListener(function (port) {
                 if (!state_machine.is(STATE_READY)) {
                     session_info.reconnect = true;
                     client_auth_email = client_email;
+                    client_auth_code = request.auth_code;
                     state_machine.disconnect('Resetting connection');
                 } else {
-                    state_machine.process_remote_auth('Running Client Authentication on behalf of - ' + client_email, client_email);
+                    state_machine.process_remote_auth('Running Client Authentication on behalf of - ' + client_email, client_email, request.auth_code);
                 }
                 var auth_result_response_interval = setInterval(function () {
                     console.log('Client Authentication is running....');
@@ -741,6 +745,7 @@ chrome.runtime.onConnectExternal.addListener(function (port) {
                         var auth_status = client_auth_result.status;
                         client_auth_result = null;
                         client_email = null;
+                        client_auth_code = null;
                         if (auth_status == 'completed' || auth_status == 'error') {
                             state_machine.disconnect('Client Authentication is finished with status - ' + auth_status);
                             clearInterval(auth_result_response_interval);
