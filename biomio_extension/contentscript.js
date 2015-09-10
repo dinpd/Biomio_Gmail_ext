@@ -160,16 +160,20 @@ function decryptMessage(data) {
     log(LOG_LEVEL.DEBUG, data);
     var emailParts = data.content.split(EMAIL_PARTS_SEPARATOR);
     try {
-        _decryptMessage(emailParts[0], data.pass_phrase_data, function(result){
-            data.content = result;
-            if (emailParts.length > 1) {
-                data['decryptedFiles'] = [];
-                for (var i = 1; i < emailParts.length; i++) {
-                    data.decryptedFiles.push(decryptFile(emailParts[i], data.pass_phrase_data));
+        _decryptMessage(emailParts[0], data.pass_phrase_data, function (result, error) {
+            if (typeof error != "undefined" && error.length > 0) {
+                sendResponse({error: error});
+            } else {
+                data.content = result;
+                if (emailParts.length > 1) {
+                    data['decryptedFiles'] = [];
+                    for (var i = 1; i < emailParts.length; i++) {
+                        data.decryptedFiles.push(decryptFile(emailParts[i], data.pass_phrase_data));
+                    }
                 }
+                data.completedAction = 'decrypt_verify';
+                sendResponse(data);
             }
-            data.completedAction = 'decrypt_verify';
-            sendResponse(data);
         });
 
     } catch (error) {
@@ -194,42 +198,44 @@ function _decryptMessage(content, pass_phrase_data, callbackFunction) {
         if (decryptedText.result_.message.indexOf('No keys found') != -1 && callbackFunction) {
             var storage_key = STORAGE_KEYS.STORAGE_PGP_BACKUP_KEY + pass_phrase_data.current_acc;
             chrome.storage.sync.get(storage_key,
-                function(result){
-                    if(result.hasOwnProperty(storage_key)){
+                function (result) {
+                    if (result.hasOwnProperty(storage_key)) {
                         var private_pgp_key = result[storage_key];
                         log(LOG_LEVEL.INFO, 'RESTORED private pgp key');
                         log(LOG_LEVEL.DEBUG, private_pgp_key);
                         pgpContext.importKey(function () {
                             return null
                         }, private_pgp_key, pass_phrase_data.pass_phrase);
-                        decryptedText = pgpContext.verifyDecrypt(function(){
+                        decryptedText = pgpContext.verifyDecrypt(function () {
 
                         }, content);
                         log(LOG_LEVEL.DEBUG, 'Decryption result:');
                         log(LOG_LEVEL.DEBUG, decryptedText);
-                        if(decryptedText.hadError_){
+                        if (decryptedText.hadError_) {
                             log(LOG_LEVEL.ERROR, decryptedText.result_.message);
                             if (decryptedText.result_.message.indexOf('No keys found') != -1) {
-                                throw ERROR_MESSAGES.DECRYPTION_DENIED_ERROR;
+                                callbackFunction(null, ERROR_MESSAGES.DECRYPTION_DENIED_ERROR);
+                            } else {
+                                callbackFunction(null, ERROR_MESSAGES.DECRYPTION_UNKNOWN_ERROR);
                             }
-                            throw ERROR_MESSAGES.DECRYPTION_UNKNOWN_ERROR;
+                        } else {
+                            decryptedText = decryptedText.result_.decrypt;
+                            decryptedText = e2e.byteArrayToStringAsync(decryptedText.data, decryptedText.options.charset);
+                            callbackFunction(decryptedText.result_);
                         }
-                        decryptedText = decryptedText.result_.decrypt;
-                        decryptedText = e2e.byteArrayToStringAsync(decryptedText.data, decryptedText.options.charset);
-                        callbackFunction(decryptedText.result_);
-                    }else{
-                        throw ERROR_MESSAGES.DECRYPTION_DENIED_ERROR;
+                    } else {
+                        callbackFunction(null, ERROR_MESSAGES.DECRYPTION_DENIED_ERROR);
                     }
                 });
-        }else{
+        } else {
             throw ERROR_MESSAGES.DECRYPTION_UNKNOWN_ERROR;
         }
-    }else{
+    } else {
         decryptedText = decryptedText.result_.decrypt;
         decryptedText = e2e.byteArrayToStringAsync(decryptedText.data, decryptedText.options.charset);
-        if(callbackFunction){
+        if (callbackFunction) {
             callbackFunction(decryptedText.result_);
-        }else{
+        } else {
             return decryptedText.result_;
         }
     }
@@ -351,15 +357,15 @@ function _importKeys(data, callback) {
         if (data.hasOwnProperty('public_pgp_keys')) {
             _resetKeyRing(TEMP_PUB_KEYRING);
             log(LOG_LEVEL.DEBUG, 'Importing PUBLIC PGP KEYS');
-            if(data.hasOwnProperty('emails_with_errors')){
+            if (data.hasOwnProperty('emails_with_errors')) {
                 sendResponse({show_email_errors: data['emails_with_errors']});
             }
-            if(data['public_pgp_keys'].length == 0){
-                if(!data.hasOwnProperty('emails_with_errors')){
+            if (data['public_pgp_keys'].length == 0) {
+                if (!data.hasOwnProperty('emails_with_errors')) {
                     sendResponse({error: ERROR_MESSAGES.NO_PUBLIC_KEYS_ERROR});
                 }
                 return;
-            }else{
+            } else {
                 pgpContext.setKeyRingPassphrase('', TEMP_PUB_KEYRING);
                 var public_pgp_keys = data['public_pgp_keys'].split(',');
                 for (var i = 0; i < public_pgp_keys.length; i++) {
