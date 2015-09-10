@@ -64,7 +64,7 @@ function setupDefaults() {
     "will be encrypted. Do you want to proceed?";
     CONFIRMATION_SEND_MESSAGE = "You're sending an encrypted message. Do you want to proceed?";
 
-    $('#biomio_ok_button, #close_popup').on('click', function (e) {
+    $('#biomio_ok_button, #bio_close_popup').on('click', function (e) {
         e.preventDefault();
         if ($(e.currentTarget).attr('data-composeId')) {
             manageEncryptionCheckbox($(e.currentTarget).attr('data-composeId'), true);
@@ -237,14 +237,17 @@ function showHideInfoPopup(infoMessage, hide) {
     $('#biomio_yes_button').hide();
     $('#biomio_no_button').hide();
     $('#biomio_cancel_button').hide();
-    $('#close_popup').hide();
+    $('#bio_close_popup').hide();
     $('#biomio_error_emails_list').hide();
+    showPopup.find('#bio_bottom_message').hide();
     if (hide) {
         showLoading.hide();
         showPopup.fadeOut(500);
     } else {
         showLoading.show();
-        showPopup.find('.biomio_wait_message').html(infoMessage);
+        var wait_msg = showPopup.find('.biomio_wait_message');
+        wait_msg.html(infoMessage);
+        wait_msg.show();
         showPopup.fadeIn(500);
     }
     gmail.tools.infobox(infoMessage, 5000);
@@ -354,10 +357,10 @@ function isEncryptionConfirmed(composeID) {
  */
 function showConfirmationPopup(message, currComposeID, elementToClick, noButtonValue) {
     showHideInfoPopup(message);
-    $('#close_popup').show();
+    $('#bio_close_popup').show();
     var yesButton = $('#biomio_yes_button');
     var noButton = $('#biomio_no_button');
-    noButton.attr('value', noButtonValue);
+    noButton.text(noButtonValue);
     yesButton.attr('data-click-element', elementToClick);
     yesButton.attr('data-composeId', currComposeID);
     yesButton.show();
@@ -446,8 +449,7 @@ window.addEventListener("message", function (event) {
     }
     else if (data.hasOwnProperty('showTimer')) {
         if (data['showTimer']) {
-            showHideInfoPopup(data['msg']);
-            calculateTime(data['timeout']);
+            calculateTime(data['timeout'], data['msg']);
         } else {
             clearInterval(showTimer);
             if (data.hasOwnProperty('msg')) {
@@ -553,7 +555,18 @@ function triggerSendButton(compose) {
 /**
  * Shows timer for user. Time that user has to provide a probe from his device.
  */
-function calculateTime(timeout) {
+function calculateTime(timeout, message) {
+    $('#biomio_ok_button').hide();
+    $('#biomio_yes_button').hide();
+    $('#biomio_no_button').hide();
+    $('#bio_close_popup').hide();
+    $('#biomio_error_emails_list').hide();
+    showLoading.show();
+    showPopup.find('.biomio_wait_message').hide();
+    var bottom_msg = showPopup.find('#bio_bottom_message');
+    bottom_msg.html(message);
+    bottom_msg.show();
+    showPopup.fadeIn(500);
     var biomio_timer = $('#biomio_timer');
     biomio_timer.show();
     $('#biomio_cancel_button').show();
