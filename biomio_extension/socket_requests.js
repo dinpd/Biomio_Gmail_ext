@@ -109,16 +109,22 @@ function getRpcRequest(token, method, onBehalfOf, keyValueDict) {
     return JSON.stringify(request);
 }
 
-function getRpcAuthRequest(token, onBehalfOf, auth_code){
+function getRpcAuthRequest(token, onBehalfOf, keyValueDict){
     var request = RPC_REQUEST;
     request.header.token = token;
     request.msg.namespace = RPC_AUTH_CLIENT_NAMESPACE;
     request.msg.call = RPC_PROCESS_AUTH_METHOD;
     request.msg.onBehalfOf = onBehalfOf;
     request.msg.data = {
-        keys: ['auth_code'],
-        values: [auth_code]
+        keys: [],
+        values: []
     };
+    for (var key in keyValueDict) {
+        if (keyValueDict.hasOwnProperty(key)) {
+            request.msg.data.keys.push(key);
+            request.msg.data.values.push(keyValueDict[key]);
+        }
+    }
     return JSON.stringify(request);
 }
 

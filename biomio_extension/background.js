@@ -460,7 +460,7 @@ var onPublicKeys = function (event, from, to, msg) {
 
 var onRemoteAuth = function (event, from, to, msg, email, auth_code) {
     log(LOG_LEVEL.DEBUG, msg);
-    socket_connection.send(getRpcAuthRequest(session_info.token, email, auth_code));
+    socket_connection.send(getRpcAuthRequest(session_info.token, email, {email: email, auth_code: auth_code}));
     client_auth_email = null;
     client_auth_code = null;
 };
