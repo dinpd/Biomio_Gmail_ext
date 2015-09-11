@@ -257,6 +257,7 @@ var socketOnMessage = function (event) {
                     currentRequestData['error'] = dataResp.values[0];
                     sendResponse(REQUEST_COMMANDS.ERROR, currentRequestData);
                 }
+                state_machine.ready('Ready state...', true);
             } else if (rspStatus == "inprogress") {
                 if (dataResp.keys.indexOf('timeout') != -1) {
                     if (state_machine.is(STATE_REMOTE_AUTH)) {
@@ -291,6 +292,7 @@ var socketOnMessage = function (event) {
                         result: true,
                         status: 'completed'
                     };
+                    state_machine.ready('Ready state...', true);
                 } else {
                     for (var i = 0; i < dataResp.keys.length; i++) {
                         if (dataResp.keys[i] == 'pass_phrase') {
@@ -427,7 +429,6 @@ var onDisconnect = function (event, from, to, msg) {
     if (session_info.reconnect) {
         clearInterval(session_alive_interval);
         clearInterval(refresh_token_interval);
-        session_info.reconnect = false;
         restoreConnection();
     }
 };
@@ -475,7 +476,7 @@ state_machine = StateMachine.create({
         {name: 'handshake', from: STATE_CONNECTED, to: STATE_REGULAR_HANDSHAKE},
         {
             name: 'ready',
-            from: [STATE_REGISTRATION_HANDSHAKE, STATE_REGULAR_HANDSHAKE, STATE_PASS_PHRASE, STATE_PUBLIC_KEYS],
+            from: [STATE_REGISTRATION_HANDSHAKE, STATE_REGULAR_HANDSHAKE, STATE_PASS_PHRASE, STATE_PUBLIC_KEYS, STATE_REMOTE_AUTH],
             to: STATE_READY
         },
         {name: 'pass_phrase', from: STATE_READY, to: STATE_PASS_PHRASE},
@@ -720,13 +721,13 @@ chrome.runtime.onConnectExternal.addListener(function (port) {
                     session_info.reconnect = true;
                     client_auth_email = client_email;
                     client_auth_code = request.auth_code;
-                    state_machine.disconnect('Resetting connection');
+                    state_machine.disconnect('Resetting connection, current_state - ' + state_machine.current);
                 } else {
                     state_machine.process_remote_auth('Running Client Authentication on behalf of - ' + client_email, client_email, request.auth_code);
                 }
                 var auth_result_response_interval = setInterval(function () {
                     console.log('Client Authentication is running....');
-                    if (state_machine.is(STATE_DISCONNECTED) && client_auth_result == null) {
+                    if (state_machine.is(STATE_DISCONNECTED) && client_auth_result == null && !session_info.reconnect) {
                         client_auth_result = {
                             result: false,
                             error: 'Authentication was unsuccessful',
@@ -747,7 +748,9 @@ chrome.runtime.onConnectExternal.addListener(function (port) {
                         client_email = null;
                         client_auth_code = null;
                         if (auth_status == 'completed' || auth_status == 'error') {
-                            state_machine.disconnect('Client Authentication is finished with status - ' + auth_status);
+                            if (!state_machine.is(STATE_DISCONNECTED)) {
+                                state_machine.disconnect('Client Authentication is finished with status - ' + auth_status);
+                            }
                             clearInterval(auth_result_response_interval);
                         }
                     }
@@ -775,6 +778,7 @@ function restoreConnection() {
     session_info.token = '';
     session_info.refresh_token = '';
     setupDefaults();
+    session_info.reconnect = false;
     state_machine.connect();
 }
 
