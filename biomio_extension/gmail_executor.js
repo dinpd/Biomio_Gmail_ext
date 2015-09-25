@@ -57,7 +57,7 @@ function setupDefaults() {
     NO_MESSAGE = '[NO_MESSAGE]';
     EMAIL_PARTS_SEPARATOR = '#-#-#';
     CANCEL_PROBE_MESSAGE_TYPE = 'cancel_probe';
-    PROBE_ERROR_MESSAGE = "Your message wasn't encrypted because we were not able to identify you in time.";
+    PROBE_ERROR_MESSAGE = "Your message wasn't decrypted because we were not able to identify you in time.";
     BIOMIO_INFO_MESSAGE = "This message is encrypted with BIOMIO biometric authentication. If you don’t have a BIOMIO" +
     " account yet, get it here - <a href='http://biom.io' target='_blank'>BIOMIO</a>";
     CONFIRMATION_ATTACH_MESSAGE = "You are about to encrypt your attachment, if you proceed all next attachments " +
@@ -569,16 +569,16 @@ function calculateTime(timeout, message) {
     showPopup.fadeIn(500);
     var biomio_timer = $('#biomio_timer');
     biomio_timer.show();
-    $('#biomio_cancel_button').show();
-
+    var cancel_button = $('#biomio_cancel_button');
+    cancel_button.show();
     showTimer = setInterval(function () {
         timeout--;
         if (timeout <= 0) {
             sendContentMessage(CANCEL_PROBE_MESSAGE_TYPE, {});
             biomio_timer.text('');
-            showHideInfoPopup(PROBE_ERROR_MESSAGE);
+            bottom_msg.html(PROBE_ERROR_MESSAGE);
+            cancel_button.hide();
             $('#biomio_ok_button').show();
-            biomio_timer.show();
             clearInterval(showTimer);
         }
         var minutes = Math.floor((timeout %= 3600) / 60);

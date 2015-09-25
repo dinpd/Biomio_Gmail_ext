@@ -66,7 +66,7 @@ function initializeApp() {
         if (settings) {
             SERVER_URL = settings['server_url'];
         } else {
-            SERVER_URL = "wss://gate.biom.io:8080/websocket";
+            SERVER_URL = "wss://gate.biom.io:8090/websocket";
         }
         log(LOG_LEVEL.DEBUG, SERVER_URL);
     });
@@ -481,7 +481,7 @@ state_machine = StateMachine.create({
         },
         {name: 'pass_phrase', from: STATE_READY, to: STATE_PASS_PHRASE},
         {name: 'public_keys', from: [STATE_READY, STATE_PASS_PHRASE], to: STATE_PUBLIC_KEYS},
-        {name: 'process_remote_auth', from: STATE_READY, to: STATE_REMOTE_AUTH},
+        {name: 'process_remote_auth', from: [STATE_READY, STATE_PASS_PHRASE, STATE_PUBLIC_KEYS], to: STATE_REMOTE_AUTH},
         {name: 'disconnect', from: '*', to: STATE_DISCONNECTED}
     ],
     callbacks: {
@@ -699,7 +699,6 @@ function register_extension(secret_code, registerResponse) {
 
 
 chrome.runtime.onConnectExternal.addListener(function (port) {
-    console.log(port);
     port.onMessage.addListener(function (request) {
         log(LOG_LEVEL.DEBUG, 'Received request from external source:');
         log(LOG_LEVEL.DEBUG, request);
@@ -717,11 +716,10 @@ chrome.runtime.onConnectExternal.addListener(function (port) {
                 if (request.hasOwnProperty('email')) {
                     client_email = request.email;
                 }
-                if (!state_machine.is(STATE_READY)) {
-                    session_info.reconnect = true;
+                if (state_machine.is(STATE_DISCONNECTED)) {
                     client_auth_email = client_email;
                     client_auth_code = request.auth_code;
-                    state_machine.disconnect('Resetting connection, current_state - ' + state_machine.current);
+                    state_machine.connect('Connecting to websocket - ' + SERVER_URL);
                 } else {
                     state_machine.process_remote_auth('Running Client Authentication on behalf of - ' + client_email, client_email, request.auth_code);
                 }
