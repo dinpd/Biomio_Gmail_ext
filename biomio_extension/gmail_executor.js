@@ -77,13 +77,13 @@ function setupDefaults() {
         confirmationClicked(e);
     });
 
-    $('#biomio_cancel_button').on('click', function(e){
-        e.preventDefault();
-        clearInterval(showTimer);
-        sendContentMessage(CANCEL_PROBE_MESSAGE_TYPE, {});
-        $('#biomio_timer').text('');
-        showHideInfoPopup('', true);
-    });
+    //$('#biomio_cancel_button').on('click', function(e){
+    //    e.preventDefault();
+    //    clearInterval(showTimer);
+    //    sendContentMessage(CANCEL_PROBE_MESSAGE_TYPE, {});
+    //    $('#biomio_timer').text('');
+    //    showHideInfoPopup('', true);
+    //});
 
 
     $(document).on('click', '#biomio_decrypt_button', function (e) {
@@ -236,7 +236,7 @@ function showHideInfoPopup(infoMessage, hide) {
     $('#biomio_ok_button').hide();
     $('#biomio_yes_button').hide();
     $('#biomio_no_button').hide();
-    $('#biomio_cancel_button').hide();
+    //$('#biomio_cancel_button').hide();
     $('#bio_close_popup').hide();
     $('#biomio_error_emails_list').hide();
     showPopup.find('#bio_bottom_message').hide();
@@ -569,15 +569,15 @@ function calculateTime(timeout, message) {
     showPopup.fadeIn(500);
     var biomio_timer = $('#biomio_timer');
     biomio_timer.show();
-    var cancel_button = $('#biomio_cancel_button');
-    cancel_button.show();
+    //var cancel_button = $('#biomio_cancel_button');
+    //cancel_button.show();
     showTimer = setInterval(function () {
         timeout--;
         if (timeout <= 0) {
             sendContentMessage(CANCEL_PROBE_MESSAGE_TYPE, {});
             biomio_timer.text('');
             bottom_msg.html(PROBE_ERROR_MESSAGE);
-            cancel_button.hide();
+            //cancel_button.hide();
             $('#biomio_ok_button').show();
             clearInterval(showTimer);
         }

@@ -1,5 +1,5 @@
 var defaultSettings = {
-    server_url: "wss://gate.biom.io:8090/websocket"
+    server_url: "wss://gate.biom.io:8080/websocket"
 };
 var NOT_YOU_MESSAGE = ', If it is not you, please close all opened gmail tabs and login into your Gmail account in a new tab.';
 var NO_ACCOUNT_MESSAGE = 'Please close all opened gmail tabs and login into your Gmail account in a new tab.';
