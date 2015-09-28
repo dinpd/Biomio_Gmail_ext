@@ -37,7 +37,7 @@
   },
   "options_page": "options.html",
   "browser_action": {
-    "default_title": "BioMio",
+    "default_title": "DEV BIOMIO",
     "default_icon": "images/Logo-48x48.png",
     "default_popup": "popup.html"
   },
