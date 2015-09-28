@@ -1,10 +1,12 @@
 var NOT_YOU_MESSAGE = 'If it is not you, please close all opened gmail tabs and login into your Gmail account in a new tab.';
 var NO_ACCOUNT_MESSAGE = 'Please close all opened gmail tabs and login into your Gmail account in a new tab.';
 var current_gmail_user;
-
+var SERVER_REST_URL = 'https://gate.biom.io:4433';
+var REST_NEW_EMAIL_COMMAND = '/new_email/';
 $(document).ready(function () {
     chrome.extension.sendRequest({message: 'is_registered'}, function (response) {
         if (response.is_registered) {
+            $('#renew_pgp_keys').show();
             chrome.storage.local.get('current_gmail_user_biomio', function (data) {
                 current_gmail_user = data['current_gmail_user_biomio'];
                 var currUserElement = $('#current_user');
@@ -29,12 +31,14 @@ $(document).ready(function () {
                     list_errors.append('<li>No errors</li>');
                 }
             });
+
         } else {
             $('#current_user').hide();
             $('#info_message').html("In order to use this extension it is required that you register it by " +
             'entering the secret code generated on <a target="_blank" href="http://biom.io/#signup">http://biom.io/#signup</a>');
             $('#errors').hide();
             $('#secret_input').show();
+            $('#renew_pgp_keys').hide();
             var register_app_btn = $('#register_app_button');
             register_app_btn.show();
             register_app_btn.on('click', function (e) {
@@ -51,6 +55,27 @@ $(document).ready(function () {
                     }
                 });
             });
+        }
+    });
+    $('#renew_pgp_keys').on('click', function(e){
+        e.preventDefault();
+        var currentTarget = $(e.currentTarget);
+        currentTarget.attr('disabled', 'disabled');
+        currentTarget.val('Working....');
+        if(current_gmail_user){
+            $.ajax({
+                url: SERVER_REST_URL + REST_NEW_EMAIL_COMMAND + current_gmail_user,
+                type: 'post',
+                data: {},
+                success: function(){
+                    currentTarget.val('Successfully updated PGP keys for user - ' + current_gmail_user);
+                },
+                error: function(){
+                    currentTarget.val('Successfully updated PGP keys for user - ' + current_gmail_user);
+                }
+            });
+        }else{
+            currentTarget.val('Please open the Gmail tab.');
         }
     });
     $('#reset_connection_button').on('click', function (e) {
