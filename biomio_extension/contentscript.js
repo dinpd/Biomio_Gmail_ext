@@ -389,7 +389,7 @@ function _importKeys(data, callback) {
                 var encrypted_private_pgp = pgpContext.exportKeyring(true);
                 var sync_storage_data = {};
                 sync_storage_data[STORAGE_KEYS.STORAGE_PGP_BACKUP_KEY + current_acc] = encrypted_private_pgp.result_;
-                log(LOG_LEVEL.DEBUG, 'Setting chrom sync storage:');
+                log(LOG_LEVEL.DEBUG, 'Setting chrome sync storage:');
                 log(LOG_LEVEL.DEBUG, sync_storage_data);
                 chrome.storage.sync.set(sync_storage_data);
             }

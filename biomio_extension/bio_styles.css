@@ -43,28 +43,32 @@
 
 @media (max-width: 1600px) and (max-height: 850px) {
     .biomio_popup_gray {
-        width: 40%;
-        height: 45%;
+        width: 30%;
+        height: 30%;
+        top: 25%;
+        left: 30%;
     }
 }
 
 @media (min-width: 1601px) and (min-height: 851px) {
     .biomio_popup_gray {
-        width: 35%;
-        height: 30%;
+        width: 20%;
+        height: 20%;
+        top: 30%;
+        left: 35%;
     }
 }
 
 .biomio_wait_message {
-    font-size: 24px;
+    font-size: 17px;
     font-weight: 300;
     text-align: center;
-    padding: 34px 0;
+    padding: 18px 0;
 }
 
 .popgrtextsmall {
     display: none;
-    font-size: 21px;
+    font-size: 18px;
     font-weight: 300;
     text-align: center;
     padding: 0 15px 15px 15px;
@@ -72,7 +76,7 @@
 
 .popgrheader {
     background-color: #656a7f;
-    padding: 7px;
+    padding: 1px;
     text-align: left;
 
 }
@@ -80,9 +84,9 @@
 #biomio_timer {
     display: none;
     color: #fa8768;
-    padding: 15px;
+    padding: 2px;
     text-align: center;
-    font-size: 64px;
+    font-size: 30px;
 }
 
 #biomio_ok_button, #biomio_yes_button, #biomio_no_button, #biomio_cancel_button {
@@ -146,12 +150,12 @@
 a.bio-proceed-button {
     color: #fff;
     background-color: #fa8768;
-    padding: 14px 14px 14px 50px;
+    padding: 13px 14px 14px 50px;
     background-image: url('chrome-extension://__MSG_@@extension_id__/images/lock.png');
     background-repeat: no-repeat;
     background-position: 11px center;
     text-decoration: none;
-    font-size: 20px;
+    font-size: 15px;
     margin: 0 20px 20px 20px;
     float: left;
 }
@@ -159,11 +163,20 @@ a.bio-proceed-button {
 a.bio_simple-button {
     color: #fff;
     background-color: #9ea2b3;
-    padding: 15px;
+    padding: 13px;
     text-decoration: none;
-    font-size: 20px;
+    font-size: 15px;
     margin: 0 20px 20px 20px;
     float: right;
+}
+
+.bio_simple-button#biomio_ok_button {
+    padding: 10px;
+}
+
+.bio_simple-button#biomio_cancel_button {
+    font-size: 16px;
+    padding: 11px;
 }
 
 .bio_close-button {
