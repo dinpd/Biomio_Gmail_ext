@@ -205,10 +205,10 @@
     background: url('chrome-extension://__MSG_@@extension_id__/images/Logo-48x48.png') no-repeat;
     cursor: pointer;
     background-size: contain;
-    border-top: solid 2px #eaeaea;
-    border-left: solid 2px #eaeaea;
-    border-bottom: solid 2px #777;
-    border-right: solid 2px #777;
+    /*border-top: solid 2px #eaeaea;*/
+    /*border-left: solid 2px #eaeaea;*/
+    /*border-bottom: solid 2px #777;*/
+    /*border-right: solid 2px #777;*/
 }
 
 .bio-enc-btn.down {

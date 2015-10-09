@@ -59,7 +59,7 @@ function setupDefaults() {
     CANCEL_PROBE_MESSAGE_TYPE = 'cancel_probe';
     PROBE_ERROR_MESSAGE = "Your message wasn't decrypted because we were not able to identify you in time.";
     BIOMIO_INFO_MESSAGE = "This message is encrypted with BIOMIO biometric authentication. If you don’t have a BIOMIO" +
-    " account yet, get it here - <a href='http://biom.io' target='_blank'>BIOMIO</a>";
+    " account yet, get it here - <a href='https://biom.io/#googleapp' target='_blank'>BIOMIO</a>";
     CONFIRMATION_ATTACH_MESSAGE = "You are about to encrypt your attachment, if you proceed all next attachments " +
     "will be encrypted. Do you want to proceed?";
     CONFIRMATION_SEND_MESSAGE = "You're sending an encrypted message. Do you want to proceed?";
