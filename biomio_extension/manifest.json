@@ -3,7 +3,7 @@
   "name": "BIOMIO Email Protector for Gmail",
   "short_name": "BIOMIO",
   "description": "This extension will allow you to encrypt / decrypt your emails using BIOMIO Multi-factor Auth Platform",
-  "version": "2.1.3",
+  "version": "2.1.4",
   "permissions": [
     "management",
     "activeTab",
