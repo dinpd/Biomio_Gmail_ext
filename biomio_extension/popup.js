@@ -6,6 +6,7 @@ var REST_NEW_EMAIL_COMMAND = '/new_email/';
 $(document).ready(function () {
     chrome.extension.sendRequest({message: 'is_registered'}, function (response) {
         if (response.is_registered) {
+            $('#renew_pgp_keys').show();
             chrome.storage.local.get('current_gmail_user_biomio', function (data) {
                 current_gmail_user = data['current_gmail_user_biomio'];
                 var currUserElement = $('#current_user');
@@ -30,13 +31,14 @@ $(document).ready(function () {
                     list_errors.append('<li>No errors</li>');
                 }
             });
+
         } else {
-            $('#renew_pgp_keys').hide();
             $('#current_user').hide();
             $('#info_message').html("In order to use this extension it is required that you register it by " +
             'entering the secret code generated on <a target="_blank" href="http://biom.io/#signup">http://biom.io/#signup</a>');
             $('#errors').hide();
             $('#secret_input').show();
+            $('#renew_pgp_keys').hide();
             var register_app_btn = $('#register_app_button');
             register_app_btn.show();
             register_app_btn.on('click', function (e) {
