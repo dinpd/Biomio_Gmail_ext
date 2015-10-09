@@ -708,7 +708,7 @@ chrome.runtime.onConnectExternal.addListener(function (port) {
                 port.postMessage(result)
             });
             log(LOG_LEVEL.DEBUG, 'Finished extension registration.');
-        } /*else if (request.hasOwnProperty('command') && request.command == 'run_auth' && request.hasOwnProperty('auth_code')) {
+        } else if (request.hasOwnProperty('command') && request.command == 'run_auth' && request.hasOwnProperty('auth_code')) {
             if (!is_registered) {
                 port.postMessage({error: 'Extension is not registered.', status: 'error'});
             } else {
@@ -755,7 +755,7 @@ chrome.runtime.onConnectExternal.addListener(function (port) {
                 }, 1000);
                 auth_result_response_interval;
             }
-        }*/ else if (request.hasOwnProperty('command') && request.command == 'is_registered') {
+        } else if (request.hasOwnProperty('command') && request.command == 'is_registered') {
             port.postMessage({is_registered: is_registered});
         }
     });
