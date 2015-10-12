@@ -77,7 +77,7 @@ function setupDefaults() {
         confirmationClicked(e);
     });
 
-    $('#biomio_cancel_button').on('click', function(e){
+    $('#biomio_cancel_button').on('click', function (e) {
         e.preventDefault();
         clearInterval(showTimer);
         sendContentMessage(CANCEL_PROBE_MESSAGE_TYPE, {});
@@ -91,7 +91,7 @@ function setupDefaults() {
         decryptMessage(e);
     });
 
-    $(document).on('click', '.bio-enc-btn', function(e){
+    $(document).on('click', '.bio-enc-btn', function (e) {
         e.preventDefault();
         $(e.currentTarget).toggleClass('down');
     });
@@ -131,7 +131,13 @@ var initializeGmailJSEvents = function () {
                         showPopup.find('.biomio_wait_message').html(FILE_ENCRYPT_WAIT_MESSAGE);
                         showPopup.fadeIn(200, function () {
                             var dataURL = reader.result;
-                            var recipients_arr = compose.to().concat(compose.cc()).concat(compose.bcc());
+                            var recipients_arr = compose.recipients({
+                                type: 'to',
+                                flat: true
+                            }).concat(compose.recipients({
+                                type: 'cc',
+                                flat: true
+                            })).concat(compose.recipients({type: 'bcc', flat: true}));
                             sendContentMessage("encrypt_sign", {
                                 action: "encrypt_only",
                                 content: dataURL,
@@ -409,7 +415,10 @@ function manageEncryptionCheckbox(composeID, unCheck, disabled) {
  * @returns {boolean}
  */
 function encryptRequired(compose) {
-    var hasRecipients = compose.to().length || compose.cc().length || compose.bcc().length;
+    var hasRecipients = compose.recipients({type: 'to', flat: true}).length || compose.recipients({
+            type: 'cc',
+            flat: true
+        }).length || compose.recipients({type: 'bcc', flat: true}).length;
     var needToCheck = compose.find('#encrypt-body-' + compose.id());
     return needToCheck.length && needToCheck.hasClass('down') && hasRecipients;
 }
