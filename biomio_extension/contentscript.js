@@ -358,7 +358,7 @@ function _importKeys(data, callback) {
             _resetKeyRing(TEMP_PUB_KEYRING);
             log(LOG_LEVEL.DEBUG, 'Importing PUBLIC PGP KEYS');
             if (data.hasOwnProperty('emails_with_errors')) {
-                sendResponse({show_email_errors: data['emails_with_errors']});
+                sendResponse({show_email_errors: {emails: data['emails_with_errors'], compose_id: data.composeId}});
             }
             if (data['public_pgp_keys'].length == 0) {
                 if (!data.hasOwnProperty('emails_with_errors')) {

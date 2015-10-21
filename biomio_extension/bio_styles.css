@@ -74,6 +74,7 @@
         top: 25%;
         left: 30%;
     }
+
     #biomio_ok_button, #biomio_yes_button, #biomio_no_button, #biomio_cancel_button {
         display: inline-block;
     }
@@ -86,6 +87,7 @@
         top: 25%;
         left: 30%;
     }
+
     .popgrtextsmall {
         padding-bottom: 3px;
     }
@@ -94,6 +96,7 @@
         float: none;
         padding: 13px 14px 14px 0px;
     }
+
     #biomio_no_button {
         float: none;
     }
@@ -110,11 +113,11 @@
     #biomio_ok_button {
         margin-bottom: 10px;
     }
+
     #biomio_ok_button, #biomio_yes_button, #biomio_no_button, #biomio_cancel_button {
         display: block;
     }
 }
-
 
 @media (min-width: 1601px) {
     .biomio_popup_gray {
@@ -123,6 +126,7 @@
         top: 30%;
         left: 35%;
     }
+
     #biomio_ok_button, #biomio_yes_button, #biomio_no_button, #biomio_cancel_button {
         display: inline-block;
     }
@@ -135,6 +139,7 @@
         top: 30%;
         left: 35%;
     }
+
     #biomio_ok_button, #biomio_yes_button, #biomio_no_button, #biomio_cancel_button {
         display: inline-block;
     }
@@ -169,7 +174,6 @@
     text-align: center;
     font-size: 30px;
 }
-
 
 #biomio_cancel_button, #biomio_ok_button {
     float: none;
@@ -260,4 +264,9 @@ a.bio_simple-button {
 .bio_close-button {
     float: right;
     padding: 4px 9px;
+}
+
+#biomio_error_emails_list {
+    font-size: 15px;
+    margin-top: -7px;
 }

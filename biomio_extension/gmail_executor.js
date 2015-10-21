@@ -5,6 +5,7 @@ var gmail,
     showLoading,
     showPopup,
     showTimer,
+    compose_email_errors,
     DECRYPT_WAIT_MESSAGE,
     FILE_ENCRYPT_WAIT_MESSAGE,
     FILE_ENCRYPT_SUCCESS_MESSAGE,
@@ -48,6 +49,7 @@ function setupDefaults() {
         }
     };
     showPopup = $('#biomio_show_popup');
+    compose_email_errors = {};
     DECRYPT_WAIT_MESSAGE = 'Please wait, we are decrypting your message...';
     ENCRYPT_WAIT_MESSAGE = 'Please wait, we are encrypting your message...';
     ENCRYPT_SUCCESS_MESSAGE = 'Your message was successfully decrypted.';
@@ -498,8 +500,79 @@ window.addEventListener("message", function (event) {
                         $('#biomio-attachments-' + compose.id()).remove();
                     }
                     compose.body(content);
+                    var show_message = true;
+                    if(compose_email_errors.hasOwnProperty(compose.id())){
+                        show_message = false;
+                        var emails_to_remove = compose_email_errors[compose.id()];
+                        var current_recipients = compose.recipients({
+                            type: 'to',
+                            flat: true
+                        });
+                        if(current_recipients.length > 0){
+                            var existing_els = compose.find('.vR');
+                            for(var el = 0; el < existing_els.length; el++){
+                                if($(existing_els[el]).find('input[name=to]').length > 0){
+                                    $(existing_els[el]).remove();
+                                }
+                            }
+                            current_recipients = parse_recipients(current_recipients);
+                            current_recipients = current_recipients.filter(function(e1){
+                                return emails_to_remove.indexOf(e1) < 0;
+                            });
+                            if (current_recipients.length > 0){
+                                compose.to(current_recipients.join());
+                            }else{
+                                compose.to('');
+                            }
+                        }
+                        current_recipients = compose.recipients({
+                            type: 'cc',
+                            flat: true
+                        });
+                        if(current_recipients.length > 0){
+                            existing_els = compose.find('.vR');
+                            for(var el = 0; el < existing_els.length; el++){
+                                if($(existing_els[el]).find('input[name=cc]').length > 0){
+                                    $(existing_els[el]).remove();
+                                }
+                            }
+                            current_recipients = parse_recipients(current_recipients);
+                            current_recipients = current_recipients.filter(function(e1){
+                                return emails_to_remove.indexOf(e1) < 0;
+                            });
+                            if (current_recipients.length > 0){
+                                compose.cc(current_recipients.join());
+                            }else{
+                                compose.cc('');
+                            }
+                        }
+                        current_recipients = compose.recipients({
+                            type: 'bcc',
+                            flat: true
+                        });
+                        if(current_recipients.length > 0){
+                            existing_els = compose.find('.vR');
+                            for(var el = 0; el < existing_els.length; el++){
+                                if($(existing_els[el]).find('input[name=bcc]').length > 0){
+                                    $(existing_els[el]).remove();
+                                }
+                            }
+                            current_recipients = parse_recipients(current_recipients);
+                            current_recipients = current_recipients.filter(function(e1){
+                                return emails_to_remove.indexOf(e1) < 0;
+                            });
+                            if (current_recipients.length > 0){
+                                compose.bcc(current_recipients.join());
+                            }else{
+                                compose.bcc('');
+                            }
+                        }
+                        delete compose_email_errors[compose.id()];
+                    }
                     triggerSendButton(compose);
-                    showHideInfoPopup(ENCRYPT_SUCCESS_MESSAGE, true);
+                    if(show_message){
+                        showHideInfoPopup(ENCRYPT_SUCCESS_MESSAGE, true);
+                    }
                     confirm = confirmOn;
                 }
             }
@@ -607,16 +680,32 @@ function sendContentMessage(type, message) {
 }
 
 
-function show_email_errors(email_errors) {
-    showHideInfoPopup('Unfortunately we were not able to send encrypted emails to following addresses:', false);
+function show_email_errors(email_errors_data) {
+    manageEncryptionCheckbox(email_errors_data.compose_id, false, false);
+    showHideInfoPopup('Unfortunately we were not able to send encrypted email to the following addresses:', false);
     var error_emails_list_ul = $('#biomio_error_emails_list');
-    email_errors = email_errors.split(',,,');
+    error_emails_list_ul.empty();
+    var email_errors = email_errors_data.emails.split(',,,');
+    var emails_with_errors = [];
     for (var i = 0; i < email_errors.length; i++) {
         var email_errors_json = email_errors[i].replace(/'/g, '"');
         email_errors_json = JSON.parse(email_errors_json);
+        emails_with_errors.push(email_errors_json.email);
         error_emails_list_ul.append('<li>' + email_errors_json.email + ' - ' + email_errors_json.error + '</li>');
     }
+    compose_email_errors[email_errors_data.compose_id] = emails_with_errors;
     error_emails_list_ul.show();
+}
+
+function parse_recipients(recipients){
+    for (var i = 0; i < recipients.length; i++) {
+        var recipient = recipients[i].split(' ');
+        recipient = recipient[recipient.length - 1];
+        recipient = recipient.replace(/</g, '');
+        recipient = recipient.replace(/>/g, '');
+        recipients[i] = recipient;
+    }
+    return recipients
 }
 
 
