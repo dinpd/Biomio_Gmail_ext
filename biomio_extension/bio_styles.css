@@ -270,3 +270,23 @@ a.bio_simple-button {
     font-size: 15px;
     margin-top: -7px;
 }
+
+.progress-indicator {
+    background-color: aliceblue;
+    width: 95%;
+    height: 25%;
+
+}
+
+.progress-container {
+    margin-left: 2%;
+    text-align: center;
+}
+
+.progress-bar {
+    display: list-item;
+    height: 100%;
+    width: 0;
+    background-color: darkseagreen;
+    transition: width 0.5s;
+}

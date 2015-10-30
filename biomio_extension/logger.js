@@ -53,7 +53,7 @@ function getLevelColor(level) {
     } else if (level == LOG_LEVEL.WARNING) {
         return 'color: #FF9900';
     } else if (level == LOG_LEVEL.INFO) {
-        return 'color: #00CC00';
+        return 'color: #336600';
     }
     return '';
 }

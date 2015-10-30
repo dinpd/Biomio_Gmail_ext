@@ -50,16 +50,12 @@ var SOCKET_REQUEST_TYPES = {
     GET_PASS_PHRASE: TYPE_PREFIX + 'get_pass_phrase',
     GET_PUBLIC_KEYS: TYPE_PREFIX + 'get_public_keys',
     PERSIST_GMAIL_USER: TYPE_PREFIX + 'persist_gmail_user',
-    CANCEL_PROBE: TYPE_PREFIX + 'cancel_probe'
+    CANCEL_PROBE: TYPE_PREFIX + 'cancel_probe',
+    ENCRYPT_CONTENT: TYPE_PREFIX + 'encrypt_content',
+    DECRYPT_CONTENT: TYPE_PREFIX + 'decrypt_content'
 };
 
 var WINDOW_REQUESTS = {
     ENCRYPT: TYPE_PREFIX + 'encrypt_sign',
     DECRYPT: TYPE_PREFIX + 'decryptMessage'
-};
-
-var STORAGE_KEYS = {
-    STORAGE_RSA_KEY: 'biomio_private_rsa_key',
-    STORAGE_APP_ID_KEY: 'BIOMIO_APP_ID_KEY',
-    STORAGE_PGP_BACKUP_KEY: 'BIOMIO_PGP_BACKUP_KEY_'
 };

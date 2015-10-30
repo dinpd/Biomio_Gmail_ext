@@ -3,7 +3,7 @@
   "name": "BIOMIO Email Protector for Gmail",
   "short_name": "BIOMIO",
   "description": "This extension will allow you to encrypt / decrypt your emails using BIOMIO Multi-factor Auth Platform",
-  "version": "2.4.7",
+  "version": "3.0.0",
   "permissions": [
     "management",
     "activeTab",
@@ -16,7 +16,6 @@
     "scripts": [
       "constants.js",
       "state-machine.js",
-      "socket_requests.js",
       "rsa_sign_library/ext/base64.js",
       "rsa_sign_library/ext/jsbn.js",
       "rsa_sign_library/ext/jsbn2.js",
@@ -31,8 +30,13 @@
       "rsa_sign_library/jsrsasign-latest-all-min.js",
       "logger.js",
       "e2e_library/end-to-end.compiled.js",
-      "shared_methods.js",
-      "background.js"
+      "storage_helper.js",
+      "socket_helper.js",
+      "pgp_interface.js",
+      "socket_iml.js",
+      "internal_state_machine.js",
+      "client_interface.js",
+      "background_script.js"
     ]
   },
   "options_page": "options.html",
@@ -59,7 +63,7 @@
         "jquery-1.11.2.min.js",
         "e2e_library/end-to-end.compiled.js",
         "logger.js",
-        "contentscript.js"
+        "content_script.js"
       ],
       "run_at": "document_end",
       "css": ["bio_styles.css"]
@@ -67,6 +71,11 @@
   ],
   "content_security_policy": "script-src 'self' 'unsafe-eval'; object-src 'self'",
   "externally_connectable": {
-    "matches": ["*://*.biom.io/*", "*://*.alexanderlomov.com/*", "*://*.iovation.com/*"]
+    "matches": [
+      "*://*.biom.io/*",
+      "*://*.alexanderlomov.com/*",
+      "*://*.iovation.com/*",
+      "*://mail.google.com/*"
+    ]
   }
 }
