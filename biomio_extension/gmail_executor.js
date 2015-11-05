@@ -184,8 +184,11 @@ var initializeGmailJSEvents = function () {
         if (emailBody.html().indexOf('BEGIN PGP MESSAGE') != -1) {
             var bioMioAttr = emailBody.attr('class').split(' ');
             $('#biomio_decrypt_button').remove();
-            emailBody.find('div[dir="ltr"]').prepend('<div id="biomio_decrypt_element"><input type="button" value="Decrypt" id="biomio_decrypt_button" data-biomio-bodyattr="'
-            + bioMioAttr.join('_') + '"><br><p>' + BIOMIO_INFO_MESSAGE + '</p><br><br></div>');
+            var encrypted_emails = emailBody.find('div[dir="ltr"]');
+            if (encrypted_emails.length) {
+                encrypted_emails.eq(0).prepend('<div id="biomio_decrypt_element"><input type="button" value="Decrypt" id="biomio_decrypt_button" data-biomio-bodyattr="'
+                + bioMioAttr.join('_') + '"><br><p>' + BIOMIO_INFO_MESSAGE + '</p><br><br></div>');
+            }
         }
     });
 
