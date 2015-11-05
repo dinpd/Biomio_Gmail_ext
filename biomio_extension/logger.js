@@ -6,7 +6,7 @@ LOG_LEVEL = {
     ERROR: 'ERROR'
 };
 
-var DEBUG_MODE = true;
+var DEBUG_MODE = false;
 
 /**
  * Logs given message according to given log TYPE.

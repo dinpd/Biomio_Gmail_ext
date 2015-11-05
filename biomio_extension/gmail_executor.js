@@ -218,6 +218,18 @@ function show_file_progress_bar(file_name, unique_file_id) {
     $(progress_el).insertAfter('.biomio_wait_message');
 }
 
+function show_download_spinner(text_to_show, remove) {
+    if (!remove) {
+        var spinner_el = '<div class="progress-container">' +
+            '<div class="progress-label progress-spinner">' + text_to_show + '</div>' +
+            '<div class="spinner-loader"></div>' +
+            '</div>';
+        $(spinner_el).insertAfter('.biomio_wait_message');
+    } else {
+        $('.progress-container').remove();
+    }
+}
+
 function generate_file_id() {
     function s4() {
         return Math.floor((1 + Math.random()) * 0x10000)
@@ -301,11 +313,15 @@ function decryptMessage(event) {
     var viewEntireEmailLink = emailBody.find('a[href*="?ui"]');
     show_file_progress_bar('decryption', 'biomio_' + emailBodyAttr);
     if (viewEntireEmailLink.length) {
+        show_download_spinner('', true);
+        show_download_spinner('Downloading the content of your email...', false);
         $.ajax(
             {
                 type: 'GET',
+                dataType: "text",
                 url: viewEntireEmailLink.attr('href'),
                 success: function (data) {
+                    show_download_spinner('', true);
                     var emailBodyHtml = $(data).find('div[dir="ltr"]').html().replace(/BioMio v1.0<br>/g, 'BioMio v1.0').split('BioMio v1.0').join('BioMio v1.0<br>');
                     emailBody.html(emailBodyHtml);
                     sendDecryptMessage(emailBody);
@@ -494,7 +510,7 @@ window.addEventListener("message", function (event) {
         }
     } else if (data.hasOwnProperty('file_parts_count')) {
         file_parts_progress[data.unique_file_id] = {total: data.file_parts_count, current: 0};
-        if(data.unique_file_id.indexOf('biomio_') != -1){
+        if (data.unique_file_id.indexOf('biomio_') != -1) {
             showHideInfoPopup(DECRYPT_WAIT_MESSAGE, false);
             show_file_progress_bar('your attachments.', data.unique_file_id);
         }

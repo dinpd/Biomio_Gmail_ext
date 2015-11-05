@@ -18,7 +18,7 @@ chrome.runtime.onMessage.addListener(
             if (request.data.hasOwnProperty('account_email')) {
                 var account_email = _prepare_email(request.data['account_email']);
                 var instance_key = account_email + '_' + sender.tab.id;
-                if (!(instance_key in connected_instances)) {
+                if (!(instance_key in connected_instances) || connected_instances[instance_key].is_finished()) {
                     connected_instances[instance_key] = new ClientInterface(account_email, sender.tab.id,
                         _interface_ready_callback(instance_key, request));
                     connected_instances[instance_key].initialize_interface(true);
@@ -47,6 +47,7 @@ function _interface_ready_callback(instance_key, request) {
         } else {
             if (request.command == SOCKET_REQUEST_TYPES.CANCEL_PROBE) {
                 client_interface.finish(true);
+                connected_instances = {}
             }
             //else if (request.command == REQUEST_COMMANDS.EXPORT_KEY) {
             //    export_key_result = request.data.exported_key;

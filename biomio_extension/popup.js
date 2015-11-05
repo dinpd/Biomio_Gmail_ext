@@ -34,8 +34,7 @@ $(document).ready(function () {
 
         } else {
             $('#current_user').hide();
-            $('#info_message').html("In order to use this extension it is required that you register it by " +
-            'entering the secret code generated on <a target="_blank" href="http://biom.io/#signup">http://biom.io/#signup</a>');
+            $('#info_message').html('To enable extension you need to register account at <a target="_blank" href="http://biom.io/#signup">Biom.io</a>');
             $('#errors').hide();
             $('#secret_input').show();
             $('#renew_pgp_keys').hide();
@@ -49,7 +48,7 @@ $(document).ready(function () {
                     console.log(responseData);
                     if (responseData.result) {
                         window.location.reload();
-                    }else{
+                    } else {
                         alert(responseData.error);
                         $(e.currentTarget).removeAttr('disabled');
                     }
@@ -57,24 +56,24 @@ $(document).ready(function () {
             });
         }
     });
-    $('#renew_pgp_keys').on('click', function(e){
+    $('#renew_pgp_keys').on('click', function (e) {
         e.preventDefault();
         var currentTarget = $(e.currentTarget);
         currentTarget.attr('disabled', 'disabled');
         currentTarget.val('Working....');
-        if(current_gmail_user){
+        if (current_gmail_user) {
             $.ajax({
                 url: SERVER_REST_URL + REST_NEW_EMAIL_COMMAND + current_gmail_user,
                 type: 'post',
                 data: {},
-                success: function(){
+                success: function () {
                     currentTarget.val('Successfully updated PGP keys for user - ' + current_gmail_user);
                 },
-                error: function(){
+                error: function () {
                     currentTarget.val('Successfully updated PGP keys for user - ' + current_gmail_user);
                 }
             });
-        }else{
+        } else {
             currentTarget.val('Please open the Gmail tab.');
         }
     });

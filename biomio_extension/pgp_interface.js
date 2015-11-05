@@ -21,7 +21,7 @@ function PGPInterface(account_email) {
  */
 PGPInterface.prototype._import_keys = function (keys_data) {
     var pass_phrase = keys_data.hasOwnProperty('pass_phrase') ? keys_data['pass_phrase'] : '';
-    try{
+    try {
         if (keys_data.hasOwnProperty('public_pgp_keys')) {
             log(LOG_LEVEL.INFO, 'Importing public keys...');
             var public_keys = keys_data['public_pgp_keys'];
@@ -49,10 +49,10 @@ PGPInterface.prototype._import_keys = function (keys_data) {
                 this._clearPublicKeys();
                 var encrypted_private_pgp = this._pgpContext.exportKeyring(true);
                 storage_helper.set_chrome_data(storage_helper.PGP_BACKUP_STORAGE_KEY + this._account_email,
-                    encrypted_private_pgp.result_);
+                    encrypted_private_pgp.result_, false);
             }
         }
-    }catch(e){
+    } catch (e) {
         log(LOG_LEVEL.SEVERE, 'Unable to setup KeyRing: ' + e.message);
         log(LOG_LEVEL.SEVERE, e);
         this._results_callback({error: ERROR_MESSAGES.KEYRING_IMPORT_ERROR}, true);

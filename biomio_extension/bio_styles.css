@@ -290,3 +290,7 @@ a.bio_simple-button {
     background-color: darkseagreen;
     transition: width 0.5s;
 }
+
+.progress-spinner {
+    margin-bottom: 10px;
+}

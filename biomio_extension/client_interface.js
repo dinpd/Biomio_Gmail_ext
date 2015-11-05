@@ -453,3 +453,7 @@ ClientInterface.prototype.is_initializing = function () {
 ClientInterface.prototype.add_ready_callback = function (callback) {
     this._additional_ready_callbacks.push(callback);
 };
+
+ClientInterface.prototype.is_finished = function(){
+    this._state_machine.is(STATE_FINISH);
+};
