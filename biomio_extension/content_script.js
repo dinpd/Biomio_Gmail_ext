@@ -1,4 +1,5 @@
-var gmail_scripts = ['jquery-1.11.2.min.js', 'gmail.js', 'gmail_executor.js'];
+var gmail_scripts = ['internal_scripts/jquery-1.11.2.min.js', 'internal_scripts/gmail.js',
+    'content_injections/gmail_executor.js'];
 var gmail_scripts_urls = [];
 
 //Get urls for each extension script that must be injected into page.
@@ -15,7 +16,7 @@ window.onload = function () {
         if (response.is_registered) {
             $('body').append('<div id="biomio_elements"></div>');
             var biomio_elements = $('#biomio_elements');
-            biomio_elements.load(chrome.extension.getURL('additional_html.html'), function () {
+            biomio_elements.load(chrome.extension.getURL('content_injections/additional_html.html'), function () {
                 $('#biomio_show_loading').show();
                 for (i = 0; i < gmail_scripts_urls.length; i++) {
                     biomio_elements.append('<script src="' + gmail_scripts_urls[i] + '"></script>');

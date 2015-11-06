@@ -14,8 +14,8 @@
   "optional_permissions": [],
   "background": {
     "scripts": [
-      "constants.js",
-      "state-machine.js",
+      "internal_scripts/constants.js",
+      "internal_scripts/state-machine.js",
       "rsa_sign_library/ext/base64.js",
       "rsa_sign_library/ext/jsbn.js",
       "rsa_sign_library/ext/jsbn2.js",
@@ -28,22 +28,22 @@
       "rsa_sign_library/asn1hex-1.1.js",
       "rsa_sign_library/x509-1.1.js",
       "rsa_sign_library/jsrsasign-latest-all-min.js",
-      "logger.js",
+      "internal_scripts/logger.js",
       "e2e_library/end-to-end.compiled.js",
-      "storage_helper.js",
-      "socket_helper.js",
-      "pgp_interface.js",
-      "socket_iml.js",
-      "internal_state_machine.js",
-      "client_interface.js",
+      "internal_scripts/storage_helper.js",
+      "internal_scripts/socket_helper.js",
+      "internal_scripts/pgp_interface.js",
+      "internal_scripts/socket_iml.js",
+      "internal_scripts/internal_state_machine.js",
+      "internal_scripts/client_interface.js",
       "background_script.js"
     ]
   },
-  "options_page": "options.html",
+  "options_page": "options/options.html",
   "browser_action": {
     "default_title": "BioMio",
     "default_icon": "images/Logo-48x48.png",
-    "default_popup": "popup.html"
+    "default_popup": "popup/popup.html"
   },
   "icons": {
     "16": "images/Logo-16x16.png",
@@ -51,7 +51,7 @@
     "128": "images/Logo-128x128.png"
   },
   "web_accessible_resources": [
-    "additional_html.html",
+    "content_injections/additional_html.html",
     "*.js",
     "images/*.png"
   ],
@@ -59,14 +59,14 @@
     {
       "matches": ["*://mail.google.com/*"],
       "js": [
-        "constants.js",
-        "jquery-1.11.2.min.js",
+        "internal_scripts/constants.js",
+        "internal_scripts/jquery-1.11.2.min.js",
         "e2e_library/end-to-end.compiled.js",
-        "logger.js",
+        "internal_scripts/logger.js",
         "content_script.js"
       ],
       "run_at": "document_end",
-      "css": ["bio_styles.css", "spinner.css"]
+      "css": ["css/bio_styles.css", "css/spinner.css"]
     }
   ],
   "content_security_policy": "script-src 'self' 'unsafe-eval'; object-src 'self'",

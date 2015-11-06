@@ -26,7 +26,7 @@ WebSocketImpl.prototype._setup_app_data = function () {
         app_key = storage_helper.decrypt_private_app_key(app_key);
         this._app_data.app_id = app_id;
         this._app_data.app_key = app_key;
-    }else{
+    } else {
         chrome.browserAction.setBadgeText({text: "!"});
     }
     socket_helper.set_app_id(this._app_data.app_id);
@@ -193,7 +193,9 @@ WebSocketImpl.prototype.set_connection_data = function (connection_data_json) {
     if ('key' in connection_data_json.msg && 'fingerprint' in connection_data_json.msg) {
         var app_id = connection_data_json.msg['fingerprint'];
         var app_key = connection_data_json.msg.key;
-        log(LOG_LEVEL.INFO, 'Received app ID and app KEY from server: ' + app_id + ', ' + app_key);
+        log(LOG_LEVEL.INFO, 'Received app ID and app KEY from server');
+        log(LOG_LEVEL.DEBUG, app_id);
+        log(LOG_LEVEL.DEBUG, app_key);
         app_key = storage_helper.encrypt_private_app_key(app_key);
         storage_helper.store_data(storage_helper.APP_ID_STORAGE_KEY, app_id);
         storage_helper.store_data(storage_helper.APP_KEY_STORAGE_KEY, app_key);
@@ -230,7 +232,7 @@ WebSocketImpl.prototype.is_connected = function () {
     return this._connection.readyState == 1;
 };
 
-WebSocketImpl.prototype.reset_app_registration = function(){
+WebSocketImpl.prototype.reset_app_registration = function () {
     storage_helper.remove_data(storage_helper.APP_ID_STORAGE_KEY);
     storage_helper.remove_data(storage_helper.APP_KEY_STORAGE_KEY);
     this.reset_connection_data();
