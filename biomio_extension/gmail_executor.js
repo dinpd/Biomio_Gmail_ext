@@ -62,8 +62,24 @@ function setupDefaults() {
     EMAIL_PARTS_SEPARATOR = '#-#-#';
     CANCEL_PROBE_MESSAGE_TYPE = 'cancel_probe';
     PROBE_ERROR_MESSAGE = "Your message wasn't decrypted because we were not able to identify you in time.";
-    BIOMIO_INFO_MESSAGE = "This message is encrypted with BIOMIO biometric authentication. If you don’t have a BIOMIO" +
-    " account yet, get it here - <a href='https://biom.io/#googleapp' target='_blank'>BIOMIO</a>";
+    BIOMIO_INFO_MESSAGE = '<div style="font-family:\'Helvetica Neue\';font-size:14px">' +
+    '<div><b>This message is encrypted</b></div>' +
+    '<div><span style="font-size:11px">' +
+    '<span style="font-family:arial,sans-serif">This message is encrypted and protected with BIOMIO ' +
+    'password-less&nbsp;multi-factor authentication.</span></span></div>' +
+    '<div style="font-family:\'Helvetica Neue\';font-size:14px">' +
+    '<span style="font-size:11px">The sender of this message wants this communication to be protected ' +
+    'for yours and their benefit as regular email is inherently insecure and lacks privacy.</span></div>' +
+    '<div style="font-family:\'Helvetica Neue\';font-size:14px">' +
+    '<span style="font-size:11px"><br></span></div>' +
+    '<div style="font-family:\'Helvetica Neue\';font-size:14px">' +
+    '<span style="font-size:11px"><span style="font-family:arial,sans-serif">If you don’t have a BIOMIO ' +
+    'account yet, you will need to register here -&nbsp;</span>' +
+    '<a href="https://biom.io/#emailprotector" target="_blank">https://biom.io/#<wbr>emailprotector</a></span></div>' +
+    '<div style="font-family:\'Helvetica Neue\';font-size:14px">' +
+    '<span style="font-size:11px">Once set up, you will be able to decrypt and ' +
+    'encrypt messages quickly and without typing any passwords.</span></div>' +
+    '<div style="font-family:\'Helvetica Neue\';font-size:14px"></div></div>';
     CONFIRMATION_ATTACH_MESSAGE = "You are about to encrypt your attachment, if you proceed all next attachments " +
     "will be encrypted. Do you want to proceed?";
     CONFIRMATION_SEND_MESSAGE = "You're sending an encrypted message. Do you want to proceed?";
@@ -702,6 +718,9 @@ function triggerSendButton(compose) {
  * Shows timer for user. Time that user has to provide a probe from his device.
  */
 function calculateTime(timeout, message) {
+    if(showTimer){
+        clearInterval(showTimer);
+    }
     $('#biomio_ok_button').hide();
     $('#biomio_yes_button').hide();
     $('#biomio_no_button').hide();
