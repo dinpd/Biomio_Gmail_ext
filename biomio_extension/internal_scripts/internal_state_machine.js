@@ -194,8 +194,8 @@ InternalStateMachine.prototype._message_listener_callback = function () {
     };
 };
 
-InternalStateMachine.prototype._run_async_callback = function(callback, params){
-    setTimeout(function(){
+InternalStateMachine.prototype._run_async_callback = function (callback, params) {
+    setTimeout(function () {
         callback(params);
     }, 1);
 };
@@ -203,7 +203,7 @@ InternalStateMachine.prototype._run_async_callback = function(callback, params){
 InternalStateMachine.prototype._error_callback = function (error) {
     var self = this;
     return function (error) {
-        var disc_msg = 'Socket connection closed.';
+        var disc_msg = ERROR_MESSAGES.SERVER_CONNECTION_ERROR;
         if (typeof error != 'undefined' && error) {
             disc_msg = 'Socket error! - ' + error.toString();
         }

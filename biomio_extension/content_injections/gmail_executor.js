@@ -718,7 +718,7 @@ function triggerSendButton(compose) {
  * Shows timer for user. Time that user has to provide a probe from his device.
  */
 function calculateTime(timeout, message) {
-    if(showTimer){
+    if (showTimer) {
         clearInterval(showTimer);
     }
     $('#biomio_ok_button').hide();

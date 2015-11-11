@@ -104,9 +104,12 @@ ClientInterface.prototype._lost_connection_callback = function () {
     var self = this;
     return function () {
         log(LOG_LEVEL.INFO, 'Internal state machine is in state DISCONNECTED.');
-        if (self._state_machine.is(STATE_READY)) {
-            self._state_machine['_connection_lost']('Will require re-connect.', self);
+        if (!self._state_machine.is(STATE_FINISH)) {
+            self._state_machine._finish('Client interface finalized.', false, self);
         }
+        //if (self._state_machine.is(STATE_READY)) {
+        //    self._state_machine['_connection_lost']('Will require re-connect.', self);
+        //}
     };
 };
 
@@ -454,6 +457,6 @@ ClientInterface.prototype.add_ready_callback = function (callback) {
     this._additional_ready_callbacks.push(callback);
 };
 
-ClientInterface.prototype.is_finished = function(){
-    this._state_machine.is(STATE_FINISH);
+ClientInterface.prototype.is_finished = function () {
+    return this._state_machine.is(STATE_FINISH);
 };

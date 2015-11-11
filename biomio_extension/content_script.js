@@ -92,7 +92,11 @@ function _sendResponse(message) {
  * @private
  */
 function _sendBackgroundRequest(command, message) {
-    chrome.runtime.sendMessage({command: command, data: message});
+    try {
+        chrome.runtime.sendMessage({command: command, data: message});
+    } catch (error) {
+        throw {message: 'Error connecting to extension'};
+    }
 }
 
 /**
@@ -100,7 +104,7 @@ function _sendBackgroundRequest(command, message) {
  * @param {Object} data with required information.
  */
 function _prepareEncryptParameters(data) {
-    data.currentUser = '<' + data.currentUser + '>';
+//    data.account_email = '<' + data.account_email + '>';
     if (data.hasOwnProperty('recipients')) {
         var recipients_arr = data.recipients;
         for (var i = 0; i < recipients_arr.length; i++) {
