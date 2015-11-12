@@ -202,8 +202,9 @@ var initializeGmailJSEvents = function () {
             $('#biomio_decrypt_button').remove();
             var encrypted_emails = emailBody.find('div[dir="ltr"]');
             if (encrypted_emails.length) {
-                encrypted_emails.eq(0).prepend('<div id="biomio_decrypt_element"><input type="button" value="Decrypt" id="biomio_decrypt_button" data-biomio-bodyattr="'
-                + bioMioAttr.join('_') + '"><br><p>' + BIOMIO_INFO_MESSAGE + '</p><br><br></div>');
+                encrypted_emails.eq(0).prepend('<div id="biomio_decrypt_element"><p>' + BIOMIO_INFO_MESSAGE + '</p>' +
+                '<br><input type="button" value="Decrypt" id="biomio_decrypt_button" data-biomio-bodyattr="'
+                + bioMioAttr.join('_') + '"><br><br></div>');
             }
         }
     });

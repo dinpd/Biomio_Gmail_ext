@@ -98,7 +98,11 @@ PGPInterface.prototype.encrypt_data = function (data, keys_data, results_callbac
     log(LOG_LEVEL.DEBUG, data);
     var keys = [];
     for (var i = 0; i < data.recipients.length; i++) {
-        var pub_key = this._pgpContext.searchPublicKey(KEY_PREFIX + data.recipients[i]);
+        var recipient = data.recipients[i];
+        if (recipient.indexOf('<') == -1) {
+            recipient = '<' + recipient + '>';
+        }
+        var pub_key = this._pgpContext.searchPublicKey(KEY_PREFIX + recipient);
         if (pub_key.result_) {
             keys.push.apply(keys, pub_key.result_);
         }
