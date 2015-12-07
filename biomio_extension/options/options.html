@@ -40,17 +40,25 @@
             display: none;
         }
 
-        .config > label {
+        .input-row > label {
             font-size: 25px;
             font-weight: 300;
             color: #656a7f;
         }
 
-        .config input[type="text"] {
+        .input-row input[type="text"] {
             font-size: 25px;
             font-weight: 300;
             padding: 2px;
             margin: 0 25px;
+            width: 100%;
+        }
+
+        #secret_code {
+            width: 250px;
+        }
+
+        #biomio_server_url {
             width: 400px;
         }
 
@@ -62,19 +70,18 @@
         Current Gmail user - <span id="current_gmail_user"></span><br><br>
         <input type="button" class="btn" id="biomio_export_button" value="Export Private PGP Key">
     </div>
-    <div id="secret_input" hidden>
+    <div class="input-row" id="secret_input" hidden>
         <label>
             Your secret code:
             <input type="text" placeholder="Secret Code" id="secret_code">
         </label>
-        <br>
         <input type="button" class="btn" value="Register App" id="register_app_button">
     </div>
     <br><br>
 
-    <div class="config">
+    <div class="input-row">
         <label>
-            Server URL
+            Server URL:
             <input id="biomio_server_url" type="text" size="50">
         </label>
         <input type="button" class="btn" value="Update" id="biomio_update_url_button">
