@@ -1,87 +1,156 @@
-var NOT_YOU_MESSAGE = 'If it is not you, please close all opened gmail tabs and login into your Gmail account in a new tab.';
-var NO_ACCOUNT_MESSAGE = 'Please close all opened gmail tabs and login into your Gmail account in a new tab.';
-var current_gmail_user;
-var SERVER_REST_URL = 'https://gate.biom.io';
-var REST_NEW_EMAIL_COMMAND = '/new_email/';
-$(document).ready(function () {
+var Popup = (function ($) {
+
+  var NOT_YOU_MESSAGE = 'If it is not you, please close all opened gmail tabs and login into your Gmail account in a new tab.';
+  var NO_ACCOUNT_MESSAGE = 'Please close all opened gmail tabs and login into your Gmail account in a new tab.';
+  var SERVER_REST_URL = 'https://gate.biom.io';
+  var REST_NEW_EMAIL_COMMAND = '/new_email/';
+
+  var currentGmailUser = null;
+  var $currentUser;
+  var $message;
+  var $lastErrors;
+  var $registerCode;
+  var $renewPgpBtn;
+  var $registerBtn;
+  var $resetConnectionBtn;
+
+  var view = {};
+
+  var init = function () {
+
+    view.$register = $('#state-register');
+    view.$status = $('#state-status');
+    $currentUser = $('#current_user > span');
+    $message = $('#info_message');
+    $lastErrors = $('#last_errors');
+    $registerCode = $('#registerCode');
+    $renewPgpBtn = $('#renew_pgp_keys');
+    $registerBtn = $('#registerBtn');
+    $resetConnectionBtn = $('#reset_connection_button');
+
+    initEvents();
+
     chrome.extension.sendRequest({message: 'is_registered'}, function (response) {
-        if (response.is_registered) {
-            chrome.storage.local.get('current_gmail_user_biomio', function (data) {
-                current_gmail_user = data['current_gmail_user_biomio'];
-                var currUserElement = $('#current_user');
-                var infoMessage = $('#info_message');
-                if (current_gmail_user) {
-                    current_gmail_user = current_gmail_user.replace(/<|>/g, '');
-                    currUserElement.text(currUserElement.text() + current_gmail_user);
-                    infoMessage.text(NOT_YOU_MESSAGE);
-                    $('#renew_pgp_keys').show();
-                } else {
-                    currUserElement.text(currUserElement.text() + 'None');
-                    infoMessage.text(NO_ACCOUNT_MESSAGE);
-                }
-            });
-            chrome.storage.local.get('last_biomio_errors', function (data) {
-                var last_errors = data['last_biomio_errors'];
-                var list_errors = $('#last_errors');
-                if (last_errors) {
-                    for (var i = 0; i < last_errors.length; i++) {
-                        list_errors.append('<li>' + last_errors[i] + '</li>');
-                    }
-                } else {
-                    list_errors.append('<li>No errors</li>');
-                }
-            });
+      if (response.is_registered) {
+        toState('status');
+      } else {
+        toState('register');
+      }
+    });
+  };
 
+  var initEvents = function () {
+
+    /** register app */
+    $registerBtn.on('click', function (e) {
+      console.info('register');
+      e.preventDefault();
+      $(e.currentTarget).attr('disabled', 'disabled');
+      var code = $registerCode.val();
+
+      chrome.extension.sendRequest({secret_code: code}, function (responseData) {
+        console.log(responseData);
+        if (responseData.result) {
+          window.location.reload();
         } else {
-            $('#current_user').hide();
-            $('#info_message').html('To enable extension you need to register account at <a target="_blank" href="https://biom.io/#emailprotector">Biom.io</a>');
-            $('#errors').hide();
-            $('#secret_input').show();
-            $('#renew_pgp_keys').hide();
-            var register_app_btn = $('#register_app_button');
-            register_app_btn.show();
-            register_app_btn.on('click', function (e) {
-                e.preventDefault();
-                $(e.currentTarget).attr('disabled', 'disabled');
-                var secret_code = $('#secret_code').val();
-                chrome.extension.sendRequest({secret_code: secret_code}, function (responseData) {
-                    console.log(responseData);
-                    if (responseData.result) {
-                        window.location.reload();
-                    } else {
-                        alert(responseData.error);
-                        $(e.currentTarget).removeAttr('disabled');
-                    }
-                });
-            });
+          alert(responseData.error);
+          $(e.currentTarget).removeAttr('disabled');
         }
-    });
-    $('#renew_pgp_keys').on('click', function (e) {
-        e.preventDefault();
-        var currentTarget = $(e.currentTarget);
-        currentTarget.attr('disabled', 'disabled');
-        currentTarget.val('Working....');
-        if (current_gmail_user) {
-            $.ajax({
-                url: SERVER_REST_URL + REST_NEW_EMAIL_COMMAND + current_gmail_user,
-                type: 'post',
-                data: {},
-                success: function () {
-                    currentTarget.val('Successfully updated PGP keys for user - ' + current_gmail_user);
-                },
-                error: function () {
-                    currentTarget.val('Successfully updated PGP keys for user - ' + current_gmail_user);
-                }
-            });
-        } else {
-            currentTarget.val('Please open the Gmail tab.');
-        }
-    });
-    $('#reset_connection_button').on('click', function (e) {
-        e.preventDefault();
-        chrome.runtime.sendMessage({command: 'biomio_reset_server_connection', data: {}});
-        $(e.currentTarget).attr('disabled', 'disabled');
-        $(e.currentTarget).val('Done');
+      });
     });
 
+    /** renew PGP keys*/
+    $renewPgpBtn.on('click', function (e) {
+      e.preventDefault();
+      var currentTarget = $(e.currentTarget);
+      currentTarget.attr('disabled', 'disabled');
+      currentTarget.val('Working....');
+      if (currentGmailUser) {
+        $.ajax({
+          url: SERVER_REST_URL + REST_NEW_EMAIL_COMMAND + currentGmailUser,
+          type: 'post',
+          data: {},
+          success: function () {
+            currentTarget.val('Successfully updated PGP keys for user - ' + currentGmailUser);
+          },
+          error: function () {
+            /*@todo: ?*/
+            currentTarget.val('Successfully updated PGP keys for user - ' + currentGmailUser);
+          }
+        });
+      } else {
+        currentTarget.val('Please open the Gmail tab.');
+      }
+    });
+
+    /** reset connection */
+    $resetConnectionBtn.on('click', function (e) {
+      e.preventDefault();
+      chrome.runtime.sendMessage({command: 'biomio_reset_server_connection', data: {}});
+      $(e.currentTarget).attr('disabled', 'disabled');
+      $(e.currentTarget).val('Done');
+    });
+  };
+
+  var toState = function (state) {
+    switch (state) {
+      case 'register':
+        stateRegister();
+        break;
+      case 'status':
+      default:
+        stateStatus();
+    }
+  };
+
+  var stateRegister = function () {
+    view.$register.show();
+
+  };
+
+  var stateStatus = function () {
+    view.$status.show();
+
+    /** load current Gmail user */
+    chrome.storage.local.get('current_gmail_user_biomio', function (data) {
+      currentGmailUser = data['current_gmail_user_biomio'];
+
+      if (currentGmailUser) {
+        currentGmailUser = currentGmailUser.replace(/<|>/g, '');
+        $currentUser.text(currentGmailUser);
+        $message.text(NOT_YOU_MESSAGE);
+        $renewPgpBtn.show();
+      } else {
+        $currentUser.text('None');
+        $message.text(NO_ACCOUNT_MESSAGE);
+        $renewPgpBtn.hide();
+      }
+    });
+
+    /** load last errors */
+    chrome.storage.local.get('last_biomio_errors', function (data) {
+      var lastErrors = data['last_biomio_errors'];
+      var errorsHtml = '';
+
+      if (lastErrors) {
+        for (var i = 0; i < lastErrors.length; i++) {
+          errorsHtml += '<li>' + lastErrors[i] + '</li>';
+        }
+      } else {
+        errorsHtml += '<li>No errors</li>';
+      }
+
+      $lastErrors.append(errorsHtml);
+    });
+
+  };
+
+  return {
+    init: init
+  }
+
+})(jQuery);
+
+jQuery(document).ready(function () {
+  Popup.init();
 });
