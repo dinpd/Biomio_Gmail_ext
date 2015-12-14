@@ -197,14 +197,15 @@ var initializeGmailJSEvents = function () {
 
     gmail.observe.on('view_email', function (emailBodyObj) {
         var emailBody = emailBodyObj.id_element;
+        var email_id = emailBodyObj.id;
         if (emailBody.html().indexOf('BEGIN PGP MESSAGE') != -1) {
             var bioMioAttr = emailBody.attr('class').split(' ');
             $('#biomio_decrypt_button').remove();
-            var encrypted_emails = emailBody.find('div[dir="ltr"]');
+            var encrypted_emails = emailBody.find('div');
             if (encrypted_emails.length) {
                 encrypted_emails.eq(0).prepend('<div id="biomio_decrypt_element"><p>' + BIOMIO_INFO_MESSAGE + '</p>' +
                 '<br><input type="button" value="Decrypt" id="biomio_decrypt_button" data-biomio-bodyattr="'
-                + bioMioAttr.join('_') + '"><br><br></div>');
+                + bioMioAttr.join('_') + '" data-email-id="' + email_id + '"><br><br></div>');
             }
         }
     });
@@ -324,8 +325,25 @@ function showHideInfoPopup(infoMessage, hide) {
  */
 function decryptMessage(event) {
     event.preventDefault();
+    var target = $(event.currentTarget);
+    var email_source = gmail.get.email_source(target.attr('data-email-id'));
+    var current_user = gmail.get.user_email();
+    var start_text = 'X-Gmail-Fetch-Info:';
+    var start_index = email_source.indexOf(start_text);
+    if (start_index != -1) {
+        var last_text = 'Delivered-To:';
+        var last_index = email_source.indexOf(last_text, start_index);
+        var pop_account_data = email_source.substring(start_index + start_text.length, last_index).trim();
+        pop_account_data = pop_account_data.split(' ');
+        for (var i = 0; i < pop_account_data.length; i++) {
+            if (pop_account_data[i].indexOf('@') != -1) {
+                current_user = pop_account_data[i].trim();
+                break;
+            }
+        }
+    }
     showHideInfoPopup(DECRYPT_WAIT_MESSAGE);
-    var emailBodyAttr = $(event.currentTarget).attr('data-biomio-bodyattr');
+    var emailBodyAttr = target.attr('data-biomio-bodyattr');
     var emailBody = $('.' + emailBodyAttr.split('_').join('.'));
     emailBody.attr('data-biomio', 'biomio_' + emailBodyAttr);
     emailBody = emailBody.clone();
@@ -335,21 +353,24 @@ function decryptMessage(event) {
     if (viewEntireEmailLink.length) {
         show_download_spinner('', true);
         show_download_spinner('Downloading the content of your email...', false);
-        $.ajax(
-            {
-                type: 'GET',
-                dataType: "text",
-                url: viewEntireEmailLink.attr('href'),
-                success: function (data) {
-                    show_download_spinner('', true);
-                    var emailBodyHtml = $(data).find('div[dir="ltr"]').html().replace(/BioMio v1.0<br>/g, 'BioMio v1.0').split('BioMio v1.0').join('BioMio v1.0<br>');
-                    emailBody.html(emailBodyHtml);
-                    sendDecryptMessage(emailBody);
-                }
-            }
-        );
+        setTimeout(function () {
+            var request = $.ajax({type: 'GET', url: viewEntireEmailLink.attr('href'), async: false});
+            show_download_spinner('', true);
+            var emailBodyHtml = $(request.responseText).find('div[dir="ltr"]').html().replace(/BioMio v1.0<br>/g, 'BioMio v1.0').split('BioMio v1.0').join('BioMio v1.0<br>');
+            emailBody.html(emailBodyHtml);
+            sendDecryptMessage(emailBody, current_user);
+        }, 500);
+        //$.ajax(
+        //    {
+        //        type: 'GET',
+        //        url: viewEntireEmailLink.attr('href'),
+        //        success: function (data) {
+        //
+        //        }
+        //    }
+        //);
     } else {
-        sendDecryptMessage(emailBody);
+        sendDecryptMessage(emailBody, current_user);
     }
 
 }
@@ -357,9 +378,11 @@ function decryptMessage(event) {
 /**
  * Sends content to contentscript for decryption.
  * @param {jQuery} emailBody of the current email.
+ * @param {string} delivered_to receiver address.
  */
-function sendDecryptMessage(emailBody) {
+function sendDecryptMessage(emailBody, delivered_to) {
     var emailBodyText = $(emailBody).html();
+    emailBodyText = $.trim(emailBodyText.replace(/\n/g, ''));
     emailBodyText = $.trim(emailBodyText.replace(/<br>/g, '\n'));
     emailBody.html(emailBodyText);
     emailBodyText = $(emailBody).text();
@@ -368,7 +391,7 @@ function sendDecryptMessage(emailBody) {
         action: "decrypt_verify",
         content: emailBodyText,
         biomio_attr: $(emailBody).attr('data-biomio'),
-        account_email: gmail.get.user_email()
+        account_email: delivered_to
     });
 }
 

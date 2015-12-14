@@ -151,12 +151,12 @@ chrome.tabs.onRemoved.addListener(function (tabId) {
     for (var i = 0; i < available_instances.length; i++) {
         if (available_instances[i].indexOf(tabId.toString()) != -1) {
             log(LOG_LEVEL.DEBUG, 'Gmail tab closed. Resetting connection info.');
+            chrome.storage.local.set({current_gmail_user_biomio: ''});
             var client_interface = connected_instances[available_instances[i]];
             client_interface.finish(false);
             delete connected_instances[available_instances[i]];
         }
     }
-    chrome.storage.local.set({current_gmail_user_biomio: ''});
 });
 
 /**
