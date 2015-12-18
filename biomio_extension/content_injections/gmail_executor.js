@@ -162,7 +162,7 @@ var initializeGmailJSEvents = function () {
                             sendContentMessage("encrypt_sign", {
                                 action: "encrypt_only",
                                 content: dataURL,
-                                account_email: gmail.get.user_email(),
+                                account_email: compose.from(),
                                 recipients: recipients_arr,
                                 composeId: compose.id(),
                                 encryptObject: 'file',
@@ -205,7 +205,8 @@ var initializeGmailJSEvents = function () {
             if (encrypted_emails.length) {
                 encrypted_emails.eq(0).prepend('<div id="biomio_decrypt_element"><p>' + BIOMIO_INFO_MESSAGE + '</p>' +
                 '<br><input type="button" value="Decrypt" id="biomio_decrypt_button" data-biomio-bodyattr="'
-                + bioMioAttr.join('_') + '" data-email-id="' + email_id + '"><br><br></div>');
+                + bioMioAttr.join('_') + '" data-email-id="' + email_id + '" data-current-page="' +
+                gmail.get.current_page() + '"><br><br></div>');
             }
         }
     });
@@ -328,16 +329,23 @@ function decryptMessage(event) {
     var target = $(event.currentTarget);
     var email_source = gmail.get.email_source(target.attr('data-email-id'));
     var current_user = gmail.get.user_email();
+    var is_in_sent = target.attr('data-current-page') == 'sent';
     var start_text = 'X-Gmail-Fetch-Info:';
+    if (is_in_sent){
+        start_text = 'From:';
+    }
     var start_index = email_source.indexOf(start_text);
     if (start_index != -1) {
         var last_text = 'Delivered-To:';
+        if (is_in_sent){
+            last_text = 'To:';
+        }
         var last_index = email_source.indexOf(last_text, start_index);
         var pop_account_data = email_source.substring(start_index + start_text.length, last_index).trim();
         pop_account_data = pop_account_data.split(' ');
         for (var i = 0; i < pop_account_data.length; i++) {
             if (pop_account_data[i].indexOf('@') != -1) {
-                current_user = pop_account_data[i].trim();
+                current_user = parse_recipients([pop_account_data[i].trim()])[0];
                 break;
             }
         }
@@ -356,9 +364,13 @@ function decryptMessage(event) {
         setTimeout(function () {
             var request = $.ajax({type: 'GET', url: viewEntireEmailLink.attr('href'), async: false});
             show_download_spinner('', true);
-            var emailBodyHtml = $(request.responseText).find('div[dir="ltr"]').html().replace(/BioMio v1.0<br>/g, 'BioMio v1.0').split('BioMio v1.0').join('BioMio v1.0<br>');
+            var email_body_el = $(request.responseText).find('div[dir="ltr"]');
+            if(!email_body_el.length){
+                email_body_el = $(request.responseText).find('div.maincontent table.message tr table');
+            }
+            var emailBodyHtml = email_body_el.html().replace(/BioMio v1.0<br>/g, 'BioMio v1.0').split('BioMio v1.0').join('BioMio v1.0<br>');
             emailBody.html(emailBodyHtml);
-            sendDecryptMessage(emailBody, current_user);
+            sendDecryptMessage(emailBody, current_user, is_in_sent);
         }, 500);
         //$.ajax(
         //    {
@@ -370,7 +382,7 @@ function decryptMessage(event) {
         //    }
         //);
     } else {
-        sendDecryptMessage(emailBody, current_user);
+        sendDecryptMessage(emailBody, current_user, is_in_sent);
     }
 
 }
@@ -379,17 +391,45 @@ function decryptMessage(event) {
  * Sends content to contentscript for decryption.
  * @param {jQuery} emailBody of the current email.
  * @param {string} delivered_to receiver address.
+ * @param {boolean} is_in_sent indicates wether user tries to decrypt message from his sent box.
  */
-function sendDecryptMessage(emailBody, delivered_to) {
+function sendDecryptMessage(emailBody, delivered_to, is_in_sent) {
     var emailBodyText = $(emailBody).html();
-    emailBodyText = $.trim(emailBodyText.replace(/\n/g, ''));
+    //emailBodyText = $.trim(emailBodyText.replace(/<br>\n/g, '<br>'));
+    //emailBodyText = $.trim(emailBodyText.replace(/<br>\n/g, '<br>'));
+    //emailBodyText = $.trim(emailBodyText.replace(/<br>\n/g, '<br>'));
     emailBodyText = $.trim(emailBodyText.replace(/<br>/g, '\n'));
+    if(emailBodyText.indexOf('\n\n\n\n') != -1){
+        var email_parts = emailBodyText.split('#-#-#');
+        email_parts[0] = $.trim(email_parts[0].replace(/\n\n\n\n/g, '<br><br>'));
+        email_parts[0] = $.trim(email_parts[0].replace(/\n\n/g, '<br>'));
+        email_parts[0] = $.trim(email_parts[0].replace(/<br>/g, '\n'));
+        if(email_parts.length > 1){
+            var file_parts = email_parts[1].split('#--#');
+            for(var i=0; i < file_parts.length; i++){
+                file_parts[i] = $.trim(file_parts[i].replace(/<br>\n/g, '<br>'));
+                file_parts[i] = $.trim(file_parts[i].replace(/<br>/g, '\n'));
+                file_parts[i] = $.trim(file_parts[i].replace(/\n\n/g, '\n'));
+                file_parts[i] = $.trim(file_parts[i].replace(/ =/g, '\n='));
+                var start_text = 'BioMio v1.0';
+                var start_index = file_parts[i].indexOf(start_text) + start_text.length;
+                var last_text = ' -----END PGP';
+                var last_index = file_parts[i].indexOf(last_text);
+                var proper_header = "-----BEGIN PGP MESSAGE-----\nCharset: UTF-8\nVersion: BioMio v1.0\n";
+                var proper_footer = "\n-----END PGP MESSAGE-----";
+                file_parts[i] = proper_header + file_parts[i].substring(start_index, last_index) + proper_footer;
+            }
+            email_parts[1] = file_parts.join('#--#');
+        }
+        emailBodyText = email_parts.join('#-#-#');
+    }
     emailBody.html(emailBodyText);
     emailBodyText = $(emailBody).text();
     $(emailBody).remove();
     sendContentMessage("decryptMessage", {
         action: "decrypt_verify",
         content: emailBodyText,
+        own_sent_email: is_in_sent,
         biomio_attr: $(emailBody).attr('data-biomio'),
         account_email: delivered_to
     });
@@ -415,7 +455,7 @@ function sendMessageClicked(event) {
             sendContentMessage("encrypt_sign", {
                 action: "encrypt_only",
                 content: compose.body(),
-                account_email: gmail.get.user_email(),
+                account_email: compose.from(),
                 recipients: recipients_arr,
                 composeId: compose.id(),
                 encryptObject: 'text'

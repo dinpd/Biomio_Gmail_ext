@@ -111,6 +111,16 @@ PGPInterface.prototype.encrypt_data = function (data, keys_data, results_callbac
         this._encryptFile(data, keys);
     } else {
         var self = this;
+        if (data.recipients.indexOf(this._account_email) == -1 && data.recipients.indexOf('<' + this._account_email + '>')) {
+            var current_email_account = this._account_email;
+            if (current_email_account.indexOf('<') == -1) {
+                current_email_account = '<' + current_email_account + '>';
+            }
+            pub_key = this._pgpContext.searchPublicKey(KEY_PREFIX + current_email_account);
+            if (pub_key.result_) {
+                keys.push.apply(keys, pub_key.result_);
+            }
+        }
         this._encryptMessage(data.content, keys, function (result, error) {
             if (typeof error != 'undefined' && error) {
                 self._resetKeyRing(TEMP_PUB_KEYRING);
@@ -232,7 +242,7 @@ PGPInterface.prototype.decrypt_data = function (data, keys_data, results_callbac
         } else {
             data.content = result;
             data.completedAction = 'decrypt_verify';
-            if (emailParts.length > 1) {
+            if (emailParts.length > 1 && data.hasOwnProperty('own_sent_email') && !data['own_sent_email']) {
                 self._results_callback({
                     file_parts_count: (emailParts.length - 1),
                     unique_file_id: data.biomio_attr

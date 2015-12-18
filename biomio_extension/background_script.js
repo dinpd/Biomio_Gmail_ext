@@ -55,7 +55,12 @@ function _interface_ready_callback(instance_key, request) {
             //    session_info.export_key_required = false;
             //}
             else if (request.command == SOCKET_REQUEST_TYPES.ENCRYPT_CONTENT) {
-                client_interface.get_public_keys(request.data.recipients.join(','), _encrypt_callback(instance_key, request.data));
+                var recipients = request.data.recipients;
+                var account_email = request.data['account_email'];
+                if (recipients.indexOf(account_email) == -1 && recipients.indexOf('<' + account_email + '>') == -1) {
+                    recipients.push(account_email);
+                }
+                client_interface.get_public_keys(recipients.join(','), _encrypt_callback(instance_key, request.data));
             }
             else if (request.command == SOCKET_REQUEST_TYPES.DECRYPT_CONTENT) {
                 client_interface.get_pass_phrase(_decrypt_callback(instance_key, request.data));
