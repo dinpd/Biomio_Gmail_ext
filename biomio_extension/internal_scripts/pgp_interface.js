@@ -14,6 +14,10 @@ function PGPInterface(account_email) {
     this._decrypted_files = {};
 }
 
+PGPInterface.prototype.set_account_email = function(account_email){
+    this._account_email = account_email;
+};
+
 /**
  * Imports public/private keys into OpenPGP keyring with given pass phrase.
  * @param {Object} keys_data with all required information.
