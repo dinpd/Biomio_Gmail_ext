@@ -63,6 +63,7 @@ function setupDefaults() {
     CANCEL_PROBE_MESSAGE_TYPE = 'cancel_probe';
     PROBE_ERROR_MESSAGE = "Your message wasn't decrypted because we were not able to identify you in time.";
     BIOMIO_INFO_MESSAGE = '<div style="font-family:\'Helvetica Neue\';font-size:14px">' +
+    '<div style="display: none !important;">biomio_encryption</div>' +
     '<div><b>This message is encrypted</b></div>' +
     '<div><span style="font-size:11px">' +
     '<span style="font-family:arial,sans-serif">This message is encrypted and protected with BIOMIO ' +
@@ -198,16 +199,16 @@ var initializeGmailJSEvents = function () {
     gmail.observe.on('view_email', function (emailBodyObj) {
         var emailBody = emailBodyObj.id_element;
         var email_id = emailBodyObj.id;
-        if (emailBody.html().indexOf('BEGIN PGP MESSAGE') != -1) {
+        var biomio_encryption = emailBody.find('div:contains("biomio_encryption"):last');
+        if (biomio_encryption.length) {
+            biomio_encryption = biomio_encryption.parent();
             var bioMioAttr = emailBody.attr('class').split(' ');
             $('#biomio_decrypt_button').remove();
-            var encrypted_emails = emailBody.find('div');
-            if (encrypted_emails.length) {
-                encrypted_emails.eq(0).prepend('<div id="biomio_decrypt_element"><p>' + BIOMIO_INFO_MESSAGE + '</p>' +
-                '<br><input type="button" value="Decrypt" id="biomio_decrypt_button" data-biomio-bodyattr="'
-                + bioMioAttr.join('_') + '" data-email-id="' + email_id + '" data-current-page="' +
-                gmail.get.current_page() + '"><br><br></div>');
-            }
+            $('<div id="biomio_decrypt_element">' + biomio_encryption.html() +
+            '<br>' + '<input type="button" value="Decrypt" id="biomio_decrypt_button" data-biomio-bodyattr="'
+            + bioMioAttr.join('_') + '" data-email-id="' + email_id + '" data-current-page="' +
+            gmail.get.current_page() + '"><br><br></div>').insertBefore(biomio_encryption);
+            biomio_encryption.remove();
         }
     });
 
@@ -331,13 +332,13 @@ function decryptMessage(event) {
     var current_user = gmail.get.user_email();
     var is_in_sent = target.attr('data-current-page') == 'sent';
     var start_text = 'X-Gmail-Fetch-Info:';
-    if (is_in_sent){
+    if (is_in_sent) {
         start_text = 'From:';
     }
     var start_index = email_source.indexOf(start_text);
     if (start_index != -1) {
         var last_text = 'Delivered-To:';
-        if (is_in_sent){
+        if (is_in_sent) {
             last_text = 'To:';
         }
         var last_index = email_source.indexOf(last_text, start_index);
@@ -365,7 +366,7 @@ function decryptMessage(event) {
             var request = $.ajax({type: 'GET', url: viewEntireEmailLink.attr('href'), async: false});
             show_download_spinner('', true);
             var email_body_el = $(request.responseText).find('div[dir="ltr"]');
-            if(!email_body_el.length){
+            if (!email_body_el.length) {
                 email_body_el = $(request.responseText).find('div.maincontent table.message tr table');
             }
             var emailBodyHtml = email_body_el.html().replace(/BioMio v1.0<br>/g, 'BioMio v1.0').split('BioMio v1.0').join('BioMio v1.0<br>');
@@ -399,14 +400,14 @@ function sendDecryptMessage(emailBody, delivered_to, is_in_sent) {
     //emailBodyText = $.trim(emailBodyText.replace(/<br>\n/g, '<br>'));
     //emailBodyText = $.trim(emailBodyText.replace(/<br>\n/g, '<br>'));
     emailBodyText = $.trim(emailBodyText.replace(/<br>/g, '\n'));
-    if(emailBodyText.indexOf('\n\n\n\n') != -1){
+    if (emailBodyText.indexOf('\n\n\n\n') != -1) {
         var email_parts = emailBodyText.split('#-#-#');
         email_parts[0] = $.trim(email_parts[0].replace(/\n\n\n\n/g, '<br><br>'));
         email_parts[0] = $.trim(email_parts[0].replace(/\n\n/g, '<br>'));
         email_parts[0] = $.trim(email_parts[0].replace(/<br>/g, '\n'));
-        if(email_parts.length > 1){
+        if (email_parts.length > 1) {
             var file_parts = email_parts[1].split('#--#');
-            for(var i=0; i < file_parts.length; i++){
+            for (var i = 0; i < file_parts.length; i++) {
                 file_parts[i] = $.trim(file_parts[i].replace(/<br>\n/g, '<br>'));
                 file_parts[i] = $.trim(file_parts[i].replace(/<br>/g, '\n'));
                 file_parts[i] = $.trim(file_parts[i].replace(/\n\n/g, '\n'));
@@ -613,7 +614,7 @@ window.addEventListener("message", function (event) {
         if (data.hasOwnProperty('encryptObject') && data['encryptObject'].length) {
             var compose = getComposeByID(data['composeId']);
             if (compose) {
-                var content = $.trim(data['content']).replace(/(?:\r\n|\r|\n)/g, '<br>');
+                var content = BIOMIO_INFO_MESSAGE + $.trim(data['content']).replace(/(?:\r\n|\r|\n)/g, '<br>');
                 var encryptedComposeFiles;
                 if (data['encryptObject'] == 'file') {
                     if (data['composeId'] in encryptedFiles) {
