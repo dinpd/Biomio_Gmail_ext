@@ -2,40 +2,130 @@
 <html>
 <head>
     <title>BIOMIO Extension</title>
+    <link href='https://fonts.googleapis.com/css?family=Roboto:400,700,900,300,500' rel='stylesheet' type='text/css'>
     <script src="../internal_scripts/jquery-1.11.2.min.js"></script>
     <script src="popup.js"></script>
     <style>
         body {
-            width: 550px;
+            width: 725px;
+            padding: 0;
+            margin: 0;
         }
 
         #errors {
             text-overflow: ellipsis;
             overflow: hidden;
         }
+
+        #state-status,
+        #state-register {
+            width: 700px;
+            padding: 20px;
+            font-family: Roboto;
+            color: #656a7f;
+        }
+
+        #state-register {
+            font-size: 25px;
+            font-weight: 300;
+        }
+
+        .register__title {
+            font-family: Roboto;
+            font-size: 32px;
+            font-weight: 500;
+            color: #fa7e5c;
+        }
+
+        .register__screen {
+            margin: 25px 0;
+        }
+
+        #state-register form > input[type="text"] {
+            font-family: Roboto;
+            font-size: 25px;
+            font-weight: 300;
+            padding: 2px;
+            margin: 0 25px;
+            width: 250px;
+        }
+
+        .btn {
+            font-family: Roboto;
+            font-size: 25px;
+            font-weight: 300;
+            padding: 4px 15px;
+            background-color: #14bba5;
+            border: 0;
+            color: #ffffff;
+            cursor: pointer;
+        }
+
+        #registerBtn {
+            font-family: Roboto;
+            font-size: 25px;
+            font-weight: 300;
+            padding: 4px 15px;
+            background-color: #14bba5;
+            border: 0;
+            color: #ffffff;
+            cursor: pointer;
+        }
+
+        #registerBtn:disabled {
+            cursor: not-allowed;
+        }
+
+        #current_user > span {
+            color: #fa7e5c;
+            font-size: 18px;
+        }
+
+        a {
+            color: #14a8bb;
+        }
+
     </style>
 </head>
 <body>
-<p id="current_user">Current Gmail user: </p>
 
-<p id="info_message"></p>
-<div id="secret_input" hidden>
-    <label>
-        Your secret code:
-        <input type="text" placeholder="Secret Code" id="secret_code">
-    </label>
+<div id="state-register" style="display: none">
+    <div class="register__title">Extension has not been activated yet...</div>
+    <div class="register__subtitle">To activate extension proceed to the <a href="https://biom.io/#user-services" target="_blank" alt="" title="Biomio">services</a> section in your account and press the
+        Register button
+    </div>
+    <img class="register__screen" src="../images/register-screen.png" alt="" title=""/>
+
+    <form>
+        <label>Or type in the code</label>
+        <input type="text" name="registerCode" id="registerCode"/>
+        <input type="button" value="Register" class="btn" id="registerBtn"/>
+    </form>
 </div>
-<div id="errors">
-    <p>5 last errors:</p>
-    <ul id="last_errors">
-    </ul>
-    <p>You can also look for errors in the browser developers console (Messages in red.).</p>
+
+<div id="state-status" style="display: none">
+    <p id="current_user">Current Gmail user: <span></span></p>
+
+    <p id="info_message"></p>
+
+    <div id="secret_input" hidden>
+        <label>
+            Your secret code:
+            <input type="text" placeholder="Secret Code" id="secret_code">
+        </label>
+    </div>
+    <div id="errors">
+        <p>5 last errors:</p>
+        <ul id="last_errors">
+        </ul>
+        <p>You can also look for errors in the browser developers console (Messages in red.).</p>
+    </div>
+    <div id="buttons">
+        <input type="button" value="Reset socket connection" class="btn" id="reset_connection_button">
+        <input type="button" value="Renew PGP keys" class="btn" id="renew_pgp_keys" hidden>
+    </div>
 </div>
-<div id="buttons">
-    <input type="button" value="Register App" id="register_app_button" hidden>
-    <input type="button" value="Reset socket connection" id="reset_connection_button">
-    <input type="button" value="Renew PGP keys" id="renew_pgp_keys" hidden>
-</div>
+
 </body>
 </html>
 
