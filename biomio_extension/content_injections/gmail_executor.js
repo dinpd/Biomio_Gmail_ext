@@ -5,6 +5,7 @@ var gmail,
     showLoading,
     showPopup,
     showTimer,
+    composeWindowOpen,
     compose_email_errors,
     file_parts_progress,
     DECRYPT_WAIT_MESSAGE,
@@ -49,6 +50,7 @@ function setupDefaults() {
             return true;
         }
     };
+    composeWindowOpen = false; // variable used when page is refreshed to determine if compose window is open
     showPopup = $('#biomio_show_popup');
     compose_email_errors = {};
     file_parts_progress = {};
@@ -212,25 +214,37 @@ var initializeGmailJSEvents = function () {
         }
     });
 
-    gmail.observe.on('compose', function (compose, type) {
-        var button = '<div class="bio-enc-btn down" type="checkbox" id="encrypt-body-' + compose.id() + '" title="Encrypt" class="aaA aWZ"></div>';
-        var transparentDiv = $('<div class="transparent_area" id="biomio_send_button" data-composeId="' + compose.id() + '"></div>');
-        var attachmentDiv = $('<span class="transparent_area attach-button" id="attach-button-id" data-composeId="' + compose.id() + '" onclick="attachClicked(event)"></span>');
-        setTimeout(function () {
-            compose.find('.a8X.gU > div:first-child').append(button);
-            var attachButton = compose.find('.J-Z-I[command="Files"]');
-            if (attachButton.length) {
-                $(attachButton).append(attachmentDiv);
-                $(attachButton).attr('attach-composeId', compose.id());
-            }
-        }, 500);
-        var sendButton = compose.find('.T-I.J-J5-Ji[role="button"]');
-        if (sendButton.length) {
-            transparentDiv.insertBefore($(sendButton[0]));
+    gmail.observe.on('refresh', function(compose, type) {
+        if (gmail.get.compose_ids().length > 0) {
+            show_compose_button(compose, type)
         }
     });
 
+    
+
+    gmail.observe.on('compose', function (compose, type) {
+        show_compose_button(compose, type);
+    });
+
 };
+
+function show_compose_button(compose, type) {
+    var button = '<div class="bio-enc-btn down" type="checkbox" id="encrypt-body-' + compose.id() + '" title="Encrypt" class="aaA aWZ"></div>';
+    var transparentDiv = $('<div class="transparent_area" id="biomio_send_button" data-composeId="' + compose.id() + '"></div>');
+    var attachmentDiv = $('<span class="transparent_area attach-button" id="attach-button-id" data-composeId="' + compose.id() + '" onclick="attachClicked(event)"></span>');
+    setTimeout(function () {
+        compose.find('.a8X.gU > div:first-child').append(button);
+        var attachButton = compose.find('.J-Z-I[command="Files"]');
+        if (attachButton.length) {
+            $(attachButton).append(attachmentDiv);
+            $(attachButton).attr('attach-composeId', compose.id());
+        }
+    }, 500);
+    var sendButton = compose.find('.T-I.J-J5-Ji[role="button"]');
+    if (sendButton.length) {
+        transparentDiv.insertBefore($(sendButton[0]));
+    }
+}
 
 function show_file_progress_bar(file_name, unique_file_id) {
     var progress_el = '<div class="progress-container" id="progress-container-id-' + unique_file_id + '">' +
