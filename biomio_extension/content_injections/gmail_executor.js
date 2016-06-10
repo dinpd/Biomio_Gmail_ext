@@ -5,7 +5,7 @@ var gmail,
     showLoading,
     showPopup,
     showTimer,
-    composeWindowOpen,
+    lastSavedDraftId,
     compose_email_errors,
     file_parts_progress,
     DECRYPT_WAIT_MESSAGE,
@@ -50,7 +50,7 @@ function setupDefaults() {
             return true;
         }
     };
-    composeWindowOpen = false; // variable used when page is refreshed to determine if compose window is open
+    lastSavedDraftId = 0;
     showPopup = $('#biomio_show_popup');
     compose_email_errors = {};
     file_parts_progress = {};
@@ -124,6 +124,7 @@ function setupDefaults() {
         sendMessageClicked(e);
     });
     $(document).on('click', 'div #attach-button-id', function (e) {
+        console.log("Entered the on click thing."); 
         attachClicked(e);
     });
 
@@ -139,59 +140,88 @@ var initializeGmailJSEvents = function () {
     gmail.observe.before("upload_attachment", function (file, xhr) {
         var activeAttachBtn = $('.transparent_area.attach-button.active');
         var fileName = file.name;
+        // console.log("Length" + activeAttachBtn.length);
+        var composeId = 0;
         if (activeAttachBtn.length) {
-            var composeId = activeAttachBtn.attr('data-composeId');
-            var isConfirmed = isEncryptionConfirmed(composeId);
-            var compose = getComposeByID(composeId);
-            var needToCheck = compose.find('#encrypt-body-' + compose.id());
-            var encryptionRequired = encryptRequired(compose);
-            if (isConfirmed && encryptionRequired) {
-                var unique_file_id = generate_file_id();
-                var reader = new FileReader();
-                reader.onload = (function (compose, fileName) {
-                    return function (e) {
-                        e.preventDefault();
-                        showLoading.show();
-                        showPopup.find('.biomio_wait_message').html(FILE_ENCRYPT_WAIT_MESSAGE);
-                        showPopup.fadeIn(200, function () {
-                            var dataURL = reader.result;
-                            var recipients_arr = compose.recipients({
-                                type: 'to',
-                                flat: true
-                            }).concat(compose.recipients({
-                                type: 'cc',
-                                flat: true
-                            })).concat(compose.recipients({type: 'bcc', flat: true}));
-                            sendContentMessage("encrypt_sign", {
-                                action: "encrypt_only",
-                                content: dataURL,
-                                account_email: compose.from(),
-                                recipients: recipients_arr,
-                                composeId: compose.id(),
-                                encryptObject: 'file',
-                                fileName: fileName,
-                                unique_file_id: unique_file_id
-                            });
-                        });
-                    };
-                })(compose, fileName);
-                reader.readAsDataURL(file);
-                hideBodyErrorsShowMessage(FILE_ENCRYPT_WAIT_MESSAGE);
-                show_file_progress_bar(fileName, unique_file_id);
-                xhr.abort();
-            } else if (isConfirmed && needToCheck.length && needToCheck.hasClass('down')) {
-                hideBodyErrorsShowMessage("It is required to specify recipients to be able to encrypt the attachment. " +
-                "If you don't want to encrypt the files just uncheck 'Encrypt' checkbox");
-                xhr.abort();
-            } else if (!isConfirmed && encryptionRequired) {
-
-                showConfirmationPopup(CONFIRMATION_ATTACH_MESSAGE, composeId, '#' + activeAttachBtn.attr('id'),
-                    "Disable Encryption");
-                hideBodyErrorsShowMessage("");
-                xhr.abort();
-            }
-
+            composeId = activeAttachBtn.attr('data-composeId');
+        } else if (lastSavedDraftId != 0) { // for when user drags and drops file
+            // Bug note: Using gmail.js, there is no way to check which compose draft
+            // the user has dragged and dropped the file into. Most users will attach the 
+            // file to the draft that was last saved, hence the next line. 
+            composeId = lastSavedDraftId;
+            console.log("Last saved double check: " + lastSavedDraftId); 
+            //console.log($("#attach-button-id"))
+            $("#attach-button-id").trigger("click") 
+            //console.log($("#attach-button-id"))
+            activeAttachBtn = $('.transparent_area.attach-button.active');
+        } else {
+            console.log("Drag and drop was attempted, but no drafts were saved.");
+            xhr.abort();
         }
+        //console.log("Button: " + activeAttachBtn);
+        //console.log("Id: " + composeId);
+        var isConfirmed = isEncryptionConfirmed(composeId);
+        //console.log("Is confirmed: " + isConfirmed);
+        var compose = getComposeByID(composeId);
+        //console.log("compose: " + compose);
+        var needToCheck = compose.find('#encrypt-body-' + compose.id());
+        //console.log("needToCheck: " + needToCheck);
+        var encryptionRequired = encryptRequired(compose);
+        //console.log("encryptionRequired: " + encryptionRequired); 
+        if (isConfirmed && encryptionRequired) {
+            var unique_file_id = generate_file_id();
+            //console.log("file id " + unique_file_id);
+            var reader = new FileReader();
+            reader.onload = (function (compose, fileName) {
+                return function (e) {
+                    e.preventDefault();
+                    showLoading.show();
+                    showPopup.find('.biomio_wait_message').html(FILE_ENCRYPT_WAIT_MESSAGE);
+                    showPopup.fadeIn(200, function () {
+                        var dataURL = reader.result;
+                        var recipients_arr = compose.recipients({
+                            type: 'to',
+                            flat: true
+                        }).concat(compose.recipients({
+                            type: 'cc',
+                            flat: true
+                        })).concat(compose.recipients({type: 'bcc', flat: true}));
+                        sendContentMessage("encrypt_sign", {
+                            action: "encrypt_only",
+                            content: dataURL,
+                            account_email: compose.from(),
+                            recipients: recipients_arr,
+                            composeId: compose.id(),
+                            encryptObject: 'file',
+                            fileName: fileName,
+                            unique_file_id: unique_file_id
+                        });
+                    });
+                };
+            })(compose, fileName);
+            reader.readAsDataURL(file);
+            hideBodyErrorsShowMessage(FILE_ENCRYPT_WAIT_MESSAGE);
+            show_file_progress_bar(fileName, unique_file_id);
+            if (activeAttachBtn.length) {
+                $('.transparent_area.attach-button.active').removeClass("active");
+            }
+            xhr.abort();
+        } else if (isConfirmed && needToCheck.length && needToCheck.hasClass('down')) {
+            hideBodyErrorsShowMessage("It is required to specify recipients to be able to encrypt the attachment. " +
+            "If you don't want to encrypt the files just uncheck 'Encrypt' checkbox");
+            xhr.abort();
+        } else if (!isConfirmed && encryptionRequired) {
+            // activeAttachBtn.attr('id') = attach-button-id
+            showConfirmationPopup(CONFIRMATION_ATTACH_MESSAGE, composeId, '#' + activeAttachBtn.attr('id'),
+                "Disable Encryption");
+            hideBodyErrorsShowMessage("");
+            xhr.abort();
+        }
+    });
+
+    gmail.observe.before("save_draft", function(url, body, data, xhr) {
+        lastSavedDraftId = data.composeid; 
+        console.log("last saved: " + lastSavedDraftId); 
     });
 
     gmail.observe.on('view_thread', function (match) {
@@ -300,11 +330,14 @@ function hideBodyErrorsShowMessage(message) {
  * @param event
  */
 function attachClicked(event) {
+    console.log("Entered attachClicked; event is: " + event);
     var existingActiveAttach = $('.transparent_area.attach-button');
     if (existingActiveAttach.length) {
         existingActiveAttach.removeClass('active');
     }
+    console.log($(event.currentTarget)); 
     $(event.currentTarget).addClass('active');
+    console.log($(event.currentTarget)); 
 }
 
 /**
@@ -313,6 +346,7 @@ function attachClicked(event) {
  * @param {boolean=} hide - false if is not specified.
  */
 function showHideInfoPopup(infoMessage, hide) {
+    console.log("Entered showHideInfoPopup"); 
     $('#biomio_timer').hide();
     $('#biomio_ok_button').hide();
     $('#biomio_yes_button').hide();
@@ -333,6 +367,7 @@ function showHideInfoPopup(infoMessage, hide) {
         showPopup.fadeIn(500);
     }
     gmail.tools.infobox(infoMessage, 5000);
+    console.log("End of showHideInfoPopup"); 
 }
 
 /**
@@ -504,6 +539,8 @@ function isEncryptionConfirmed(composeID) {
  * @param {string} noButtonValue - value to set as "No" button caption.
  */
 function showConfirmationPopup(message, currComposeID, elementToClick, noButtonValue) {
+    console.log("Entered showConfirmationPopup"); 
+    console.log(elementToClick); 
     showHideInfoPopup(message);
     $('#bio_close_popup').show();
     var yesButton = $('#biomio_yes_button');
@@ -515,6 +552,7 @@ function showConfirmationPopup(message, currComposeID, elementToClick, noButtonV
     noButton.attr('data-click-element', elementToClick);
     noButton.attr('data-composeId', currComposeID);
     noButton.show();
+    console.log("End of showConfirmationPopup"); 
 }
 
 /**
