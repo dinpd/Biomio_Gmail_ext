@@ -244,9 +244,11 @@ var initializeGmailJSEvents = function () {
         }
     });
 
-    gmail.observe.on('refresh', function(compose, type) {
-        if (gmail.get.compose_ids().length > 0) {
-            show_compose_button(compose, type)
+    gmail.observe.on('refresh', function (compose, type) {
+        console.log("entered refresh"); 
+        var availableComposes = gmail.dom.composes();
+        for (var i = 0; i < availableComposes.length; i++) {
+            show_compose_button(availableComposes[i], type); 
         }
     });
 
@@ -263,12 +265,15 @@ function show_compose_button(compose, type) {
     var transparentDiv = $('<div class="transparent_area" id="biomio_send_button" data-composeId="' + compose.id() + '"></div>');
     var attachmentDiv = $('<span class="transparent_area attach-button" id="attach-button-id" data-composeId="' + compose.id() + '" onclick="attachClicked(event)"></span>');
     setTimeout(function () {
-        compose.find('.a8X.gU > div:first-child').append(button);
-        var attachButton = compose.find('.J-Z-I[command="Files"]');
-        if (attachButton.length) {
-            $(attachButton).append(attachmentDiv);
-            $(attachButton).attr('attach-composeId', compose.id());
-        }
+        if(compose.find('.bio-enc-btn').length == 0) {
+            var attachButton = compose.find('.J-Z-I[command="Files"]');
+            compose.find('.a8X.gU > div:first-child').append(button);
+            if (attachButton.length) {
+                $(attachButton).append(attachmentDiv);
+                $(attachButton).attr('attach-composeId', compose.id());
+            }
+        } 
+        
     }, 500);
     var sendButton = compose.find('.T-I.J-J5-Ji[role="button"]');
     if (sendButton.length) {
