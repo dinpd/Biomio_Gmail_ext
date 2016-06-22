@@ -16,6 +16,7 @@ function ClientInterface(account_email, tab_id, ready_callback) {
     this._additional_ready_callbacks = [];
 
     this._secret = null;
+    this._sender = null;
 
     this.tab_id = tab_id;
 
@@ -177,21 +178,24 @@ ClientInterface.prototype._on_pass_phrase = function (event, from, to, msg, self
 
 ClientInterface.prototype._on_public_keys = function (event, from, to, msg, self) {
     log(LOG_LEVEL.INFO, msg);
-    internal_state_machine.get_public_keys(self._on_behalf_of, self._emails_list);
+    internal_state_machine.get_public_keys(self._sender, self._on_behalf_of, self._emails_list);
 };
 
 ClientInterface.prototype._on_start_encryption = function (event, from, to, msg, self) {
     log(LOG_LEVEL.INFO, msg);
+    self._pgp_interface.set_account_email(self._sender);
     self._pgp_interface.encrypt_data(self._pgp_data.data, self._pgp_data.keys_data, self._pgp_callback());
 };
 
 ClientInterface.prototype._on_start_decryption = function (event, from, to, msg, self) {
     log(LOG_LEVEL.INFO, msg);
+    self._pgp_interface.set_account_email(self._on_behalf_of);
     self._pgp_interface.decrypt_data(self._pgp_data.data, self._pgp_data.keys_data, self._pgp_callback());
 };
 
 ClientInterface.prototype._on_export_key = function (event, from, to, msg, self) {
     log(LOG_LEVEL.INFO, msg);
+    self._pgp_interface.set_account_email(self._on_behalf_of);
     self._pgp_interface.export_key(self._pgp_data.keys_data, self._pgp_callback());
 };
 
@@ -350,11 +354,12 @@ ClientInterface.prototype.get_pass_phrase = function (response_callback) {
     }
 };
 
-ClientInterface.prototype.get_public_keys = function (emails_list, response_callback) {
+ClientInterface.prototype.get_public_keys = function (sender, emails_list, response_callback) {
     this._response_callback = response_callback;
     this._response_callbacks.push(response_callback);
     if (!this._state_machine.is(STATE_RPC_CALL_PUBLIC_KEYS) && this._validate_state()) {
         this._emails_list = emails_list;
+        this._sender = sender;
         if (this._state_machine.is(STATE_CONNECTION_LOST)) {
             var self = this;
             this._waiting_action = function () {
@@ -374,6 +379,7 @@ ClientInterface.prototype.encrypt_content = function (data, keys_data, response_
             data: data,
             keys_data: keys_data
         };
+        this._sender = data.sender;
         if (this._state_machine.is(STATE_CONNECTION_LOST)) {
             var self = this;
             this._waiting_action = function () {

@@ -128,8 +128,8 @@ InternalStateMachine.prototype.run_verification = function (on_behalf_of, auth_c
     this._socket_client.send_rpc_auth_request(on_behalf_of, {email: on_behalf_of, auth_code: auth_code});
 };
 
-InternalStateMachine.prototype.get_public_keys = function (on_behalf_of, emails_list) {
-    this._socket_client.send_rpc_public_keys_request(on_behalf_of, {emails: emails_list});
+InternalStateMachine.prototype.get_public_keys = function (sender, on_behalf_of, emails_list) {
+    this._socket_client.send_rpc_public_keys_request(on_behalf_of, {sender: sender, emails: emails_list});
 };
 
 InternalStateMachine.prototype.get_pass_phrase = function (on_behalf_of) {

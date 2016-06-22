@@ -189,7 +189,8 @@ var initializeGmailJSEvents = function () {
                         sendContentMessage("encrypt_sign", {
                             action: "encrypt_only",
                             content: dataURL,
-                            account_email: compose.from(),
+                            account_email: gmail.get.user_email(),
+                            sender: compose.from(),
                             recipients: recipients_arr,
                             composeId: compose.id(),
                             encryptObject: 'file',
@@ -505,7 +506,8 @@ function sendMessageClicked(event) {
             sendContentMessage("encrypt_sign", {
                 action: "encrypt_only",
                 content: compose.body(),
-                account_email: compose.from(),
+                account_email: gmail.get.user_email(),
+                sender: compose.from(),
                 recipients: recipients_arr,
                 composeId: compose.id(),
                 encryptObject: 'text'
