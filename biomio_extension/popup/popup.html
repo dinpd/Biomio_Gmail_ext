@@ -18,6 +18,7 @@
         }
 
         #state-status,
+        #state-export,
         #state-register {
             width: 700px;
             padding: 20px;
@@ -50,7 +51,7 @@
             width: 250px;
         }
 
-        .btn {
+        /*.btn {
             font-family: Roboto;
             font-size: 25px;
             font-weight: 300;
@@ -59,6 +60,33 @@
             border: 0;
             color: #ffffff;
             cursor: pointer;
+        }*/
+        .btn {
+          background: #f0a00c;
+          background-image: -webkit-linear-gradient(top, #f0a00c, #d48911);
+          background-image: -moz-linear-gradient(top, #f0a00c, #d48911);
+          background-image: -ms-linear-gradient(top, #f0a00c, #d48911);
+          background-image: -o-linear-gradient(top, #f0a00c, #d48911);
+          background-image: linear-gradient(to bottom, #f0a00c, #d48911);
+          -webkit-border-radius: 28;
+          -moz-border-radius: 28;
+          border-radius: 28px;
+          font-family: Roboto;
+          color: #ffffff;
+          font-size: 20px;
+          padding: 10px 20px 10px 20px;
+          cursor: pointer;
+          text-decoration: none;
+        }
+
+        .btn:hover {
+          background: #f7bb43;
+          background-image: -webkit-linear-gradient(top, #f7bb43, #cf8d32);
+          background-image: -moz-linear-gradient(top, #f7bb43, #cf8d32);
+          background-image: -ms-linear-gradient(top, #f7bb43, #cf8d32);
+          background-image: -o-linear-gradient(top, #f7bb43, #cf8d32);
+          background-image: linear-gradient(to bottom, #f7bb43, #cf8d32);
+          text-decoration: none;
         }
 
         #registerBtn {
@@ -123,7 +151,17 @@
     <div id="buttons">
         <input type="button" value="Reset socket connection" class="btn" id="reset_connection_button">
         <input type="button" value="Renew PGP keys" class="btn" id="renew_pgp_keys" hidden>
+        <input type="button" value="Export Private PGP Key" class="btn" id="exportBtn">
     </div>
+</div>
+
+<div id="state-export" style="display: none">
+    <p>Please provide a probe for BioMio service authentication.</p>
+    <p class="biomio_wait_message"></p>
+    <p id="biomio_timer"></p>
+    <p class="biomio_buttons">
+        <input type="button"  class="btn" value="Cancel" id="biomio_cancel_button">
+    </p>
 </div>
 
 </body>

@@ -5,6 +5,9 @@ var Popup = (function ($) {
   var SERVER_REST_URL = 'https://gate.biom.io';
   var REST_NEW_EMAIL_COMMAND = '/new_email/';
 
+  var TIME_TO_WAIT_PROBE = 300;
+  var showTimer;
+
   var currentGmailUser = null;
   var $currentUser;
   var $message;
@@ -13,6 +16,7 @@ var Popup = (function ($) {
   var $renewPgpBtn;
   var $registerBtn;
   var $resetConnectionBtn;
+  var $exportBtn;
 
   var view = {};
 
@@ -20,6 +24,7 @@ var Popup = (function ($) {
 
     view.$register = $('#state-register');
     view.$status = $('#state-status');
+    view.$exp = $('#state-export')
     $currentUser = $('#current_user > span');
     $message = $('#info_message');
     $lastErrors = $('#last_errors');
@@ -27,6 +32,7 @@ var Popup = (function ($) {
     $renewPgpBtn = $('#renew_pgp_keys');
     $registerBtn = $('#registerBtn');
     $resetConnectionBtn = $('#reset_connection_button');
+    $exportBtn = $('#exportBtn');
 
     initEvents();
 
@@ -90,12 +96,28 @@ var Popup = (function ($) {
       $(e.currentTarget).attr('disabled', 'disabled');
       $(e.currentTarget).val('Done');
     });
+
+    /** Load export keys view when export keys button is clicked **/
+    $exportBtn.on('click', function (e) {
+      e.preventDefault();
+      toState('export'); 
+    });
+
+    /** When user cancels on export keys view **/
+    $('#biomio_cancel_button').on('click', function (e) {
+      e.preventDefault();
+      clearInterval(showTimer);
+      toState('status'); 
+    });
   };
 
   var toState = function (state) {
     switch (state) {
       case 'register':
         stateRegister();
+        break;
+      case 'export':
+        stateExport();
         break;
       case 'status':
       default:
@@ -105,10 +127,33 @@ var Popup = (function ($) {
 
   var stateRegister = function () {
     view.$register.show();
+  };
 
+  var stateExport = function() {
+    view.$status.hide(); 
+    view.$exp.show();
+    calculateTime();
+    chrome.extension.sendRequest({export_key: currentGmailUser}, function (data) {
+      console.log(data);
+      clearInterval(showTimer);
+      if (data.hasOwnProperty('error')) {
+        //showPopup.find('.biomio_wait_message').html(data.error);
+      } else {
+        //showPopup.hide();
+        toState('status');
+        //$('#actions_panel').show();
+        var fileUrl = generateKeyFile(data.exported_key);
+        var fileName = currentGmailUser.replace(/[\/\\]/g, '.') + 'keyring-private.asc';
+        var fileLink = document.createElement('a');
+        fileLink.download = fileName;
+        fileLink.href = fileUrl;
+        fileLink.click();
+      }
+    });
   };
 
   var stateStatus = function () {
+    view.$exp.hide(); 
     view.$status.show();
 
     /** load current Gmail user */
@@ -144,6 +189,37 @@ var Popup = (function ($) {
     });
 
   };
+
+    /**
+   * Shows timer for user. Time that user has to provide a probe from his device.
+   */
+  function calculateTime() {
+      var timer = TIME_TO_WAIT_PROBE;
+      var biomio_timer = $('#biomio_timer');
+      biomio_timer.show();
+      showTimer = setInterval(function () {
+          timer--;
+          if (timer <= 0) {
+              chrome.extension.sendRequest({cancel_probe: "We were not ale to receive your probe results from server, please try again later."});
+              biomio_timer.show();
+              clearInterval(showTimer);
+          }
+          var minutes = Math.floor((timer %= 3600) / 60);
+          var seconds = timer % 60;
+          biomio_timer.text((minutes < 10 ? '0' + minutes : minutes) + ' : ' + (seconds < 10 ? '0' + seconds : seconds));
+      }, 1000);
+  }
+
+    /**
+   * Generates file data url with given string content.
+   * @param {string}content
+   * @returns {string}
+   */
+  function generateKeyFile(content) {
+      var blob = new Blob(
+          [content], {type: 'application/pgp-keys; format=text;'});
+      return URL.createObjectURL(blob);
+  }
 
   return {
     init: init
