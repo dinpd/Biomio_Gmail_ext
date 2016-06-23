@@ -17,6 +17,7 @@ var Popup = (function ($) {
   var $registerBtn;
   var $resetConnectionBtn;
   var $exportBtn;
+  var $importBtn;
 
   var view = {};
 
@@ -24,7 +25,8 @@ var Popup = (function ($) {
 
     view.$register = $('#state-register');
     view.$status = $('#state-status');
-    view.$exp = $('#state-export')
+    view.$exp = $('#state-export');
+    view.$imp = $('#state-import');
     $currentUser = $('#current_user > span');
     $message = $('#info_message');
     $lastErrors = $('#last_errors');
@@ -33,6 +35,7 @@ var Popup = (function ($) {
     $registerBtn = $('#registerBtn');
     $resetConnectionBtn = $('#reset_connection_button');
     $exportBtn = $('#exportBtn');
+    $importBtn = $('#importBtn'); 
 
     initEvents();
 
@@ -103,13 +106,30 @@ var Popup = (function ($) {
       toState('export'); 
     });
 
+    /** Load import keys view when import keys button is clicked **/
+    $importBtn.on('click', function (e) {
+      e.preventDefault();
+      toState('import'); 
+    });
+
     /** When user cancels on export keys view **/
     $('#biomio_cancel_button').on('click', function (e) {
       e.preventDefault();
       clearInterval(showTimer);
       toState('status'); 
     });
+
+    document.getElementById('fileinput').addEventListener('change', function(){
+      var file = this.files[0];
+      // This code is only for demo ...
+      console.log("name : " + file.name);
+      console.log("size : " + file.size);
+      console.log("type : " + file.type);
+      console.log("date : " + file.lastModified);
+    }, false);
   };
+
+  
 
   var toState = function (state) {
     switch (state) {
@@ -118,6 +138,9 @@ var Popup = (function ($) {
         break;
       case 'export':
         stateExport();
+        break;
+      case 'import':
+        stateImport();
         break;
       case 'status':
       default:
@@ -150,6 +173,11 @@ var Popup = (function ($) {
         fileLink.click();
       }
     });
+  };
+
+  var stateImport = function() {
+    view.$status.hide();
+    view.$imp.show(); 
   };
 
   var stateStatus = function () {

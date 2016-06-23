@@ -19,6 +19,7 @@
 
         #state-status,
         #state-export,
+        #state-import,
         #state-register {
             width: 700px;
             padding: 20px;
@@ -152,6 +153,7 @@
         <input type="button" value="Reset socket connection" class="btn" id="reset_connection_button">
         <input type="button" value="Renew PGP keys" class="btn" id="renew_pgp_keys" hidden>
         <input type="button" value="Export Private PGP Key" class="btn" id="exportBtn">
+        <input type="button" value="Import Private PGP Key" class="btn" id="importBtn">
     </div>
 </div>
 
@@ -162,6 +164,11 @@
     <p class="biomio_buttons">
         <input type="button"  class="btn" value="Cancel" id="biomio_cancel_button">
     </p>
+</div>
+
+<div id="state-import" style="display: none">
+    <p>Please upload the .asc file that you downloaded when you pressed the "export pgp key" button.</p>
+    <input type="file" id="fileinput" accept=".asc"/>
 </div>
 
 </body>
