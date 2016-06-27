@@ -158,17 +158,23 @@
 </div>
 
 <div id="state-export" style="display: none">
-    <p>Please provide a probe for BioMio service authentication.</p>
+    <p>Please provide a probe for Biomio service authentication.</p>
     <p class="biomio_wait_message"></p>
-    <p id="biomio_timer"></p>
+    <p class="biomio_timer"></p>
     <p class="biomio_buttons">
-        <input type="button"  class="btn" value="Cancel" id="biomio_cancel_button">
+        <input type="button" class="btn biomio_cancel_button" value="Cancel">
     </p>
 </div>
 
 <div id="state-import" style="display: none">
     <p>Please upload the .asc file that you downloaded when you pressed the "export pgp key" button.</p>
     <input type="file" id="fileinput" accept=".asc"/>
+    <p class="biomio_wait_message"></p>
+    <p id="timer_message"></p>
+    <p class="biomio_timer"></p>
+    <p class="biomio_buttons">
+        <input type="button" class="btn biomio_cancel_button" value="Cancel">
+    </p>
 </div>
 
 </body>

@@ -113,7 +113,7 @@ var Popup = (function ($) {
     });
 
     /** When user cancels on export keys view **/
-    $('#biomio_cancel_button').on('click', function (e) {
+    $('.biomio_cancel_button').on('click', function (e) {
       e.preventDefault();
       clearInterval(showTimer);
       toState('status'); 
@@ -121,14 +121,128 @@ var Popup = (function ($) {
 
     document.getElementById('fileinput').addEventListener('change', function(){
       var file = this.files[0];
-      // This code is only for demo ...
-      console.log("name : " + file.name);
-      console.log("size : " + file.size);
-      console.log("type : " + file.type);
-      console.log("date : " + file.lastModified);
+      read_file(file, parse_ascii_keyfile);
+      $('#timer_message').text('Please provide a probe for Biomio service authentication.');
+      calculateTime(); 
     }, false);
   };
 
+var read_file = function(file, callback) {
+    var reader = new FileReader();
+    reader.onload = function(evt) {
+        var binary = evt.target.result;
+        callback(binary);
+    };
+    reader.readAsBinaryString(file);
+}
+
+var parse_ascii_keyfile = function(data) {
+  console.log(data); 
+    // Our data begins at the first character index preceded by a blank line.
+    //var body_begin_index  = data.search(/(\n|\r){2}/) + 2;
+    var body_begin_index = 76; 
+
+    // Our data ends right before the checksum line which starts with an "="
+    var body_end_index    = data.search(/^\=/m);
+
+    // Both of these indexes need to exist for the file to be readable.
+    if (body_begin_index == -1 || body_end_index == -1) {
+        alert('This is not a valid ASCII-Armored OpenPGP export file.');
+        return false;
+    }
+    // Pull the body out of the data and strip all newlines from it
+    var body = data.substring(body_begin_index, body_end_index);
+    var body = body.replace(/(\r\n|\n|\r)/gm, '');
+
+    // Grab the checksum while we're at it...
+    var body_checksum = data.substr(body_end_index + 1, 4);
+    //var body_checksum = "a7UR"; 
+    console.log(body);
+    console.log(body_checksum); 
+
+    //var decoded_body = base_64.decode("mQENBFEN6EoBCADChZ+c6Q84tJ+WLTKYfhdN49OTUlxmoZD8cou6Bdi/EKXvpciAydnD+SmlYf4pjAOwEiEsKJ6swLORAam4q0pnW9gAALbclhwDf9J4sLwUkh4F4D9P6TJX2vPEk4WRkudkj2TW3H2Wn1d7fQ3zlwLtK/bC5YeajuAIAk1m5zCtMbeZoYGcFWU+Max2G4Xr1/5JmUzfVtVSlxdJj7SX1FtJ/zj/eWklKNtl05yBWA+NyFpkgkzRDP+oJYBPdNoyS5mqNNIEnIIjDAUiufhGzkk2+865gIOH9X2WWCB5p0EGsR8ZzZA6H379WPca+GTlu5JncEi7lLcg+eQRwxQu9S6XABEBAAG0QEplZmYgTCAoaHR0cDovL3J1YmJpbmdhbGNvaG9saWMuY29tKSA8amVmZkBydWJiaW5nYWxjb2hvbGljLmNvbT6JATgEEwECACIFAlEN6EoCGwMGCwkIBwMCBhUIAgkKCwQWAgMBAh4BAheAAAoJEJmhufkmy7JniVYH/3Mjgo2gDDsc8tTPaIsBbYacB40pMOMX7+KxSQktrUZkGqwJTlGnfBB4R8jz+32dBjX/OmeGYFTl9xFMBx+MuQlHW9Sl0ffV+Gpk9YbebBZaPn7Y5OpinF9e7zuFH7MyI72SIM7S1CvvfP3QrYj7viBitddJ+eW3Vx3ANgpkr8Bj9auHoT043dlfm/xpqozOLwbVM0BADJge0zQvNKGpoZjoHU2mNSSGhWhXAPCRp9wVOCCESxbL+2Wi++ZUQUXO9DIxAQJy6HJfPx+PvBeedGAisfovNwtT0tDfJvyyPnRTKtEzTWiWDYwNUY80A6o/KkmSxSs5OeSh4t08phBIzWu5AQ0EUQ3oSgEIAMZf+w8pVqj/ZUQtacxzDe52kz+HtljJq4ltxulxQtoln5VkP5vWGq3uF1RFBoLVZ0OE/61yZixG8pOPMiGzHWJtidtQk7GxT/Z/b34voeTeruZjpfm3ty14sQvmApaRpjEQaNFTPy7dDiJKqGkD7teb/Mx8rtWJpN60hTiww1cOP5VjBvC82mn6uZ9DU2vJ6VwBTmwYnZMaXLiGRIpEAOqtLag4XwYrHS04H7No3asxSGhlyVN2KnxvlIMwoTZ+bTVaOr2ivCICel1dY2kC5LsfMa04z2Ne7fme+pnGM62ufC+l/T9H58vsw1VFl5vanYmJugtFzxHFHzU3atdbHzEAEQEAAYkBHwQYAQIACQUCUQ3oSgIbDAAKCRCZobn5JsuyZ138CACumdutchMDVE7V8ewhzsOCHgSMQjnmkB0HFCll2RxbhLz6x8SmzcQK107XbHQwFCdFA5v4JgFtwb6b9W9WShemNvC7tNx/loo2C+EiUKA9tURo/rJORu6S1jR79BaaOUUjMsB/jxxF2eRzE86SzgWXj34pYyoqJeMaiLSdXcCNW8eyN1i3gf8XpMlM7Ldv0Bq7vqbU2sDXBQvPDbNyhVIZjqfjTOBJl54NWHYRXlybFaSrXb7Qg/9ac+54TPpgCBTs1kR/HSZDujWE891NqlKGpSN4MDyi3WRL2RVbW0s5+8f8odNJuswIo1tWiNXBHVXs2/eCtlrSbyoTGYj0ErY0");
+    var decoded_body = base_64.decode(body); 
+    console.log(decoded_body); 
+
+    var decoded_checksum  = base_64.encode(crc24(decoded_body));
+    console.log(decoded_checksum); 
+
+if (body_checksum != decoded_checksum) {
+    alert('Checksum mismatch! (Expected '+body_checksum+', got '+decoded_checksum+')');
+    return false;
+}
+}
+
+var base_64 = {
+    chars: 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/',
+
+    encode: function(data) {
+        var output = '';
+        for (i=0, c=data.length; i<c; i += 3)
+        {
+            var char1 = data.charCodeAt(i) >> 2;
+            var char2 = ((data.charCodeAt(i) & 3) << 4) | data.charCodeAt(i+1) >> 4;
+            var char3 = ((data.charCodeAt(i+1) & 15) << 2) | data.charCodeAt(i+2) >> 6;
+            var char4 = data.charCodeAt(i+2) & 63;
+
+            output  +=  this.chars.charAt(char1)
+                        +   this.chars.charAt(char2)
+                        + this.chars.charAt(char3)
+                        + this.chars.charAt(char4);
+        }
+        if (c % 3 == 1)
+            output = output.substr(0, output.length - 2) + '==';
+        else if (c % 3 == 2)
+            output = output.substr(0, output.length - 1) + '=';
+        
+        return output;
+    },
+
+    decode: function(str) {
+        var data = '';
+
+        for (i=0, c=str.length; i<c; i += 4)
+        {
+            var char1 = this.chars.indexOf(str.charAt(i));
+            var char2 = this.chars.indexOf(str.charAt(i+1));
+            var char3 = this.chars.indexOf(str.charAt(i+2));
+            var char4 = this.chars.indexOf(str.charAt(i+3));
+
+            data += String.fromCharCode(char1 << 2 | char2 >> 4);
+            if (char3 != -1)
+                data += String.fromCharCode((char2 & 15) << 4 | char3 >> 2)
+            if (char4 != -1)
+                data += String.fromCharCode((char3 & 3) << 6 | char4);
+        }
+        return data;
+    }
+}
+
+var crc24 = function(data) {
+    var crc = 0xb704ce;
+    var len = data.length;
+    while (len--) {
+        crc ^= (data.charCodeAt((data.length-1) - len)) << 16;
+        for (i=0; i<8; i++) {
+            crc <<= 1;
+            if (crc & 0x1000000)
+                crc ^= 0x1864cfb;
+        }
+    }
+    return number_to_binstring(crc, 24);
+}
+
+var number_to_binstring = function(bin, bits) {
+    bits || (bits = 32);
+    var text = Array();
+    var i = (bits < 32 && bits > 0 && bits % 8 == 0) ? (bits / 8) : 4;
+    while (i--) {
+        if (((bin>>(i*8))&255) || text.length) {
+            text.push(String.fromCharCode(((bin>>(i*8))&255)))
+        }
+    }
+    return text.join('')
+}
   
 
   var toState = function (state) {
@@ -182,6 +296,7 @@ var Popup = (function ($) {
 
   var stateStatus = function () {
     view.$exp.hide(); 
+    view.$imp.hide(); 
     view.$status.show();
 
     /** load current Gmail user */
@@ -223,12 +338,12 @@ var Popup = (function ($) {
    */
   function calculateTime() {
       var timer = TIME_TO_WAIT_PROBE;
-      var biomio_timer = $('#biomio_timer');
+      var biomio_timer = $('.biomio_timer');
       biomio_timer.show();
       showTimer = setInterval(function () {
           timer--;
           if (timer <= 0) {
-              chrome.extension.sendRequest({cancel_probe: "We were not ale to receive your probe results from server, please try again later."});
+              chrome.extension.sendRequest({cancel_probe: "We were not able to receive your probe results from server, please try again later."});
               biomio_timer.show();
               clearInterval(showTimer);
           }
