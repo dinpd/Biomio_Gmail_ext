@@ -7,6 +7,7 @@ var STATE_INITIALIZE = 'initialize_state',
     STATE_ENCRYPTION = 'encryption_state',
     STATE_DECRYPTION = 'decryption_state',
     STATE_EXPORT_KEY = 'export_key_state',
+    STATE_IMPORT_KEY = 'import_key_state',
     STATE_CONNECTION_LOST = 'connection_lost_state',
     STATE_FINISH = 'finish_state';
 
@@ -39,7 +40,7 @@ function ClientInterface(account_email, tab_id, ready_callback) {
             {name: '_initialize', from: ['none', STATE_CONNECTION_LOST], to: STATE_INITIALIZE},
             {
                 name: '_ready',
-                from: [STATE_INITIALIZE, STATE_RPC_CALL_AUTH, STATE_RPC_CALL_USER_CHECK, STATE_EXPORT_KEY,
+                from: [STATE_INITIALIZE, STATE_RPC_CALL_AUTH, STATE_RPC_CALL_USER_CHECK, STATE_EXPORT_KEY, STATE_IMPORT_KEY,
                     STATE_RPC_CALL_PASS_PHRASE, STATE_RPC_CALL_PUBLIC_KEYS, STATE_ENCRYPTION, STATE_DECRYPTION],
                 to: STATE_READY
             },
@@ -50,6 +51,7 @@ function ClientInterface(account_email, tab_id, ready_callback) {
             {name: '_start_encryption', from: STATE_READY, to: STATE_ENCRYPTION},
             {name: '_start_decryption', from: STATE_READY, to: STATE_DECRYPTION},
             {name: '_export_key', from: STATE_READY, to: STATE_EXPORT_KEY},
+            {name: '_import_key', from: STATE_READY, to: STATE_IMPORT_KEY},
             {name: '_connection_lost', from: STATE_READY, to: STATE_RPC_CALL_USER_CHECK},
             {name: '_finish', from: '*', to: STATE_FINISH}
         ],
@@ -63,6 +65,7 @@ function ClientInterface(account_email, tab_id, ready_callback) {
             on_start_encryption: this._on_start_encryption,
             on_start_decryption: this._on_start_decryption,
             on_export_key: this._on_export_key,
+            on_import_key: this._on_import_key,
             on_connection_lost: this._on_connection_lost_ev,
             on_finish: this._onFinish
         }
@@ -193,6 +196,11 @@ ClientInterface.prototype._on_start_decryption = function (event, from, to, msg,
 ClientInterface.prototype._on_export_key = function (event, from, to, msg, self) {
     log(LOG_LEVEL.INFO, msg);
     self._pgp_interface.export_key(self._pgp_data.keys_data, self._pgp_callback());
+};
+
+ClientInterface.prototype._on_import_key = function (event, from, to, msg, self) {
+    log(LOG_LEVEL.INFO, msg);
+    self._pgp_interface._import_keys(self._pgp_data.keys_data, self._pgp_callback());
 };
 
 ClientInterface.prototype._onFinish = function (event, from, to, msg, disconnect, self) {
@@ -410,6 +418,14 @@ ClientInterface.prototype.export_key = function (keys_data, response_callback) {
     if (this._validate_state()) {
         this._pgp_data['keys_data'] = keys_data;
         this._state_machine['_export_key']('Exporting key.', this);
+    }
+};
+
+ClientInterface.prototype.import_key = function (keys_data, response_callback) {
+    this._response_callback = response_callback;
+    if (this._validate_state()) {
+        this._pgp_data['keys_data'] = keys_data;
+        this._state_machine['_import_key']('Importing key.', this);
     }
 };
 

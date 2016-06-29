@@ -216,7 +216,7 @@ chrome.extension.onRequest.addListener(function (request, sender, sendOptionsRes
                         log(LOG_LEVEL.DEBUG, keys_data);
                     } else {
                         var pass = keys_data["pass_phrase"]; 
-                        client_interface.import_keys({pass_phrase: pass, private_pgp_key: private_key}, function (result, finished) {
+                        client_interface.import_key({pass_phrase: pass, private_pgp_key: private_key}, function (result, finished) {
                             sendOptionsResponse(result);
                             if (finished) {
                                 client_interface.finish(true);
