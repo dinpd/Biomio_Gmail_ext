@@ -1,4 +1,5 @@
 var connected_instances = {};
+var private_key = "";
 
 chrome.runtime.onMessage.addListener(
     function (request, sender) {
@@ -202,6 +203,33 @@ chrome.extension.onRequest.addListener(function (request, sender, sendOptionsRes
             }
         });
         client_interface.initialize_interface(true);
+    } else if (request.hasOwnProperty('import_key')) {
+        var client_interface = new ClientInterface(_prepare_email(request['import_key']), null, function (error) {
+            if (typeof error != 'undefined' && error) {
+                sendOptionsResponse({error: error.error});
+            } else {
+                client_interface.get_pass_phrase(function (keys_data) {
+                    if (keys_data.hasOwnProperty('error')) {
+                        sendOptionsResponse({error: keys_data.error});
+                        client_interface.finish(false);
+                    } else if (keys_data.hasOwnProperty('showTimer')) {
+                        log(LOG_LEVEL.DEBUG, keys_data);
+                    } else {
+                        var pass = keys_data["pass_phrase"]; 
+                        client_interface.import_keys({pass_phrase: pass, private_pgp_key: private_key}, function (result, finished) {
+                            sendOptionsResponse(result);
+                            if (finished) {
+                                client_interface.finish(true);
+                                connected_instances = {};
+                            }
+                        });
+                    }
+                });
+            }
+        });
+        client_interface.initialize_interface(true);
+    } else if (request.hasOwnProperty('private_key')) {
+        private_key = request['private_key']; 
     } else if (request.hasOwnProperty('message') && request.message == 'is_registered') {
         sendOptionsResponse({is_registered: internal_state_machine.is_app_registered()});
     } else if (request.hasOwnProperty('secret_code')) {

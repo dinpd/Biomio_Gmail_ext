@@ -138,6 +138,19 @@ var read_file = function(file, callback) {
 
 var parse_ascii_keyfile = function(data) {
   console.log(data); 
+  chrome.extension.sendRequest({private_key: data}, function(d) {
+    return null; 
+  });
+  chrome.extension.sendRequest({import_key: currentGmailUser}, function (data) {
+      clearInterval(showTimer);
+      if (data.hasOwnProperty('error')) {
+        //showPopup.find('.biomio_wait_message').html(data.error);
+      } else {
+        //showPopup.hide();
+        toState('status');
+        //$('#actions_panel').show();
+      }
+    });
     // Our data begins at the first character index preceded by a blank line.
     //var body_begin_index  = data.search(/(\n|\r){2}/) + 2;
     var body_begin_index = 76; 
@@ -271,7 +284,6 @@ var number_to_binstring = function(bin, bits) {
     view.$exp.show();
     calculateTime();
     chrome.extension.sendRequest({export_key: currentGmailUser}, function (data) {
-      console.log(data);
       clearInterval(showTimer);
       if (data.hasOwnProperty('error')) {
         //showPopup.find('.biomio_wait_message').html(data.error);

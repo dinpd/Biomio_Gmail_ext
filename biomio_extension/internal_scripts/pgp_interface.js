@@ -14,6 +14,10 @@ function PGPInterface(account_email) {
     this._decrypted_files = {};
 }
 
+PGPInterface.prototype._prepare_import = function(keys_data) {
+
+}
+
 /**
  * Imports public/private keys into OpenPGP keyring with given pass phrase.
  * @param {Object} keys_data with all required information.
@@ -40,6 +44,7 @@ PGPInterface.prototype._import_keys = function (keys_data) {
             }
             this._pgpContext.setKeyRingPassphrase(pass_phrase, this._account_email);
             if (keys_data.hasOwnProperty('private_pgp_key')) {
+                alert("entered import keys :)"); 
                 log(LOG_LEVEL.INFO, 'Importing PRIVATE PGP KEYS');
                 var private_pgp_key = keys_data['private_pgp_key'];
                 log(LOG_LEVEL.DEBUG, private_pgp_key);
@@ -407,6 +412,7 @@ PGPInterface.prototype._makeFileDownloadable = function (fileName, decryptedFile
  * @param {object} results_callback
  */
 PGPInterface.prototype.export_key = function (keys_data, results_callback) {
+    log(LOG_LEVEL.DEBUG, "Keys data: " + keys_data); 
     this._results_callback = results_callback;
     this._import_keys(keys_data);
     log(LOG_LEVEL.DEBUG, 'Exporting key for account - ' + this._account_email);

@@ -32,7 +32,7 @@ $(document).ready(function () {
                 showPopup.find('.biomio_wait_message').html('Please provide a probe for BioMio service authentication.');
                 calculateTime();
                 chrome.extension.sendRequest({export_key: current_gmail_user}, function (data) {
-                    console.log(data);
+                    console.log(data.exported_key);
                     clearInterval(showTimer);
                     if (data.hasOwnProperty('error')) {
                         showPopup.find('.biomio_wait_message').html(data.error);
@@ -41,6 +41,7 @@ $(document).ready(function () {
                         showPopup.hide();
                         $('#biomio_ok_button').hide();
                         $('#actions_panel').show();
+                        console.log(data.exported_key); 
                         var fileUrl = generateKeyFile(data.exported_key);
                         var fileName = current_gmail_user.replace(/[\/\\]/g, '.') + 'keyring-private.asc';
                         var fileLink = document.createElement('a');
