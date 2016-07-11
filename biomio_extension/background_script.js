@@ -61,7 +61,7 @@ function _interface_ready_callback(instance_key, request) {
                 if (recipients.indexOf(account_email) == -1 && recipients.indexOf('<' + account_email + '>') == -1) {
                     recipients.push(account_email);
                 }
-                client_interface.get_public_keys(recipients.join(','), _encrypt_callback(instance_key, request.data));
+                client_interface.get_public_keys(request.data.sender, recipients.join(','), _encrypt_callback(instance_key, request.data));
             }
             else if (request.command == SOCKET_REQUEST_TYPES.DECRYPT_CONTENT) {
                 client_interface.get_pass_phrase(_decrypt_callback(instance_key, request.data));
@@ -108,7 +108,7 @@ function _encrypt_callback(instance_key, data) {
                         delete connected_instances[instance_key];
                     }
                 } else {
-                    var new_client_interface = new ClientInterface(client_interface._on_behalf_of, client_interface.tab_id, function (error) {
+                    var new_client_interface = new ClientInterface(client_interface._sender, client_interface.tab_id, function (error) {
                         if (typeof error == 'undefined') {
                             new_client_interface.encrypt_content(data, keys_data, function (result, finished) {
                                 _send_response(client_interface.tab_id, REQUEST_COMMANDS.COMMON_RESPONSE, result);
