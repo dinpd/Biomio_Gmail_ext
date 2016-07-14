@@ -140,14 +140,21 @@ var initializeGmailJSEvents = function () {
     gmail.observe.before("upload_attachment", function (file, xhr) {
         var activeAttachBtn = $('.transparent_area.attach-button.active');
         var fileName = file.name;
+
         // console.log("Length" + activeAttachBtn.length);
         var composeId = 0;
         if (activeAttachBtn.length) {
+            console.log("paperclip attachment"); 
             composeId = activeAttachBtn.attr('data-composeId');
         } else if (lastSavedDraftId != 0) { // for when user drags and drops file
             // Bug note: Using gmail.js, there is no way to check which compose draft
             // the user has dragged and dropped the file into. Most users will attach the 
             // file to the draft that was last saved, hence the next line. 
+            if (fileName == null || fileName.match(/\.(jpg|jpeg|png|gif)$/)) {
+                console.log("match!"); 
+                return;
+            }
+            console.log("drag and drop attachment"); 
             composeId = lastSavedDraftId;
             console.log("Last saved double check: " + lastSavedDraftId); 
             //console.log($("#attach-button-id"))
@@ -352,7 +359,6 @@ function attachClicked(event) {
  * @param {boolean=} hide - false if is not specified.
  */
 function showHideInfoPopup(infoMessage, hide) {
-    console.log("Entered showHideInfoPopup"); 
     $('#biomio_timer').hide();
     $('#biomio_ok_button').hide();
     $('#biomio_yes_button').hide();
@@ -373,7 +379,7 @@ function showHideInfoPopup(infoMessage, hide) {
         showPopup.fadeIn(500);
     }
     gmail.tools.infobox(infoMessage, 5000);
-    console.log("End of showHideInfoPopup"); 
+    //console.log("End of showHideInfoPopup"); 
 }
 
 /**

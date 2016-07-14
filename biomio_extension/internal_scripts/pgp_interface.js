@@ -49,14 +49,15 @@ PGPInterface.prototype._import_keys = function (keys_data) {
             }
             this._pgpContext.setKeyRingPassphrase(pass_phrase, this._account_email);
             if (keys_data.hasOwnProperty('private_pgp_key')) {
-                alert("entered import keys :)"); 
+                alert("Keys have been imported! Please close gmail tabs and reopen."); 
                 log(LOG_LEVEL.INFO, 'Importing PRIVATE PGP KEYS');
                 var private_pgp_key = keys_data['private_pgp_key'];
-                log(LOG_LEVEL.DEBUG, private_pgp_key);
+                log(LOG_LEVEL.INFO, private_pgp_key);
                 this._pgpContext.importKey(function () {
                     return null;
                 }, private_pgp_key, pass_phrase);
                 this._clearPublicKeys();
+                log(LOG_LEVEL.INFO, "Successfully imported key!!"); 
                 var encrypted_private_pgp = this._pgpContext.exportKeyring(true);
                 storage_helper.set_chrome_data(storage_helper.PGP_BACKUP_STORAGE_KEY + this._account_email,
                     encrypted_private_pgp.result_, false);
