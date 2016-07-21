@@ -253,7 +253,7 @@ PGPInterface.prototype.decrypt_data = function (data, keys_data, results_callbac
         } else {
             data.content = result;
             data.completedAction = 'decrypt_verify';
-            if (emailParts.length > 1 && data.hasOwnProperty('own_sent_email') && !data['own_sent_email']) {
+            if (emailParts.length > 1) { // && data.hasOwnProperty('own_sent_email') && !data['own_sent_email'] --> not sure why this was in if statement
                 self._results_callback({
                     file_parts_count: (emailParts.length - 1),
                     unique_file_id: data.biomio_attr
