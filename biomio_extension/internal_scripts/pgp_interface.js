@@ -246,8 +246,9 @@ PGPInterface.prototype.decrypt_data = function (data, keys_data, results_callbac
     log(LOG_LEVEL.DEBUG, 'Data for decryption:');
     log(LOG_LEVEL.DEBUG, data);
     var emailParts = data.content.split(EMAIL_PARTS_SEPARATOR);
+    firstPart = "-----BEGIN PGP MESSAGE-----" + emailParts[0].split("-----BEGIN PGP MESSAGE-----")[1];
     var self = this;
-    this._decryptMessage(emailParts[0], keys_data, function (result, error) {
+    this._decryptMessage(firstPart, keys_data, function (result, error) {
         if (typeof error != "undefined" && error.length > 0) {
             self._results_callback({error: error}, true);
         } else {

@@ -163,7 +163,7 @@ var initializeGmailJSEvents = function () {
             activeAttachBtn = $('.transparent_area.attach-button.active');
         } else {
             console.log("Drag and drop was attempted, but no drafts were saved.");
-            xhr.abort();
+            return; 
         }
         //console.log("Button: " + activeAttachBtn);
         //console.log("Id: " + composeId);
