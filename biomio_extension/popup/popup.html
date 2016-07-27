@@ -13,6 +13,10 @@
             margin: 0;
         }
 
+        .tab {
+            display:none;
+        }
+
         #errors {
             text-overflow: ellipsis;
             overflow: hidden;
@@ -134,28 +138,59 @@
 </div>
 
 <div id="state-status" style="display: none">
-    <p id="current_user">Current Gmail user: <span></span></p>
 
-    <p id="info_message"></p>
+    <nav class="w3-sidenav w3-light-grey w3-card-2" style="width:130px">
+      <a href="#" id="enc" class="tablink">Encrypt</a>
+      <a href="#" id="dec" class="tablink">Decrypt</a>
+      <a href="#" id="gm" class="tablink">Gmail</a>
+      <a href="#" id="m" class="tablink">Misc</a>
+    </nav>
 
-    <div id="secret_input" hidden>
-        <label>
-            Your secret code:
-            <input type="text" placeholder="Secret Code" id="secret_code">
-        </label>
-    </div>
-    <div id="errors">
-        <p>5 last errors:</p>
-        <ul id="last_errors">
-        </ul>
-        <p>You can also look for errors in the browser developers console (Messages in red.).</p>
-    </div>
-    <div id="buttons">
-        <input type="button" value="Reset socket connection" class="btn" id="reset_connection_button">
-        <input type="button" value="Renew PGP keys" class="btn" id="renew_pgp_keys" hidden>
-        <input type="button" value="Export Private PGP Key" class="btn" id="exportBtn">
-        <input type="button" value="Import Private PGP Key" class="btn" id="importBtn">
-    </div>
+    <div style="margin-left:130px">
+      <div class="w3-padding">BIOMIO</div>
+
+      <div id="Encrypt" class="w3-container tab">
+        <h2>London</h2>
+        <p>London is the capital city of England.</p>
+        <p>It is the most populous city in the United Kingdom, with a metropolitan area of over 13 million inhabitants.</p>
+      </div>
+
+      <div id="Decrypt" class="w3-container tab">
+        <h2>Paris</h2>
+        <p>Paris is the capital of France.</p>
+        <p>The Paris area is one of the largest population centers in Europe, with more than 12 million inhabitants.</p>
+      </div>
+
+      <div id="Gmail" class="w3-container tab">
+        <p id="current_user">Current Gmail user: <span></span></p>
+
+        <p id="info_message"></p>
+
+        <div id="secret_input" hidden>
+            <label>
+                Your secret code:
+                <input type="text" placeholder="Secret Code" id="secret_code">
+            </label>
+        </div>
+        <div id="errors">
+            <p>5 last errors:</p>
+            <ul id="last_errors">
+            </ul>
+            <p>You can also look for errors in the browser developers console (Messages in red.).</p>
+        </div>
+      </div>
+
+      <div id="Misc" class="w3-container tab">
+        <div id="buttons">
+            <input type="button" value="Reset socket connection" class="btn" id="reset_connection_button">
+            <input type="button" value="Renew PGP keys" class="btn" id="renew_pgp_keys" hidden>
+            <input type="button" value="Export Private PGP Key" class="btn" id="exportBtn">
+            <input type="button" value="Import Private PGP Key" class="btn" id="importBtn">
+        </div>
+      </div>
+
+    </div>    
+    
 </div>
 
 <div id="state-export" style="display: none">
