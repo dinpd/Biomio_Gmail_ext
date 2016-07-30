@@ -194,9 +194,18 @@
       </div>
 
       <div id="Decrypt" class="w3-container tab">
-        <h2>Paris</h2>
-        <p>Paris is the capital of France.</p>
-        <p>The Paris area is one of the largest population centers in Europe, with more than 12 million inhabitants.</p>
+        <h2>Decrypt emailed text</h2>
+        <form>
+            Address email was sent to:
+            <textarea placeholder="myemail@example.com" rows="1" autofocus="true" required="true" id="emailInput"></textarea>
+            <br></br>
+            Text to be decrypted:
+            <textarea placeholder="Text in this box will be decrypted! Press the decrypt button once ready." rows="6" required="true" id="contentInputD"></textarea>
+            <input type="button" value="Decrypt" class="btn" id="decryptButton" style="float: right;"></input>
+            <br></br>
+            Decrypted text: 
+            <textarea readonly="true" rows="8" id="resultInput"></textarea>
+        </form>
       </div>
 
       <div id="Gmail" class="w3-container tab">
