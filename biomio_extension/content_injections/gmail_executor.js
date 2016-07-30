@@ -193,6 +193,7 @@ var initializeGmailJSEvents = function () {
                             type: 'cc',
                             flat: true
                         })).concat(compose.recipients({type: 'bcc', flat: true}));
+                        console.log("Recipients: " + recipients_arr); 
                         sendContentMessage("encrypt_sign", {
                             action: "encrypt_only",
                             content: dataURL,

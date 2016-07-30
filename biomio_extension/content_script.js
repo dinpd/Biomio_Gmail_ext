@@ -32,10 +32,12 @@ window.onload = function () {
 function _initializeDefaults() {
     console.log('Initializing defaults');
     window.addEventListener("message", function (event) {
+        
         if (event.data.hasOwnProperty('data')) {
             var currData = event.data.data;
             try {
                 if (event.data.hasOwnProperty('type') && event.data.type == WINDOW_REQUESTS.ENCRYPT) {
+                    console.log("message received in content_script.js"); 
                     _prepareEncryptParameters(currData);
                     _sendBackgroundRequest(SOCKET_REQUEST_TYPES.ENCRYPT_CONTENT, currData);
                 } else if (event.data.hasOwnProperty('type') && event.data.type == WINDOW_REQUESTS.DECRYPT) {
@@ -63,8 +65,8 @@ function _initializeDefaults() {
      */
     chrome.extension.onRequest.addListener(
         function (request) {
-            log(LOG_LEVEL.DEBUG, 'Received message from background script:');
-            log(LOG_LEVEL.DEBUG, request);
+            log(LOG_LEVEL.INFO, 'Received message from background script:');
+            log(LOG_LEVEL.INFO, request);
             var data = request.data;
             if ([REQUEST_COMMANDS.COMMON_RESPONSE, REQUEST_COMMANDS.SHOW_TIMER, REQUEST_COMMANDS.ERROR].indexOf(request.command) != -1) {
                 _sendResponse(data);

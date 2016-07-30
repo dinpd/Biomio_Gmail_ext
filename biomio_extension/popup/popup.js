@@ -244,10 +244,14 @@ var parse_ascii_keyfile = function(data) {
   };
 
   document.addEventListener('DOMContentLoaded', function(){
-    document.getElementById("enc").addEventListener("click", function(){openTab("enc", "Encrypt")});
-    document.getElementById("dec").addEventListener("click", function(){openTab("dec", "Decrypt")});
-    document.getElementById("gm").addEventListener("click", function(){openTab("gm", "Gmail")});
-    document.getElementById("m").addEventListener("click", function(){openTab("m", "Misc")});
+    document.getElementById("enc").addEventListener("click", function(){openTab("enc", "Encrypt");});
+    document.getElementById("dec").addEventListener("click", function(){openTab("dec", "Decrypt");});
+    document.getElementById("gm").addEventListener("click", function(){openTab("gm", "Gmail");});
+    document.getElementById("m").addEventListener("click", function(){openTab("m", "Misc");});
+    document.getElementById("encryptButton").addEventListener("click", function(){encryptText();});
+    document.getElementById("copyButton").addEventListener("click", function() {
+      copyToClipboard(document.getElementById("resultInput"));
+    });
   });
   
   /** Switch tabs when user clicks on a tab **/ 
@@ -266,6 +270,91 @@ var parse_ascii_keyfile = function(data) {
     document.getElementById(tabName).style.display = "block";
     document.getElementById(tabId).className += " w3-orange";
   }
+
+  function encryptText() {
+    document.getElementById("copyAlert").innerHTML = ""; 
+    console.log("entered encrypttext function"); 
+    var typePrefix = 'BIOMIO_';
+    var type = "encrypt_content";
+    var cont = document.getElementById('contentInput').value;
+    var userEmail = document.getElementById('fromInput').value;
+    var recipEmail = document.getElementById('toInput').value.split(' '); 
+    var data = {
+      action: "encrypt_only",
+      content: cont,
+      account_email: userEmail,
+      sender: userEmail,
+      recipients: recipEmail,
+      composeId: "1",
+      encryptObject: 'text'
+    }; 
+    console.log(data); 
+    // chrome.tabs.query({active: true, currentWindow: true}, function(tabs) {
+    //   chrome.tabs.sendMessage(tabs[0].id, {command: typePrefix + type, data: data});  
+    // });
+    chrome.runtime.sendMessage({command: typePrefix + type, data: data}); 
+    chrome.storage.local.get('encrypted_result', function (data) {
+      result = data['encrypted_result'];
+      console.log(result); 
+      document.getElementById('resultInput').value = result;
+    });
+  }
+
+  chrome.storage.onChanged.addListener(function(changes, namespace) {
+     console.log("change recived!");
+  });
+
+  function copyToClipboard(elem) {
+    // create hidden text element, if it doesn't already exist
+    var targetId = "_hiddenCopyText_";
+    var isInput = elem.tagName === "INPUT" || elem.tagName === "TEXTAREA";
+    var origSelectionStart, origSelectionEnd;
+    if (isInput) {
+        // can just use the original source element for the selection and copy
+        target = elem;
+        origSelectionStart = elem.selectionStart;
+        origSelectionEnd = elem.selectionEnd;
+    } else {
+        // must use a temporary form element for the selection and copy
+        target = document.getElementById(targetId);
+        if (!target) {
+            var target = document.createElement("textarea");
+            target.style.position = "absolute";
+            target.style.left = "-9999px";
+            target.style.top = "0";
+            target.id = targetId;
+            document.body.appendChild(target);
+        }
+        target.textContent = elem.textContent;
+    }
+    // select the content
+    var currentFocus = document.activeElement;
+    target.focus();
+    target.setSelectionRange(0, target.value.length);
+    
+    // copy the selection
+    var succeed;
+    try {
+        succeed = document.execCommand("copy");
+    } catch(e) {
+        succeed = false;
+    }
+    // restore original focus
+    if (currentFocus && typeof currentFocus.focus === "function") {
+        currentFocus.focus();
+    }
+    
+    if (isInput) {
+        // restore prior selection
+        elem.setSelectionRange(origSelectionStart, origSelectionEnd);
+    } else {
+        // clear temporary content
+        target.textContent = "";
+    }
+    document.getElementById("copyAlert").innerHTML = "Copied to clipboard. Paste encrypted text in email."
+    return succeed;
+  }
+
 
     /**
    * Shows timer for user. Time that user has to provide a probe from his device.

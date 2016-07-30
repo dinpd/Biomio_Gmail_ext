@@ -157,6 +157,7 @@ PGPInterface.prototype._encryptMessage = function (content, keys, callback, file
     var encrypted_content = this._pgpContext.encryptSign(content, [], keys, []);
     log(LOG_LEVEL.INFO, 'Encryption result:');
     log(LOG_LEVEL.INFO, !encrypted_content.hadError_);
+    log(LOG_LEVEL.INFO, encrypted_content.result_); 
     if (encrypted_content.hadError_) {
         log(LOG_LEVEL.ERROR, encrypted_content.result_.message);
         if (encrypted_content.result_.message.indexOf('No public key nor passphrase') != -1) {
@@ -176,6 +177,7 @@ PGPInterface.prototype._encryptMessage = function (content, keys, callback, file
         if (typeof file_id != 'undefined' && file_id) {
             callback(file_id, encrypted_content.result_);
         } else {
+            chrome.runtime.sendMessage({result: encrypted_content.result_}); 
             callback(encrypted_content.result_);
         }
     }

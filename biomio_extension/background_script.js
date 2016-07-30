@@ -3,6 +3,8 @@ var private_key = "";
 
 chrome.runtime.onMessage.addListener(
     function (request, sender) {
+        log(LOG_LEVEL.INFO, 'Into proper background function');
+        log(LOG_LEVEL.INFO, sender);
         if (request.command == 'biomio_reset_server_connection') {
             log(LOG_LEVEL.DEBUG, 'Resetting server connection.');
             for (var instance in connected_instances) {
@@ -14,13 +16,22 @@ chrome.runtime.onMessage.addListener(
         } else if (request.command == SOCKET_REQUEST_TYPES.PERSIST_GMAIL_USER) {
             chrome.storage.local.set(request.data);
         } else {
-            log(LOG_LEVEL.DEBUG, 'Received request from content script:');
-            log(LOG_LEVEL.DEBUG, request);
-            if (request.data.hasOwnProperty('account_email')) {
+            log(LOG_LEVEL.INFO, 'Received request from content script :');
+            log(LOG_LEVEL.INFO, request);
+            var id = 6260;
+            if (request.hasOwnProperty('result')) {
+                log(LOG_LEVEL.INFO, "Final branch of if statement");
+                chrome.storage.local.set({encrypted_result: request.result});
+            }
+            else if (request.data.hasOwnProperty('account_email')) {
+                log(LOG_LEVEL.INFO, "Entered first if statement");
                 var account_email = _prepare_email(request.data['account_email']);
-                var instance_key = account_email + '_' + sender.tab.id;
+                if (sender.tab) {
+                    id = sender.tab.id; 
+                }
+                var instance_key = account_email + '_' + id;
                 if (!(instance_key in connected_instances) || connected_instances[instance_key].is_finished()) {
-                    connected_instances[instance_key] = new ClientInterface(account_email, sender.tab.id,
+                    connected_instances[instance_key] = new ClientInterface(account_email, id,
                         _interface_ready_callback(instance_key, request));
                     connected_instances[instance_key].initialize_interface(true);
                 } else {
@@ -56,6 +67,7 @@ function _interface_ready_callback(instance_key, request) {
             //    session_info.export_key_required = false;
             //}
             else if (request.command == SOCKET_REQUEST_TYPES.ENCRYPT_CONTENT) {
+                log(LOG_LEVEL.INFO, "Entered background script"); 
                 var recipients = request.data.recipients;
                 var account_email = request.data['account_email'];
                 if (recipients.indexOf(account_email) == -1 && recipients.indexOf('<' + account_email + '>') == -1) {

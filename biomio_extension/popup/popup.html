@@ -17,6 +17,16 @@
             display:none;
         }
 
+        form{
+            font-size: 12px;
+            width: 500px;
+            overflow: hidden;
+        }
+
+        textarea{
+            width: 100%
+        }
+
         #errors {
             text-overflow: ellipsis;
             overflow: hidden;
@@ -67,32 +77,46 @@
             color: #ffffff;
             cursor: pointer;
         }*/
-        .btn {
-          background: #f0a00c;
-          background-image: -webkit-linear-gradient(top, #f0a00c, #d48911);
-          background-image: -moz-linear-gradient(top, #f0a00c, #d48911);
-          background-image: -ms-linear-gradient(top, #f0a00c, #d48911);
-          background-image: -o-linear-gradient(top, #f0a00c, #d48911);
-          background-image: linear-gradient(to bottom, #f0a00c, #d48911);
-          -webkit-border-radius: 28;
-          -moz-border-radius: 28;
-          border-radius: 28px;
-          font-family: Roboto;
-          color: #ffffff;
-          font-size: 20px;
-          padding: 10px 20px 10px 20px;
-          cursor: pointer;
-          text-decoration: none;
-        }
 
+        .btn {
+            -moz-box-shadow:inset 0px 0px 0px 0px #f9eca0;
+            -webkit-box-shadow:inset 0px 0px 0px 0px #f9eca0;
+            box-shadow:inset 0px 0px 0px 0px #f9eca0;
+            background:-webkit-gradient(linear, left top, left bottom, color-stop(0.05, #f0c911), color-stop(1, #f2ab1e));
+            background:-moz-linear-gradient(top, #f0c911 5%, #f2ab1e 100%);
+            background:-webkit-linear-gradient(top, #f0c911 5%, #f2ab1e 100%);
+            background:-o-linear-gradient(top, #f0c911 5%, #f2ab1e 100%);
+            background:-ms-linear-gradient(top, #f0c911 5%, #f2ab1e 100%);
+            background:linear-gradient(to bottom, #f0c911 5%, #f2ab1e 100%);
+            filter:progid:DXImageTransform.Microsoft.gradient(startColorstr='#f0c911', endColorstr='#f2ab1e',GradientType=0);
+            background-color:#f0c911;
+            -moz-border-radius:7px;
+            -webkit-border-radius:7px;
+            border-radius:7px;
+            border:1px solid #e65f44;
+            display:inline-block;
+            cursor:pointer;
+            color:#c92200;
+            font-family:Verdana;
+            font-size:15px;
+            font-weight:bold;
+            padding:4px 12px;
+            text-decoration:none;
+            text-shadow:0px 1px 0px #ded17c;
+        }  
         .btn:hover {
-          background: #f7bb43;
-          background-image: -webkit-linear-gradient(top, #f7bb43, #cf8d32);
-          background-image: -moz-linear-gradient(top, #f7bb43, #cf8d32);
-          background-image: -ms-linear-gradient(top, #f7bb43, #cf8d32);
-          background-image: -o-linear-gradient(top, #f7bb43, #cf8d32);
-          background-image: linear-gradient(to bottom, #f7bb43, #cf8d32);
-          text-decoration: none;
+            background:-webkit-gradient(linear, left top, left bottom, color-stop(0.05, #f2ab1e), color-stop(1, #f0c911));
+            background:-moz-linear-gradient(top, #f2ab1e 5%, #f0c911 100%);
+            background:-webkit-linear-gradient(top, #f2ab1e 5%, #f0c911 100%);
+            background:-o-linear-gradient(top, #f2ab1e 5%, #f0c911 100%);
+            background:-ms-linear-gradient(top, #f2ab1e 5%, #f0c911 100%);
+            background:linear-gradient(to bottom, #f2ab1e 5%, #f0c911 100%);
+            filter:progid:DXImageTransform.Microsoft.gradient(startColorstr='#f2ab1e', endColorstr='#f0c911',GradientType=0);
+            background-color:#f2ab1e;
+        }
+        .btn:active {
+            position:relative;
+            top:1px;
         }
 
         #registerBtn {
@@ -150,9 +174,23 @@
       <div class="w3-padding">BIOMIO</div>
 
       <div id="Encrypt" class="w3-container tab">
-        <h2>London</h2>
-        <p>London is the capital city of England.</p>
-        <p>It is the most populous city in the United Kingdom, with a metropolitan area of over 13 million inhabitants.</p>
+        <h2>Encrypt the text you email to others</h2>
+        <form>
+            From:
+            <textarea placeholder="myemail@example.com" rows="1" autofocus="true" required="true" id="fromInput"></textarea>
+            <br></br>
+            To (separate emails with spaces):
+            <textarea placeholder="email1@yahoo.com email2@gmail.com" required="true" id="toInput"></textarea>
+            <br></br>
+            Text to be encrypted:
+            <textarea placeholder="Text in this box will be encrypted! Press the encrypt button once ready." rows="4" required="true" id="contentInput"></textarea>
+            <input type="button" value="Encrypt" class="btn" id="encryptButton" style="float: right;"></input>
+            <br></br>
+            Encrypted text: 
+            <textarea readonly="true" rows="6" id="resultInput" style="font-size: 6pt"></textarea>
+            <input type="button" value="Copy" class="btn" id="copyButton" style="float: right;"></input>
+            <p id="copyAlert"></p>
+        </form>
       </div>
 
       <div id="Decrypt" class="w3-container tab">
@@ -182,10 +220,14 @@
 
       <div id="Misc" class="w3-container tab">
         <div id="buttons">
-            <input type="button" value="Reset socket connection" class="btn" id="reset_connection_button">
-            <input type="button" value="Renew PGP keys" class="btn" id="renew_pgp_keys" hidden>
             <input type="button" value="Export Private PGP Key" class="btn" id="exportBtn">
+            <br></br>
+            <input type="button" value="Renew PGP keys" class="btn" id="renew_pgp_keys" hidden>
+            <br></br>
             <input type="button" value="Import Private PGP Key" class="btn" id="importBtn">
+            <br></br>
+            <input type="button" value="Reset socket connection" class="btn" id="reset_connection_button">
+            
         </div>
       </div>
 
