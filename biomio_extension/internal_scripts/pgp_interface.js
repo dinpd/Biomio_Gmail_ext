@@ -246,7 +246,7 @@ PGPInterface.prototype.decrypt_data = function (data, keys_data, results_callbac
     this._import_keys(keys_data);
     log(LOG_LEVEL.INFO, 'Starting decryption process.');
     log(LOG_LEVEL.DEBUG, 'Data for decryption:');
-    log(LOG_LEVEL.DEBUG, data);
+    log(LOG_LEVEL.INFO, data);
     var emailParts = data.content.split(EMAIL_PARTS_SEPARATOR);
     firstPart = "-----BEGIN PGP MESSAGE-----" + emailParts[0].split("-----BEGIN PGP MESSAGE-----")[1];
     var self = this;
@@ -351,6 +351,7 @@ PGPInterface.prototype._decryptMessage = function (content, keys_data, callbackF
     } else {
         decryptedText = decryptedText.result_.decrypt;
         decryptedText = e2e.byteArrayToStringAsync(decryptedText.data, decryptedText.options.charset);
+        chrome.runtime.sendMessage({decryptedResult: decryptedText.result_}); 
         if (callbackFunction) {
             callbackFunction(decryptedText.result_);
         } else {

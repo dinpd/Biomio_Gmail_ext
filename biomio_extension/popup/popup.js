@@ -252,6 +252,7 @@ var parse_ascii_keyfile = function(data) {
     document.getElementById("copyButton").addEventListener("click", function() {
       copyToClipboard(document.getElementById("resultInput"));
     });
+    document.getElementById("decryptButton").addEventListener("click", function(){decryptText();});
   });
   
   /** Switch tabs when user clicks on a tab **/ 
@@ -302,7 +303,28 @@ var parse_ascii_keyfile = function(data) {
 
   chrome.storage.onChanged.addListener(function(changes, namespace) {
      console.log("change recived!");
+     console.log(changes["decrypted_result"]); 
+     if (changes.hasOwnProperty('decrypted_result')) {
+      document.getElementById('resultDecrypt').value = changes['decrypted_result'].newValue.decryptedResult; 
+      document.getElementById('decryptAlert').innerHTML = ""; 
+     } 
   });
+
+  function decryptText(){
+    var typePrefix = 'BIOMIO_';
+    var type = "decrypt_content";
+    var cont = document.getElementById('contentInputD').value;
+    var userEmail = document.getElementById('emailInput').value;
+    var data = {
+      action: "decrypt_verify",
+      content: cont,
+      own_sent_email: false,
+      account_email: userEmail
+    };
+    // send message to background script
+    chrome.runtime.sendMessage({command: typePrefix + type, data: data}); 
+    document.getElementById('decryptAlert').innerHTML = "Please open the Biomio app to provide a probe for authentication within the next 5 minutes."; 
+  }
 
   function copyToClipboard(elem) {
     // create hidden text element, if it doesn't already exist

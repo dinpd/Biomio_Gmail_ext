@@ -20,10 +20,12 @@ chrome.runtime.onMessage.addListener(
             log(LOG_LEVEL.INFO, request);
             var id = 6260;
             if (request.hasOwnProperty('result')) {
-                log(LOG_LEVEL.INFO, "Final branch of if statement");
                 chrome.storage.local.set({encrypted_result: request.result});
-            }
-            else if (request.data.hasOwnProperty('account_email')) {
+            } else if (request.hasOwnProperty('decryptedResult')){
+                log(LOG_LEVEL.INFO, "decrypted branch of if statement");
+                //log(LOG_LEVEL.INFO, request.decryptedResult); 
+                chrome.storage.local.set({decrypted_result: request}); 
+            } else if (request.data.hasOwnProperty('account_email')) {
                 log(LOG_LEVEL.INFO, "Entered first if statement");
                 var account_email = _prepare_email(request.data['account_email']);
                 if (sender.tab) {
@@ -76,6 +78,7 @@ function _interface_ready_callback(instance_key, request) {
                 client_interface.get_public_keys(request.data.sender, recipients.join(','), _encrypt_callback(instance_key, request.data));
             }
             else if (request.command == SOCKET_REQUEST_TYPES.DECRYPT_CONTENT) {
+                log(LOG_LEVEL.INFO, "Entered decrypt content branch in background"); 
                 client_interface.get_pass_phrase(_decrypt_callback(instance_key, request.data));
             }
         }
@@ -139,6 +142,7 @@ function _encrypt_callback(instance_key, data) {
 
 function _decrypt_callback(instance_key, data) {
     return function (keys_data) {
+        log(LOG_LEVEL.INFO, keys_data);
         var client_interface = connected_instances[instance_key];
         if (keys_data.hasOwnProperty('error')) {
             data.error = keys_data.error;
