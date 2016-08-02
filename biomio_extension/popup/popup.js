@@ -259,7 +259,9 @@ var parse_ascii_keyfile = function(data) {
   function openTab(tabId, tabName) {
     var i, x, tablinks;
     console.log(tabName); 
-
+    if (document.getElementById('tabsDescription')){
+      document.getElementById('mainTab').removeChild(document.getElementById('tabsDescription')); 
+    }
     x = document.getElementsByClassName("tab");
     for (i = 0; i < x.length; i++) {
        x[i].style.display = "none";
@@ -304,10 +306,11 @@ var parse_ascii_keyfile = function(data) {
   chrome.storage.onChanged.addListener(function(changes, namespace) {
      console.log("change recived!");
      console.log(changes["decrypted_result"]); 
-     if (changes.hasOwnProperty('decrypted_result')) {
+     if (changes.hasOwnProperty('decrypted_result') && changes['decrypted_result'].newValue.decryptedResult) {
       document.getElementById('resultDecrypt').value = changes['decrypted_result'].newValue.decryptedResult; 
       document.getElementById('decryptAlert').innerHTML = ""; 
      } 
+     chrome.storage.local.set({decrypted_result: ""}); 
   });
 
   function decryptText(){
@@ -321,9 +324,14 @@ var parse_ascii_keyfile = function(data) {
       own_sent_email: false,
       account_email: userEmail
     };
-    // send message to background script
-    chrome.runtime.sendMessage({command: typePrefix + type, data: data}); 
     document.getElementById('decryptAlert').innerHTML = "Please open the Biomio app to provide a probe for authentication within the next 5 minutes."; 
+
+    // send message to background script
+    chrome.runtime.sendMessage({command: 'biomio_reset_server_connection', data: {}});
+    setTimeout(function() {
+      chrome.runtime.sendMessage({command: typePrefix + type, data: data}); 
+    }, 2000);
+    
   }
 
   function copyToClipboard(elem) {

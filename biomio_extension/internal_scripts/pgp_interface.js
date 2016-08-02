@@ -246,11 +246,13 @@ PGPInterface.prototype.decrypt_data = function (data, keys_data, results_callbac
     this._import_keys(keys_data);
     log(LOG_LEVEL.INFO, 'Starting decryption process.');
     log(LOG_LEVEL.DEBUG, 'Data for decryption:');
-    log(LOG_LEVEL.INFO, data);
+    //log(LOG_LEVEL.INFO, data);
     var emailParts = data.content.split(EMAIL_PARTS_SEPARATOR);
-    firstPart = "-----BEGIN PGP MESSAGE-----" + emailParts[0].split("-----BEGIN PGP MESSAGE-----")[1];
+    mainPart = "-----BEGIN PGP MESSAGE-----" + emailParts[0].split("-----BEGIN PGP MESSAGE-----")[1];
+    mainPart = mainPart.split("-----END PGP MESSAGE-----")[0] + "-----END PGP MESSAGE-----";
+    log(LOG_LEVEL.INFO, mainPart);  
     var self = this;
-    this._decryptMessage(firstPart, keys_data, function (result, error) {
+    this._decryptMessage(mainPart, keys_data, function (result, error) {
         if (typeof error != "undefined" && error.length > 0) {
             self._results_callback({error: error}, true);
         } else {
