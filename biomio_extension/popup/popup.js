@@ -280,8 +280,24 @@ var parse_ascii_keyfile = function(data) {
     var typePrefix = 'BIOMIO_';
     var type = "encrypt_content";
     var cont = document.getElementById('contentInput').value;
-    var userEmail = document.getElementById('fromInput').value;
-    var recipEmail = document.getElementById('toInput').value.split(' '); 
+    var userEmail = document.getElementById('fromInput').value.trim();
+    var recipEmail = document.getElementById('toInput').value.trim().split(','); 
+    console.log(recipEmail); 
+    var errorAlert = document.getElementById('errorAlert');
+    if (!validateEmail(userEmail)) {
+      document.getElementById('fromInput').focus(); 
+      errorAlert.innerHTML = "Please only enter one valid email in the FROM box"; 
+      return;
+    }
+    for (i = 0; i < recipEmail.length; i++) {
+      recipEmail[i] = recipEmail[i].trim();
+      if (!validateEmail(recipEmail[i])) {
+        document.getElementById('toInput').focus();
+        errorAlert.innerHTML = "In the TO box, remember to only use commas to separate emails. Ensure every email is valid."; 
+        return; 
+      }
+    }
+    errorAlert.innerHTML = ""; 
     var data = {
       action: "encrypt_only",
       content: cont,
@@ -318,6 +334,18 @@ var parse_ascii_keyfile = function(data) {
     var type = "decrypt_content";
     var cont = document.getElementById('contentInputD').value;
     var userEmail = document.getElementById('emailInput').value;
+    var errorAlert = document.getElementById('decryptErrorAlert');
+    if (!validateEmail(userEmail)) {
+      document.getElementById('emailInput').focus(); 
+      errorAlert.innerHTML = "Please only enter one valid email in the FROM box"; 
+      return;
+    }
+    if (!validateDecryptBox(cont)) {
+      document.getElementById("contentInputD").focus();
+      errorAlert.innerHTML = "Please ensure that the input in the decrypt box has the proper header (-----BEGIN PGP MESSAGE-----) and footer (-----END PGP MESSAGE-----).";
+      return; 
+    }
+    errorAlert.innerHTML = ""; 
     var data = {
       action: "decrypt_verify",
       content: cont,
@@ -383,6 +411,15 @@ var parse_ascii_keyfile = function(data) {
     }
     document.getElementById("copyAlert").innerHTML = "Copied to clipboard. Paste encrypted text in email."
     return succeed;
+  }
+
+  function validateEmail(email) {
+    var re = /^(([^<>()\[\]\\.,;:\s@"]+(\.[^<>()\[\]\\.,;:\s@"]+)*)|(".+"))@((\[[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}])|(([a-zA-Z\-0-9]+\.)+[a-zA-Z]{2,}))$/;
+    return re.test(email);
+  }
+
+  function validateDecryptBox(cont) {
+    return cont.indexOf("-----BEGIN PGP MESSAGE-----") !== -1 && cont.indexOf("-----END PGP MESSAGE-----") !== -1; 
   }
 
 
