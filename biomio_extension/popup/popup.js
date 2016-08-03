@@ -323,7 +323,7 @@ var parse_ascii_keyfile = function(data) {
      console.log("change recived!");
      console.log(changes["decrypted_result"]); 
      if (changes.hasOwnProperty('decrypted_result') && changes['decrypted_result'].newValue.decryptedResult) {
-      document.getElementById('resultDecrypt').value = changes['decrypted_result'].newValue.decryptedResult; 
+      document.getElementById('resultDecrypt').innerHTML = changes['decrypted_result'].newValue.decryptedResult; 
       document.getElementById('decryptAlert').innerHTML = ""; 
      } 
      chrome.storage.local.set({decrypted_result: ""}); 

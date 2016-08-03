@@ -170,11 +170,11 @@
       <a href="#" id="m" class="tablink">Misc</a>
     </nav>
 
-    <div id="mainTab" style="margin-left:130px">
-      <div class="w3-padding">BIOMIO</div>
-      <p class="w3-padding" id="tabsDescription">Gmail users, simply open up your email account and encrypt / decrypt emails directly through the gmail interface. <br/></br> Non gmail users, use the encrypt and decrypt tabs in this popup. <br/><br/> All users, click on the misc tab to import / export your keys (do this anytime you delete the extension) and to reset socket connections.</p> 
+    <div id="mainTab" class="w3-padding" style="margin-left:130px">
+      <div>BIOMIO</div>
+      <p id="tabsDescription">Gmail users, simply open up your email account and encrypt / decrypt emails directly through the gmail interface. <br/></br> Non gmail users, use the encrypt and decrypt tabs in this popup. <br/><br/> All users, click on the misc tab to import / export your keys (do this anytime you delete the extension) and to reset socket connections.</p> 
 
-      <div id="Encrypt" class="w3-container tab">
+      <div id="Encrypt" class="tab">
         <h2>Encrypt the text you email to others</h2>
         <form>
             From:
@@ -195,7 +195,7 @@
         </form>
       </div>
 
-      <div id="Decrypt" class="w3-container tab">
+      <div id="Decrypt" class="tab">
         <h2>Decrypt emailed text</h2>
         <form>
             Address email was sent to:
@@ -212,7 +212,7 @@ BUCtDe2jYpTcsf2q68npc5nysjvkJg63Foo=
             <input type="button" value="Decrypt" class="btn" id="decryptButton" style="float: right;"></input>
             <br></br>
             Decrypted text: 
-            <textarea readonly="true" rows="8" id="resultDecrypt"></textarea>
+            <p id="resultDecrypt" style="height:100px;overflow-y:auto"></div>
             <p id="decryptAlert"></p>
             <p id="decryptErrorAlert" style="color: red"></p> 
         </form>
