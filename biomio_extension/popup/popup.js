@@ -325,6 +325,8 @@ var parse_ascii_keyfile = function(data) {
      if (changes.hasOwnProperty('decrypted_result') && changes['decrypted_result'].newValue.decryptedResult) {
       document.getElementById('resultDecrypt').innerHTML = changes['decrypted_result'].newValue.decryptedResult; 
       document.getElementById('decryptAlert').innerHTML = ""; 
+      clearInterval(showTimer); 
+      document.getElementById('decrypt_timer').innerHTML = ""; 
      } 
      chrome.storage.local.set({decrypted_result: ""}); 
   });
@@ -354,6 +356,7 @@ var parse_ascii_keyfile = function(data) {
     };
     document.getElementById('decryptAlert').innerHTML = "Please open the Biomio app to provide a probe for authentication within the next 5 minutes."; 
 
+    calculateTime(); 
     // send message to background script
     chrome.runtime.sendMessage({command: 'biomio_reset_server_connection', data: {}});
     setTimeout(function() {
