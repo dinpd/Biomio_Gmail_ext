@@ -212,13 +212,13 @@ BUCtDe2jYpTcsf2q68npc5nysjvkJg63Foo=
             <input type="button" value="Decrypt" class="btn" id="decryptButton" style="float: right;"></input>
             <br></br>
             Decrypted text: 
-            <p id="resultDecrypt" style="height:100px;overflow-y:auto"></div>
+            <p id="resultDecrypt" style="height:100px;overflow-y:auto"></p>
             <p id="decryptAlert"></p>
             <p id="decryptErrorAlert" style="color: red"></p> 
         </form>
       </div>
 
-      <div id="Gmail" class="w3-container tab">
+      <div id="Gmail" class="tab">
         <p id="current_user">Current Gmail user: <span></span></p>
 
         <p id="info_message"></p>
@@ -237,14 +237,15 @@ BUCtDe2jYpTcsf2q68npc5nysjvkJg63Foo=
         </div>
       </div>
 
-      <div id="Misc" class="w3-container tab">
+      <div id="Misc" class="tab">
         <div id="buttons">
+            <p>If you are about to delete the extension, export the keys in case you need to redownload the extension later.</p>
             <input type="button" value="Export Private PGP Key" class="btn" id="exportBtn">
-            <br></br>
-            <input type="button" value="Renew PGP keys" class="btn" id="renew_pgp_keys" hidden>
-            <br></br>
+            <p>If you've just redownloaded the extension, import the old keys.</p>
             <input type="button" value="Import Private PGP Key" class="btn" id="importBtn">
-            <br></br>
+            <p>Renew PGP keys.</p>
+            <input type="button" value="Renew PGP keys" class="btn" id="renew_pgp_keys" hidden>
+            <p>If the phone app isn't displaying any probes, try resetting the socket connection.</p> 
             <input type="button" value="Reset socket connection" class="btn" id="reset_connection_button">
             
         </div>
