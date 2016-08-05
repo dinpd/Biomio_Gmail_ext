@@ -312,23 +312,27 @@ var parse_ascii_keyfile = function(data) {
     //   chrome.tabs.sendMessage(tabs[0].id, {command: typePrefix + type, data: data});  
     // });
     chrome.runtime.sendMessage({command: typePrefix + type, data: data}); 
-    chrome.storage.local.get('encrypted_result', function (data) {
-      result = data['encrypted_result'];
-      console.log(result); 
-      document.getElementById('resultInput').value = result;
-    });
+    // chrome.storage.local.get('encrypted_result', function (data) {
+    //   result = data['encrypted_result'];
+    //   console.log(result); 
+    //   document.getElementById('resultInput').value = result;
+    // });
   }
 
   chrome.storage.onChanged.addListener(function(changes, namespace) {
      console.log("change recived!");
-     console.log(changes["decrypted_result"]); 
+     console.log(changes["encrypted_result"]); 
      if (changes.hasOwnProperty('decrypted_result') && changes['decrypted_result'].newValue.decryptedResult) {
       document.getElementById('resultDecrypt').innerHTML = changes['decrypted_result'].newValue.decryptedResult; 
       document.getElementById('decryptAlert').innerHTML = ""; 
       clearInterval(showTimer); 
       document.getElementById('decrypt_timer').innerHTML = ""; 
-     } 
-     chrome.storage.local.set({decrypted_result: ""}); 
+      chrome.storage.local.set({decrypted_result: ""});
+     } else if (changes.hasOwnProperty('encrypted_result') && changes['encrypted_result'].newValue) {
+        document.getElementById('resultInput').value = changes['encrypted_result'].newValue;
+        chrome.storage.local.set({encrypted_result: ""}); 
+     }
+      
   });
 
   function decryptText(){

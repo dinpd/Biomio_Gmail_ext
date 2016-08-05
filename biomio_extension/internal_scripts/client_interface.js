@@ -438,9 +438,9 @@ ClientInterface.prototype.import_key = function (keys_data, response_callback) {
 ClientInterface.prototype._pgp_callback = function () {
     var self = this;
     return function (result, finished) {
-        log(LOG_LEVEL.DEBUG, 'PGP interface finished: ' + finished);
-        log(LOG_LEVEL.DEBUG, 'PGP interface result:');
-        log(LOG_LEVEL.DEBUG, result);
+        log(LOG_LEVEL.INFO, 'PGP interface finished: ' + finished);
+        log(LOG_LEVEL.INFO, 'PGP interface result:');
+        log(LOG_LEVEL.INFO, result);
         if (finished) {
             self._state_machine['_ready']('Encryption/Decryption finished with result: ' + result, self);
         }

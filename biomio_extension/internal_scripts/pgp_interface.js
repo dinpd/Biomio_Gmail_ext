@@ -270,7 +270,9 @@ PGPInterface.prototype.decrypt_data = function (data, keys_data, results_callbac
                     current_data: data
                 };
                 for (var i = 1; i < emailParts.length; i++) {
-                    self._decryptFile(emailParts[i], keys_data, data.biomio_attr, self._decrypt_file_callback());
+                    var tarPart = "-----BEGIN PGP MESSAGE-----" + emailParts[i].split("-----BEGIN PGP MESSAGE-----")[1];
+                    tarPart = tarPart.split("-----END PGP MESSAGE-----")[0] + "-----END PGP MESSAGE-----";
+                    self._decryptFile(tarPart, keys_data, data.biomio_attr, self._decrypt_file_callback());
                 }
             } else {
                 self._results_callback(data, true);

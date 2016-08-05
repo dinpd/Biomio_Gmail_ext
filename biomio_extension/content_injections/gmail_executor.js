@@ -781,6 +781,7 @@ window.addEventListener("message", function (event) {
                         delete compose_email_errors[compose.id()];
                     }
                     triggerSendButton(compose);
+
                     if (show_message) {
                         showHideInfoPopup(ENCRYPT_SUCCESS_MESSAGE, true);
                     }
@@ -788,12 +789,16 @@ window.addEventListener("message", function (event) {
                 }
             }
         }
+        
     } else if (data.hasOwnProperty('completedAction') && data['completedAction'] == "decrypt_verify") {
         var emailBody = $('div[data-biomio="' + data['biomio_attr'] + '"]');
         if (emailBody) {
             emailBody.html(data['content']);
             if (data.hasOwnProperty('decryptedFiles')) {
                 var decryptedFiles = data['decryptedFiles'];
+                console.log("Final content from gmail_executor"); 
+                console.log(data['content']);
+                console.log(data['decryptedFiles']);
                 emailBody.html(emailBody.html() + '<br><p>Email Attachments</p>');
                 for (var i = 0; i < decryptedFiles.length; i++) {
                     updateDecryptedAttachmentsList(emailBody, emailBody.html(), decryptedFiles[i]);
